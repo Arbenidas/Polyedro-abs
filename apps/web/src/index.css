@@ -1,1 +1,107 @@
 @import "@Polyedro-abs/ui/globals.css";
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #f4f2ec;
+}
+
+/* ---- Polyedro Labs neobrutalist system ---- */
+
+@keyframes pv-bar {
+  0%,
+  100% {
+    transform: scaleY(0.25);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes pv-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes pv-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pv-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes pv-spin {
+  0% {
+    transform: rotate(45deg);
+  }
+  100% {
+    transform: rotate(405deg);
+  }
+}
+
+@keyframes pv-spin0 {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.lab-root input:focus,
+.lab-root textarea:focus {
+  outline: 3px solid #0a0a0a;
+  outline-offset: 0;
+}
+
+/* Hard-shadow button that presses into place on hover/active.
+   --sx sets the shadow offset, --sc the shadow color. */
+.nb-press {
+  --sx: 4px;
+  --sc: #0a0a0a;
+  box-shadow: var(--sx) var(--sx) 0 var(--sc);
+  transition:
+    transform 0.08s,
+    box-shadow 0.08s;
+}
+.nb-press:hover:enabled,
+a.nb-press:hover {
+  transform: translate(calc(var(--sx) / 2), calc(var(--sx) / 2));
+  box-shadow: calc(var(--sx) / 2) calc(var(--sx) / 2) 0 var(--sc);
+}
+.nb-press:active:enabled,
+a.nb-press:active {
+  transform: translate(var(--sx), var(--sx));
+  box-shadow: 0 0 0 var(--sc);
+}
+
+/* Flat hover fills (design's style-hover swaps) */
+.hov-accent:hover:enabled {
+  background: #c6f432 !important;
+}
+.hov-sun:hover:enabled {
+  background: #ffd02f !important;
+}
+.hov-paper:hover {
+  background: #f4f2ec !important;
+}
