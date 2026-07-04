@@ -1,7 +1,11 @@
+import {
+  type GeneratedImage,
+  generateFalImage,
+  isFalConfigured,
+} from "@/api/services/fal";
 import { ApiError, requireOne } from "@/api/shared";
 import { db } from "@/db";
 import { campaigns, creativeAssets } from "@/db/schema";
-import { env } from "@Polyedro-abs/env/server";
 import { and, eq } from "drizzle-orm";
 
 /** Creative Agent — genera creativos estáticos 1080×1080 para Meta Ads con
@@ -24,15 +28,6 @@ type CreativeContext = {
     keyMessages: { es: string[]; en: string[] } | null;
   } | null;
   strategy: { commercialAngle: string | null } | null;
-};
-
-type GeneratedImage = {
-  url: string;
-  provider: "fal.ai" | "placeholder";
-  model?: string;
-  seed?: number;
-  width: number;
-  height: number;
 };
 
 const loadCreativeContext = async (campaignId: string): Promise<CreativeContext> => {
@@ -123,74 +118,16 @@ const buildPlaceholderImage = (context: CreativeContext, variant: Variant): Gene
   };
 };
 
-type FalImageResponse = {
-  images?: { url?: string; width?: number; height?: number }[];
-  seed?: number;
-};
-
-const FAL_REQUEST_TIMEOUT_MS = 120_000;
-
-/** Errores transitorios en los que fal recomienda reintentar del lado cliente
- *  (las llamadas síncronas a fal.run no tienen retries del lado del server). */
-const TRANSIENT_STATUSES = new Set([408, 502, 503, 504]);
-
-const requestFalImage = async (falKey: string, prompt: string) =>
-  fetch(`https://fal.run/${env.FAL_IMAGE_MODEL}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Key ${falKey}`,
-      "Content-Type": "application/json",
-      // Sin esto los archivos del CDN de fal pueden expirar y las imageUrl
-      // guardadas en creative_assets quedarían rotas.
-      "X-Fal-Object-Lifecycle-Preference": JSON.stringify({
-        expiration_duration_seconds: null,
-      }),
-    },
-    body: JSON.stringify({
-      prompt,
-      image_size: { width: IMAGE_WIDTH, height: IMAGE_HEIGHT },
-      num_images: 1,
-      output_format: "jpeg",
-      enable_safety_checker: true,
-    }),
-    signal: AbortSignal.timeout(FAL_REQUEST_TIMEOUT_MS),
-  });
-
 const generateImage = async (
   context: CreativeContext,
   variant: Variant,
   prompt: string,
 ): Promise<GeneratedImage> => {
-  if (!env.FAL_KEY) {
+  if (!isFalConfigured()) {
     return buildPlaceholderImage(context, variant);
   }
 
-  let response = await requestFalImage(env.FAL_KEY, prompt);
-
-  if (TRANSIENT_STATUSES.has(response.status)) {
-    response = await requestFalImage(env.FAL_KEY, prompt);
-  }
-
-  if (!response.ok) {
-    const detail = await response.text().catch(() => undefined);
-    throw new ApiError(500, `Fal.ai image generation failed (${response.status})`, detail);
-  }
-
-  const data = (await response.json()) as FalImageResponse;
-  const image = data.images?.[0];
-
-  if (!image?.url) {
-    throw new ApiError(500, "Fal.ai returned no image", data);
-  }
-
-  return {
-    url: image.url,
-    provider: "fal.ai",
-    model: env.FAL_IMAGE_MODEL,
-    seed: data.seed,
-    width: image.width ?? IMAGE_WIDTH,
-    height: image.height ?? IMAGE_HEIGHT,
-  };
+  return generateFalImage({ prompt, width: IMAGE_WIDTH, height: IMAGE_HEIGHT });
 };
 
 const buildMetadata = (image: GeneratedImage) => ({
