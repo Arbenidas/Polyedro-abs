@@ -10,6 +10,10 @@ export const env = createEnv({
     DIRECT_URL: z.url().optional(),
     SUPABASE_URL: z.url(),
     SUPABASE_ANON_KEY: z.string().min(1),
+    /** Fal.ai API key para el Creative Agent; sin ella se generan placeholders. */
+    FAL_KEY: z.string().min(1).optional(),
+    /** Endpoint de modelo en Fal.ai usado para creativos (texto → imagen). */
+    FAL_IMAGE_MODEL: z.string().min(1).default("fal-ai/flux-2"),
   },
   runtimeEnv: process.env,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

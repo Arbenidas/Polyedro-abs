@@ -147,6 +147,18 @@ Crea una campaña en estado `draft` para una marca existente.
 
 **Errores**: `400` si falta algún campo; `404` si `brandId` no existe.
 
+### `POST /api/campaigns/:campaignId/agents/creative`
+
+Corre el Creative Agent: genera los creativos estáticos 1080×1080 de la campaña (variantes `a` y `b` en paralelo) con Flux vía Fal.ai y los guarda en `creative_assets` (`imageUrl`, `prompt`, `altText`, `metadata`) con estado `review`. Si ya existen creativos para una variante, los regenera en la misma fila. El prompt se construye con el brand kit (paleta, estilo visual, mensajes clave), el objetivo de la campaña y el ángulo comercial de la estrategia; cada variante usa una dirección visual distinta (A: hero de producto, B: layout tipográfico de beneficio).
+
+**Variables de entorno**: `FAL_KEY` (API key de [fal.ai](https://fal.ai)) y `FAL_IMAGE_MODEL` (default `fal-ai/flux-2`). Sin `FAL_KEY`, el agente genera imágenes placeholder (`placehold.co` con el color primario de la marca) y lo marca en `metadata.provider = "placeholder"` para que la demo no se rompa.
+
+**Notas de integración**: se usa el endpoint síncrono `fal.run` (suficiente para 2 imágenes por campaña; migrar a la queue de fal cuando llegue el pipeline SSE de F4). Las requests envían `X-Fal-Object-Lifecycle-Preference: {"expiration_duration_seconds": null}` para que las URLs del CDN de fal no expiren (sin esto los archivos pueden borrarse y las `imageUrl` guardadas quedarían rotas), tienen timeout de 120s y un retry ante errores transitorios (408/502/503/504).
+
+**Respuesta `201`**: `{ "assets": [ { "...": "filas de creative_assets actualizadas" } ], "failures": ["mensajes de error de variantes fallidas"] }`
+
+**Errores**: `404` si la campaña no existe; `500` si ninguna variante pudo generarse (con `details.failures`).
+
 ### `POST /api/campaigns/:campaignId/approve`
 
 Aprueba un asset puntual de la campaña. Si al aprobar quedan todos los bloques de progreso aprobados, la campaña pasa a `ready_to_publish` (si no, a `review`).
@@ -159,7 +171,7 @@ Aprueba un asset puntual de la campaña. Si al aprobar quedan todos los bloques 
 
 ### `POST /api/campaigns/:campaignId/regenerate`
 
-Regenera un asset puntual (hoy con contenido demo fijo por `target`, no una llamada real a IA; ver F4 en `features.md`). Deja ese asset en `review` y la campaña en `review`.
+Regenera un asset puntual. Para `target: "creative_asset"` hace una generación real con Flux vía Fal.ai (misma lógica que el Creative Agent, conservando la variante de la fila); el resto de targets sigue con contenido demo fijo (ver F4 en `features.md`). Deja ese asset en `review` y la campaña en `review`.
 
 **Body**: igual que `approve` (`assetActionSchema`).
 
