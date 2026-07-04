@@ -1,0 +1,11 @@
+# Netlify config for the monorepo — deploys the Next.js app in apps/web.
+# With `base` set, Netlify detects the pnpm workspace root and installs
+# dependencies from there; the Next.js runtime plugin is auto-enabled.
+
+[build]
+  base = "apps/web"
+  command = "pnpm build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
