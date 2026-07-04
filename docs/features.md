@@ -7,7 +7,7 @@ Backlog del MVP de Polyedro /abs para la Buildathon. Cada feature tiene sus user
 - Backend real (Hono + Drizzle + Supabase) con generación por IA real.
 - Integraciones: **ElevenLabs** (voz), **n8n** (automatización/export), **Meta Ads** (export real contra sandbox/test ad account) y **Flux vía Fal.ai o Replicate** (creativos e imágenes).
 - Auth real con **Supabase Auth** (proyecto ya creado) — el login es parte de la demo.
-- **Runtime de agentes (híbrido):** los agentes de texto (brand kit, estrategia, copies, guiones) corren en `apps/server` llamando directamente a la API de Claude; ElevenLabs y Fal.ai se llaman también desde el server. n8n orquesta exclusivamente el pipeline de export a Meta Ads.
+- **Runtime de agentes (híbrido):** los agentes de texto (brand kit, estrategia, copies, guiones) corren en `apps/server` llamando directamente a una IA/LLM aún no decidida; ElevenLabs y Fal.ai se llaman también desde el server. n8n orquesta exclusivamente el pipeline de export a Meta Ads.
 - **Progreso en vivo:** el server expone un stream **SSE** (Server-Sent Events) por campaña; el frontend consume eventos de agentes (inicio, logs, tokens, fin) para alimentar los logs de terminal y el pipeline de la UI. Fallback trivial a polling si algo se rompe en la demo.
 - El frontend actual (`apps/web`) ya implementa todo el flujo de forma simulada; el trabajo es conectarlo al backend real.
 
