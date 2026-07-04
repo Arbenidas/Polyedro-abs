@@ -1,0 +1,397 @@
+import { relations } from "drizzle-orm";
+import {
+  index,
+  integer,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+/** Estado genérico reutilizado por brand, brand_kit, campaign, campaign_strategy,
+ *  ad_copy, creative_asset y video_script. */
+export const assetStatusEnum = pgEnum("asset_status", [
+  "draft",
+  "generating",
+  "review",
+  "approved",
+  "ready_to_publish",
+  "rejected",
+]);
+
+/** Idioma de un asset bilingüe (copies, guiones, voiceovers). */
+export const languageEnum = pgEnum("language", ["es", "en"]);
+
+/** Variante A/B de un asset generado (copies, creativos). */
+export const variantEnum = pgEnum("variant", ["a", "b"]);
+
+/** Estado del export/publish hacia Meta Ads vía n8n. */
+export const exportStatusEnum = pgEnum("export_status", [
+  "pending",
+  "processing",
+  "sent",
+  "failed",
+]);
+
+// ---------------------------------------------------------------------------
+// Helpers y shapes de jsonb
+// ---------------------------------------------------------------------------
+
+const timestamps = {
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date()),
+};
+
+/** Contenido bilingüe simple: { es: "...", en: "..." }. */
+type Bilingual<T = string> = { es: T; en: T };
+
+type ColorPalette = {
+  primary: string;
+  secondary: string;
+  accent: string;
+  neutrals?: string[];
+};
+
+type BuyerPersona = {
+  name: string;
+  age?: string;
+  occupation?: string;
+  goals?: string[];
+  painPoints?: string[];
+  notes?: string;
+};
+
+type VisualStyle = {
+  mood?: string;
+  imageryStyle?: string;
+  typography?: string;
+  references?: string[];
+};
+
+type AudienceProfile = {
+  description: string;
+  ageRange?: string;
+  locations?: string[];
+  interests?: string[];
+};
+
+type MetaAdsSegmentation = {
+  ageMin?: number;
+  ageMax?: number;
+  genders?: string[];
+  locations?: string[];
+  interests?: string[];
+  placements?: string[];
+};
+
+type VideoScene = {
+  sceneNumber: number;
+  description: string;
+  dialogue?: string;
+  durationSeconds?: number;
+};
+
+// ---------------------------------------------------------------------------
+// Tabla: users
+// ---------------------------------------------------------------------------
+
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull().unique(),
+  name: text("name"),
+  ...timestamps,
+});
+
+// ---------------------------------------------------------------------------
+// Tabla: brands
+// ---------------------------------------------------------------------------
+
+export const brands = pgTable(
+  "brands",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    description: text("description"),
+    industry: text("industry"),
+    status: assetStatusEnum("status").notNull().default("draft"),
+    ...timestamps,
+  },
+  (table) => [index("brands_user_id_idx").on(table.userId)],
+);
+
+// ---------------------------------------------------------------------------
+// Tabla: brand_kits (1:1 con brand) — Brand Agent
+// ---------------------------------------------------------------------------
+
+export const brandKits = pgTable("brand_kits", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  brandId: uuid("brand_id")
+    .notNull()
+    .unique()
+    .references(() => brands.id, { onDelete: "cascade" }),
+  status: assetStatusEnum("status").notNull().default("draft"),
+  logoUrl: text("logo_url"),
+  logoPrompt: text("logo_prompt"),
+  colorPalette: jsonb("color_palette").$type<ColorPalette>(),
+  toneOfVoice: jsonb("tone_of_voice").$type<Bilingual>(),
+  buyerPersona: jsonb("buyer_persona").$type<BuyerPersona>(),
+  valueProposition: jsonb("value_proposition").$type<Bilingual>(),
+  keyMessages: jsonb("key_messages").$type<Bilingual<string[]>>(),
+  visualStyle: jsonb("visual_style").$type<VisualStyle>(),
+  ...timestamps,
+});
+
+// ---------------------------------------------------------------------------
+// Tabla: campaigns
+// ---------------------------------------------------------------------------
+
+export const campaigns = pgTable(
+  "campaigns",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    brandId: uuid("brand_id")
+      .notNull()
+      .references(() => brands.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    objective: text("objective").notNull(),
+    status: assetStatusEnum("status").notNull().default("draft"),
+    ...timestamps,
+  },
+  (table) => [index("campaigns_brand_id_idx").on(table.brandId)],
+);
+
+// ---------------------------------------------------------------------------
+// Tabla: campaign_strategies (1:1 con campaign) — Strategy Agent
+// ---------------------------------------------------------------------------
+
+export const campaignStrategies = pgTable("campaign_strategies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  campaignId: uuid("campaign_id")
+    .notNull()
+    .unique()
+    .references(() => campaigns.id, { onDelete: "cascade" }),
+  status: assetStatusEnum("status").notNull().default("draft"),
+  audience: jsonb("audience").$type<AudienceProfile>(),
+  segmentation: jsonb("segmentation").$type<MetaAdsSegmentation>(),
+  commercialAngle: text("commercial_angle"),
+  notes: text("notes"),
+  ...timestamps,
+});
+
+// ---------------------------------------------------------------------------
+// Tabla: ad_copies — Meta Ads Agent (es/en, variante A/B)
+// ---------------------------------------------------------------------------
+
+export const adCopies = pgTable(
+  "ad_copies",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    campaignId: uuid("campaign_id")
+      .notNull()
+      .references(() => campaigns.id, { onDelete: "cascade" }),
+    language: languageEnum("language").notNull(),
+    variant: variantEnum("variant").notNull().default("a"),
+    status: assetStatusEnum("status").notNull().default("draft"),
+    headline: text("headline"),
+    primaryText: text("primary_text"),
+    description: text("description"),
+    callToAction: text("call_to_action"),
+    ...timestamps,
+  },
+  (table) => [index("ad_copies_campaign_id_idx").on(table.campaignId)],
+);
+
+// ---------------------------------------------------------------------------
+// Tabla: creative_assets — Creative Agent (imágenes IA, variante A/B)
+// ---------------------------------------------------------------------------
+
+export const creativeAssets = pgTable(
+  "creative_assets",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    campaignId: uuid("campaign_id")
+      .notNull()
+      .references(() => campaigns.id, { onDelete: "cascade" }),
+    variant: variantEnum("variant").notNull().default("a"),
+    status: assetStatusEnum("status").notNull().default("draft"),
+    imageUrl: text("image_url"),
+    prompt: text("prompt"),
+    altText: text("alt_text"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => [index("creative_assets_campaign_id_idx").on(table.campaignId)],
+);
+
+// ---------------------------------------------------------------------------
+// Tabla: video_scripts — Video Agent
+// ---------------------------------------------------------------------------
+
+export const videoScripts = pgTable(
+  "video_scripts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    campaignId: uuid("campaign_id")
+      .notNull()
+      .references(() => campaigns.id, { onDelete: "cascade" }),
+    status: assetStatusEnum("status").notNull().default("draft"),
+    language: languageEnum("language").notNull().default("es"),
+    title: text("title"),
+    scenes: jsonb("scenes").$type<VideoScene[]>(),
+    durationSeconds: integer("duration_seconds"),
+    ...timestamps,
+  },
+  (table) => [index("video_scripts_campaign_id_idx").on(table.campaignId)],
+);
+
+// ---------------------------------------------------------------------------
+// Tabla: voiceovers — Voice Agent (ElevenLabs), ligada a un video_script
+// ---------------------------------------------------------------------------
+
+export const voiceovers = pgTable(
+  "voiceovers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    videoScriptId: uuid("video_script_id")
+      .notNull()
+      .references(() => videoScripts.id, { onDelete: "cascade" }),
+    status: assetStatusEnum("status").notNull().default("draft"),
+    language: languageEnum("language").notNull(),
+    voiceId: text("voice_id").notNull(),
+    audioUrl: text("audio_url"),
+    durationSeconds: integer("duration_seconds"),
+    settings: jsonb("settings").$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => [
+    index("voiceovers_video_script_id_idx").on(table.videoScriptId),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Tabla: automation_exports — Automation Agent (n8n -> Meta Ads)
+// ---------------------------------------------------------------------------
+
+export const automationExports = pgTable(
+  "automation_exports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    campaignId: uuid("campaign_id")
+      .notNull()
+      .references(() => campaigns.id, { onDelete: "cascade" }),
+    exportStatus: exportStatusEnum("export_status")
+      .notNull()
+      .default("pending"),
+    n8nWorkflowId: text("n8n_workflow_id"),
+    n8nExecutionId: text("n8n_execution_id"),
+    metaAdsPayload: jsonb("meta_ads_payload").$type<Record<string, unknown>>(),
+    metaCampaignId: text("meta_campaign_id"),
+    errorMessage: text("error_message"),
+    requestedAt: timestamp("requested_at").defaultNow().notNull(),
+    completedAt: timestamp("completed_at"),
+    ...timestamps,
+  },
+  (table) => [
+    index("automation_exports_campaign_id_idx").on(table.campaignId),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Relations (para el query API relacional: db.query.brands.findMany({ with: {...} }))
+// ---------------------------------------------------------------------------
+
+export const usersRelations = relations(users, ({ many }) => ({
+  brands: many(brands),
+}));
+
+export const brandsRelations = relations(brands, ({ one, many }) => ({
+  user: one(users, { fields: [brands.userId], references: [users.id] }),
+  brandKit: one(brandKits, {
+    fields: [brands.id],
+    references: [brandKits.brandId],
+  }),
+  campaigns: many(campaigns),
+}));
+
+export const brandKitsRelations = relations(brandKits, ({ one }) => ({
+  brand: one(brands, { fields: [brandKits.brandId], references: [brands.id] }),
+}));
+
+export const campaignsRelations = relations(campaigns, ({ one, many }) => ({
+  brand: one(brands, { fields: [campaigns.brandId], references: [brands.id] }),
+  strategy: one(campaignStrategies, {
+    fields: [campaigns.id],
+    references: [campaignStrategies.campaignId],
+  }),
+  adCopies: many(adCopies),
+  creativeAssets: many(creativeAssets),
+  videoScripts: many(videoScripts),
+  automationExports: many(automationExports),
+}));
+
+export const campaignStrategiesRelations = relations(
+  campaignStrategies,
+  ({ one }) => ({
+    campaign: one(campaigns, {
+      fields: [campaignStrategies.campaignId],
+      references: [campaigns.id],
+    }),
+  }),
+);
+
+export const adCopiesRelations = relations(adCopies, ({ one }) => ({
+  campaign: one(campaigns, {
+    fields: [adCopies.campaignId],
+    references: [campaigns.id],
+  }),
+}));
+
+export const creativeAssetsRelations = relations(
+  creativeAssets,
+  ({ one }) => ({
+    campaign: one(campaigns, {
+      fields: [creativeAssets.campaignId],
+      references: [campaigns.id],
+    }),
+  }),
+);
+
+export const videoScriptsRelations = relations(
+  videoScripts,
+  ({ one, many }) => ({
+    campaign: one(campaigns, {
+      fields: [videoScripts.campaignId],
+      references: [campaigns.id],
+    }),
+    voiceovers: many(voiceovers),
+  }),
+);
+
+export const voiceoversRelations = relations(voiceovers, ({ one }) => ({
+  videoScript: one(videoScripts, {
+    fields: [voiceovers.videoScriptId],
+    references: [videoScripts.id],
+  }),
+}));
+
+export const automationExportsRelations = relations(
+  automationExports,
+  ({ one }) => ({
+    campaign: one(campaigns, {
+      fields: [automationExports.campaignId],
+      references: [campaigns.id],
+    }),
+  }),
+);
