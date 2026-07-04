@@ -1,4 +1,5 @@
 import { upsertDemoUser } from "@/api/services/brand";
+import { regenerateCreativeAsset } from "@/api/services/creative";
 import { ApiError, requireOne } from "@/api/shared";
 import { db } from "@/db";
 import {
@@ -429,28 +430,7 @@ export const regenerateAsset = async (
       break;
     }
     case "creative_asset": {
-      const asset = await db.query.creativeAssets.findFirst({
-        where: and(
-          eq(creativeAssets.id, input.id),
-          eq(creativeAssets.campaignId, campaignId),
-        ),
-      });
-      if (!asset) {
-        throw new ApiError(404, "Creative asset not found for this campaign");
-      }
-      await db
-        .update(creativeAssets)
-        .set({
-          status: "review",
-          prompt:
-            "Neo-brutalist product ad for NovaGear ANC earbuds, acid green accents, bold typography, Latin American launch campaign.",
-          altText: `Regenerated NovaGear earbuds creative variant ${asset.variant.toUpperCase()}`,
-          metadata: {
-            provider: "demo",
-            regeneratedAt: generatedAt,
-          },
-        })
-        .where(eq(creativeAssets.id, input.id));
+      await regenerateCreativeAsset(campaignId, input.id);
       break;
     }
     case "video_script": {

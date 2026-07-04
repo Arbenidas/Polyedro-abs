@@ -7,6 +7,7 @@ import {
   regenerateAsset,
   seedDemoCampaign,
 } from "@/api/services/campaign";
+import { runCreativeAgent } from "@/api/services/creative";
 import { parseBody, parseUuidParam } from "@/api/shared";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -48,6 +49,13 @@ campaignRoutes.post("/campaigns", async (c) => {
   const result = await createCampaign(input);
 
   return c.json({ campaign: result }, 201);
+});
+
+campaignRoutes.post("/campaigns/:campaignId/agents/creative", async (c) => {
+  const campaignId = parseUuidParam(c.req.param("campaignId"), "campaignId");
+  const result = await runCreativeAgent(campaignId);
+
+  return c.json(result, 201);
 });
 
 campaignRoutes.post("/campaigns/:campaignId/approve", async (c) => {
