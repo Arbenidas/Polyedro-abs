@@ -8,6 +8,8 @@ export const env = createEnv({
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
     DATABASE_URL: z.url().startsWith("postgresql://"),
     DIRECT_URL: z.url().optional(),
+    SUPABASE_URL: z.url(),
+    SUPABASE_ANON_KEY: z.string().min(1),
     /** Fal.ai API key para el Creative Agent; sin ella se generan placeholders. */
     FAL_KEY: z.string().min(1).optional(),
     /** Endpoint de modelo en Fal.ai usado para creativos (texto → imagen). */

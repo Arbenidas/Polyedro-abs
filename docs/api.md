@@ -8,7 +8,7 @@ Referencia de los endpoints HTTP expuestos por `apps/server` (Hono). Todas las r
 
 - Todos los bodies son JSON; todas las respuestas son JSON.
 - Los ids de recurso (`campaignId`, `brandId`, etc.) son UUID v4; un id inválido responde `400`.
-- No hay autenticación real todavía (ver F0 en `features.md`). Si un endpoint acepta `userId` y no se envía, el server usa/crea un usuario demo (`demo@polyedro.abs`).
+- **Autenticación:** todo `/api/*` requiere `Authorization: Bearer <jwt>` de Supabase Auth (middleware `requireAuth`; ver [`auth.md`](./auth.md)). Sin token o con token inválido → `401`. El usuario resuelto está en `c.get("user")`; los endpoints de brands lo usan como owner. Pendiente (F0.2): las rutas de campañas aún no filtran por ownership.
 
 ### Formato de error
 
@@ -48,7 +48,8 @@ Crea la marca en estado `draft` y dispara sincrónicamente la generación del br
 | `description` / `whatDoYouSell` | string | no | uno de los dos, si se envía |
 | `industry` | string | no | |
 | `markets` | `string[]` **o** `Record<string, boolean>` | no | si es un record (ej. `{ "MX": true, "CO": false }`), se filtra a solo las claves en `true` |
-| `userId` | uuid | no | si se omite, se usa/crea el usuario demo |
+
+El owner de la marca es **siempre el usuario de la sesión** (no se acepta `userId` en el body).
 
 **Respuesta `201`**:
 
@@ -67,7 +68,13 @@ Crea la marca en estado `draft` y dispara sincrónicamente la generación del br
 
 Ver la forma exacta de las columnas jsonb de `brandKit` (`colorPalette`, `toneOfVoice`, etc.) en la sección `brand_kits` de [`data-model.md`](./data-model.md).
 
-**Errores**: `400` si falta `name`/`brandName`; `404` si se envía `userId` y no existe ese usuario.
+**Errores**: `400` si falta `name`/`brandName`; `401` sin sesión válida.
+
+### `GET /api/brands`
+
+Lista las marcas del usuario autenticado (filtra por `brands.userId`), más reciente primero.
+
+**Respuesta `200`**: `{ "brands": [ { ...brand } ] }`
 
 ---
 

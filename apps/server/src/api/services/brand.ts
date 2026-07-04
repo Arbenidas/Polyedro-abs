@@ -1,24 +1,30 @@
 import { ApiError, requireOne } from "@/api/shared";
 import { db } from "@/db";
 import { brandKits, brands, users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 
 const DEMO_USER_EMAIL = "demo@polyedro.abs";
 
 export type BrandInput = {
-  userId?: string;
+  /** Siempre el id del usuario de la sesión (requireAuth) — nunca input del cliente. */
+  userId: string;
   name: string;
   description?: string;
   industry?: string;
   markets?: string[];
 };
 
+export const listBrands = async (userId: string) => {
+  return db.query.brands.findMany({
+    where: eq(brands.userId, userId),
+    orderBy: desc(brands.createdAt),
+  });
+};
+
 export const createBrand = async (input: BrandInput) => {
-  const owner = input.userId
-    ? await db.query.users.findFirst({
-        where: eq(users.id, input.userId),
-      })
-    : await upsertDemoUser();
+  const owner = await db.query.users.findFirst({
+    where: eq(users.id, input.userId),
+  });
 
   if (!owner) {
     throw new ApiError(404, "User not found");

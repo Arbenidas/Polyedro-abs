@@ -4,11 +4,12 @@
 
 [build]
   base = "apps/web"
-  # Fall back to a placeholder API URL when the site has no
-  # NEXT_PUBLIC_SERVER_URL env var — a UI-set value always wins.
-  # The frontend is currently simulated and never calls the API,
-  # so the placeholder only exists to satisfy env validation.
-  command = "NEXT_PUBLIC_SERVER_URL=\"${NEXT_PUBLIC_SERVER_URL:-http://localhost:3000}\" pnpm build"
+  # Fall back to placeholder values when the site has no env vars set in
+  # the Netlify UI — a UI-set value always wins. Placeholders only satisfy
+  # env validation at build time; login requires the real Supabase values,
+  # so set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in
+  # Site settings → Environment variables.
+  command = "NEXT_PUBLIC_SERVER_URL=\"${NEXT_PUBLIC_SERVER_URL:-http://localhost:3000}\" NEXT_PUBLIC_SUPABASE_URL=\"${NEXT_PUBLIC_SUPABASE_URL:-https://placeholder.supabase.co}\" NEXT_PUBLIC_SUPABASE_ANON_KEY=\"${NEXT_PUBLIC_SUPABASE_ANON_KEY:-placeholder}\" pnpm build"
   publish = ".next"
 
 [build.environment]

@@ -54,3 +54,7 @@ coverage
 tmp
 temp
 .netlify
+
+# Claude Code (local, per-developer)
+.claude/settings.local.json
+.playwright-mcp/

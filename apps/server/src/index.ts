@@ -1,12 +1,14 @@
 import { env } from "@Polyedro-abs/env/server";
-import { ApiError } from "@/api/shared";
-import { api } from "@/api/routes";
-import { db } from "@/db";
 import { serve } from "@hono/node-server";
 import { sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+
+import { api } from "@/api/routes";
+import { ApiError } from "@/api/shared";
+import { db } from "@/db";
+import { requireAuth } from "@/middleware/auth";
 
 const app = new Hono();
 
@@ -16,6 +18,7 @@ app.use(
   cors({
     origin: env.CORS_ORIGIN,
     allowMethods: ["GET", "POST", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
   }),
 );
 
@@ -28,6 +31,8 @@ app.get("/health/db", async (c) => {
   return c.json({ db: "ok", result });
 });
 
+// Toda la API requiere sesión de Supabase; el usuario resuelto queda en c.get("user").
+app.use("/api/*", requireAuth);
 app.route("/api", api);
 
 app.onError((error, c) => {
@@ -58,7 +63,7 @@ app.onError((error, c) => {
 serve(
   {
     fetch: app.fetch,
-    port: 3000,
+    port: Number(process.env.PORT) || 3000,
   },
   (info) => {
     console.log(`Server is running on http://localhost:${info.port}`);

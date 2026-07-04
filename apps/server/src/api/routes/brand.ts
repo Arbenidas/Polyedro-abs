@@ -1,7 +1,9 @@
-import { createBrand } from "@/api/services/brand";
+import { createBrand, listBrands } from "@/api/services/brand";
 import { parseBody } from "@/api/shared";
 import { Hono } from "hono";
 import { z } from "zod";
+
+import type { AuthEnv } from "@/middleware/auth";
 
 const marketsSchema = z
   .union([
@@ -16,7 +18,6 @@ const marketsSchema = z
 
 const brandInputSchema = z
   .object({
-    userId: z.uuid().optional(),
     name: z.string().trim().min(1).optional(),
     brandName: z.string().trim().min(1).optional(),
     description: z.string().trim().min(1).optional(),
@@ -38,7 +39,6 @@ const brandInputSchema = z
     }
 
     return {
-      userId: input.userId,
       name,
       description,
       industry: input.industry,
@@ -46,11 +46,19 @@ const brandInputSchema = z
     };
   });
 
-const brandRoutes = new Hono();
+const brandRoutes = new Hono<AuthEnv>();
+
+/** Marcas del usuario autenticado — toda query filtra por brands.userId. */
+brandRoutes.get("/", async (c) => {
+  const result = await listBrands(c.get("user").id);
+
+  return c.json({ brands: result });
+});
 
 brandRoutes.post("/", async (c) => {
   const input = await parseBody(c.req.raw, brandInputSchema);
-  const result = await createBrand(input);
+  // El owner siempre es el usuario de la sesión; nunca se acepta userId del body.
+  const result = await createBrand({ ...input, userId: c.get("user").id });
 
   return c.json(result, 201);
 });

@@ -11,7 +11,7 @@ Backlog del MVP de Polyedro /abs para la Buildathon. Cada feature tiene sus user
 - **Progreso en vivo:** el server expone un stream **SSE** (Server-Sent Events) por campaña; el frontend consume eventos de agentes (inicio, logs, tokens, fin) para alimentar los logs de terminal y el pipeline de la UI. Fallback trivial a polling si algo se rompe en la demo.
 - El frontend actual (`apps/web`) ya implementa todo el flujo de forma simulada; el trabajo es conectarlo al backend real.
 
-**Leyenda de estado:** `✅ UI simulada` = pantalla y flujo existen en el frontend con datos falsos · `⬜ pendiente` = no existe aún · `🔌 por conectar` = existe la UI, falta backend/API real.
+**Leyenda de estado:** `✅ UI simulada` = pantalla y flujo existen en el frontend con datos falsos · `⬜ pendiente` = no existe aún · `🔌 por conectar` = existe la UI, falta backend/API real · `✔️ hecho` = implementado con backend real.
 
 ---
 
@@ -21,7 +21,7 @@ Usuario autenticado con Supabase Auth; cada usuario ve solo sus marcas.
 
 | # | User story | Prioridad | Estado |
 |---|---|---|---|
-| F0.1 | Como usuario, quiero iniciar sesión para acceder a mi workspace de marca. | P0 | ⬜ pendiente |
+| F0.1 | Como usuario, quiero iniciar sesión para acceder a mi workspace de marca. | P0 | ✔️ hecho — ver [`auth.md`](./auth.md) |
 | F0.2 | Como usuario, quiero que mis marcas y campañas queden asociadas a mi cuenta para retomarlas después. | P0 | ⬜ pendiente |
 
 **Criterios de aceptación**
