@@ -30,4 +30,6 @@ jobs:
           # Placeholder values so env validation passes in CI;
           # real values live in Netlify / the server host.
           NEXT_PUBLIC_SERVER_URL: http://localhost:3000
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
           CORS_ORIGIN: http://localhost:3001

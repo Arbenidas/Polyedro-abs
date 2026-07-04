@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useAuth } from "../auth-provider";
 import { CampaignView } from "./campaign-view";
 import {
   ACCENT,
@@ -26,6 +27,7 @@ import {
 } from "./defs";
 import { GenliveView, KitgenView, NewCampaignView, OnboardingView } from "./flow-views";
 import { AgentsView, AutomationView, BrandkitView } from "./library-views";
+import { LoginView } from "./login-view";
 
 const ALL_REVIEW: Statuses = {
   strategy: "review",
@@ -39,6 +41,7 @@ const ALL_REVIEW: Statuses = {
 const STAGE_ORDER = ["DRAFT", "GENERATING", "REVIEW", "APPROVED", "READY_TO_PUBLISH"] as const;
 
 export default function LabsApp() {
+  const { session, loading, signOut } = useAuth();
   const [view, setView] = useState<View>("onboard");
   const [brandInput, setBrandInput] = useState("NovaGear Tech");
   const [descInput, setDescInput] = useState(
@@ -206,6 +209,38 @@ export default function LabsApp() {
     .toUpperCase();
 
   const pushable = allApproved && !pushed;
+
+  const userEmail = session?.user.email ?? "";
+  const userName =
+    (typeof session?.user.user_metadata?.name === "string" && session.user.user_metadata.name) ||
+    userEmail.split("@")[0] ||
+    "user";
+  const userInitial = userName.charAt(0).toUpperCase() || "U";
+
+  if (loading) {
+    return (
+      <div
+        className="lab-root"
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: PAPER,
+          color: INK,
+          fontFamily: FONT_MONO,
+          fontSize: 12,
+          letterSpacing: "0.1em",
+        }}
+      >
+        RESTORING SESSION…
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <LoginView />;
+  }
 
   if (view === "onboard") {
     return (
@@ -393,15 +428,42 @@ export default function LabsApp() {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
+                  flex: "none",
                 }}
               >
-                M
+                {userInitial}
               </div>
-              <div style={{ fontSize: 12 }}>
-                <b style={{ fontWeight: 800 }}>Mariana</b>{" "}
-                <span style={{ fontFamily: FONT_MONO, fontSize: 10, color: "rgba(10,10,10,0.5)" }}>· OWNER</span>
+              <div style={{ fontSize: 12, minWidth: 0 }}>
+                <b
+                  style={{
+                    fontWeight: 800,
+                    display: "block",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                  title={userEmail}
+                >
+                  {userName}
+                </b>
+                <span style={{ fontFamily: FONT_MONO, fontSize: 10, color: "rgba(10,10,10,0.5)" }}>OWNER</span>
               </div>
             </div>
+            <button
+              onClick={() => void signOut()}
+              style={{
+                fontFamily: FONT_MONO,
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: "0.08em",
+                background: "#FFFFFF",
+                border: `2px solid ${INK}`,
+                padding: "6px 8px",
+                cursor: "pointer",
+              }}
+            >
+              SIGN OUT →
+            </button>
           </div>
         </aside>
 
