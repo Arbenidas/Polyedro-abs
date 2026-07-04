@@ -1,0 +1,24 @@
+{
+  "$schema": "https://ui.shadcn.com/schema.json",
+  "style": "base-lyra",
+  "rsc": true,
+  "tsx": true,
+  "tailwind": {
+    "config": "",
+    "css": "src/styles/globals.css",
+    "baseColor": "neutral",
+    "cssVariables": true,
+    "prefix": ""
+  },
+  "iconLibrary": "lucide",
+  "aliases": {
+    "components": "@Polyedro-abs/ui/components",
+    "utils": "@Polyedro-abs/ui/lib/utils",
+    "hooks": "@Polyedro-abs/ui/hooks",
+    "lib": "@Polyedro-abs/ui/lib",
+    "ui": "@Polyedro-abs/ui/components"
+  },
+  "menuColor": "default",
+  "menuAccent": "subtle",
+  "registries": {}
+}

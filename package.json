@@ -1,0 +1,28 @@
+{
+  "name": "Polyedro-abs",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "check-types": "turbo run check-types",
+    "dev:web": "turbo run dev -F web",
+    "dev:server": "turbo run dev -F server"
+  },
+  "dependencies": {
+    "@Polyedro-abs/env": "workspace:*",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@Polyedro-abs/config": "workspace:*",
+    "@types/node": "^22.13.14",
+    "turbo": "^2.10.2",
+    "typescript": "catalog:"
+  },
+  "packageManager": "pnpm@11.5.2"
+}

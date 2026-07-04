@@ -1,0 +1,3 @@
+{
+  "extends": "@Polyedro-abs/config/tsconfig.base.json"
+}
