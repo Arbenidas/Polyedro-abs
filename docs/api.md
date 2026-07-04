@@ -146,6 +146,8 @@ Corre el Creative Agent: genera los creativos estáticos 1080×1080 de la campa�
 
 **Variables de entorno**: `FAL_KEY` (API key de [fal.ai](https://fal.ai)) y `FAL_IMAGE_MODEL` (default `fal-ai/flux-2`). Sin `FAL_KEY`, el agente genera imágenes placeholder (`placehold.co` con el color primario de la marca) y lo marca en `metadata.provider = "placeholder"` para que la demo no se rompa.
 
+**Notas de integración**: se usa el endpoint síncrono `fal.run` (suficiente para 2 imágenes por campaña; migrar a la queue de fal cuando llegue el pipeline SSE de F4). Las requests envían `X-Fal-Object-Lifecycle-Preference: {"expiration_duration_seconds": null}` para que las URLs del CDN de fal no expiren (sin esto los archivos pueden borrarse y las `imageUrl` guardadas quedarían rotas), tienen timeout de 120s y un retry ante errores transitorios (408/502/503/504).
+
 **Respuesta `201`**: `{ "assets": [ { "...": "filas de creative_assets actualizadas" } ], "failures": ["mensajes de error de variantes fallidas"] }`
 
 **Errores**: `404` si la campaña no existe; `500` si ninguna variante pudo generarse (con `details.failures`).

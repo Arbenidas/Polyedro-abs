@@ -128,6 +128,34 @@ type FalImageResponse = {
   seed?: number;
 };
 
+const FAL_REQUEST_TIMEOUT_MS = 120_000;
+
+/** Errores transitorios en los que fal recomienda reintentar del lado cliente
+ *  (las llamadas síncronas a fal.run no tienen retries del lado del server). */
+const TRANSIENT_STATUSES = new Set([408, 502, 503, 504]);
+
+const requestFalImage = async (falKey: string, prompt: string) =>
+  fetch(`https://fal.run/${env.FAL_IMAGE_MODEL}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Key ${falKey}`,
+      "Content-Type": "application/json",
+      // Sin esto los archivos del CDN de fal pueden expirar y las imageUrl
+      // guardadas en creative_assets quedarían rotas.
+      "X-Fal-Object-Lifecycle-Preference": JSON.stringify({
+        expiration_duration_seconds: null,
+      }),
+    },
+    body: JSON.stringify({
+      prompt,
+      image_size: { width: IMAGE_WIDTH, height: IMAGE_HEIGHT },
+      num_images: 1,
+      output_format: "jpeg",
+      enable_safety_checker: true,
+    }),
+    signal: AbortSignal.timeout(FAL_REQUEST_TIMEOUT_MS),
+  });
+
 const generateImage = async (
   context: CreativeContext,
   variant: Variant,
@@ -137,20 +165,11 @@ const generateImage = async (
     return buildPlaceholderImage(context, variant);
   }
 
-  const response = await fetch(`https://fal.run/${env.FAL_IMAGE_MODEL}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Key ${env.FAL_KEY}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      prompt,
-      image_size: { width: IMAGE_WIDTH, height: IMAGE_HEIGHT },
-      num_images: 1,
-      output_format: "jpeg",
-      enable_safety_checker: true,
-    }),
-  });
+  let response = await requestFalImage(env.FAL_KEY, prompt);
+
+  if (TRANSIENT_STATUSES.has(response.status)) {
+    response = await requestFalImage(env.FAL_KEY, prompt);
+  }
 
   if (!response.ok) {
     const detail = await response.text().catch(() => undefined);
