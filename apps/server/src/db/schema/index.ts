@@ -104,12 +104,16 @@ type VideoScene = {
 // Tabla: users
 // ---------------------------------------------------------------------------
 
+// RLS habilitado (sin policies) en todas las tablas: el acceso a datos pasa
+// exclusivamente por apps/server (conexión directa Postgres, no afectada por
+// RLS); la Data API pública de Supabase queda bloqueada para anon/authenticated.
+
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
   name: text("name"),
   ...timestamps,
-});
+}).enableRLS();
 
 // ---------------------------------------------------------------------------
 // Tabla: brands
@@ -129,7 +133,7 @@ export const brands = pgTable(
     ...timestamps,
   },
   (table) => [index("brands_user_id_idx").on(table.userId)],
-);
+).enableRLS();
 
 // ---------------------------------------------------------------------------
 // Tabla: brand_kits (1:1 con brand) — Brand Agent
@@ -151,7 +155,7 @@ export const brandKits = pgTable("brand_kits", {
   keyMessages: jsonb("key_messages").$type<Bilingual<string[]>>(),
   visualStyle: jsonb("visual_style").$type<VisualStyle>(),
   ...timestamps,
-});
+}).enableRLS();
 
 // ---------------------------------------------------------------------------
 // Tabla: campaigns
@@ -170,7 +174,7 @@ export const campaigns = pgTable(
     ...timestamps,
   },
   (table) => [index("campaigns_brand_id_idx").on(table.brandId)],
-);
+).enableRLS();
 
 // ---------------------------------------------------------------------------
 // Tabla: campaign_strategies (1:1 con campaign) — Strategy Agent
@@ -188,7 +192,7 @@ export const campaignStrategies = pgTable("campaign_strategies", {
   commercialAngle: text("commercial_angle"),
   notes: text("notes"),
   ...timestamps,
-});
+}).enableRLS();
 
 // ---------------------------------------------------------------------------
 // Tabla: ad_copies — Meta Ads Agent (es/en, variante A/B)
@@ -211,7 +215,7 @@ export const adCopies = pgTable(
     ...timestamps,
   },
   (table) => [index("ad_copies_campaign_id_idx").on(table.campaignId)],
-);
+).enableRLS();
 
 // ---------------------------------------------------------------------------
 // Tabla: creative_assets — Creative Agent (imágenes IA, variante A/B)
@@ -233,7 +237,7 @@ export const creativeAssets = pgTable(
     ...timestamps,
   },
   (table) => [index("creative_assets_campaign_id_idx").on(table.campaignId)],
-);
+).enableRLS();
 
 // ---------------------------------------------------------------------------
 // Tabla: video_scripts — Video Agent
@@ -254,7 +258,7 @@ export const videoScripts = pgTable(
     ...timestamps,
   },
   (table) => [index("video_scripts_campaign_id_idx").on(table.campaignId)],
-);
+).enableRLS();
 
 // ---------------------------------------------------------------------------
 // Tabla: voiceovers — Voice Agent (ElevenLabs), ligada a un video_script
@@ -278,7 +282,7 @@ export const voiceovers = pgTable(
   (table) => [
     index("voiceovers_video_script_id_idx").on(table.videoScriptId),
   ],
-);
+).enableRLS();
 
 // ---------------------------------------------------------------------------
 // Tabla: automation_exports — Automation Agent (n8n -> Meta Ads)
@@ -306,7 +310,7 @@ export const automationExports = pgTable(
   (table) => [
     index("automation_exports_campaign_id_idx").on(table.campaignId),
   ],
-);
+).enableRLS();
 
 // ---------------------------------------------------------------------------
 // Relations (para el query API relacional: db.query.brands.findMany({ with: {...} }))
