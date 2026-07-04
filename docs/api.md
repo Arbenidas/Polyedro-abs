@@ -38,7 +38,7 @@ Archivo de rutas: [`apps/server/src/api/routes/brand.ts`](../apps/server/src/api
 
 ### `POST /api/brands`
 
-Crea la marca en estado `draft` y dispara sincrónicamente la generación del brand kit (hoy un stub determinístico; ver F2 en `features.md` para la versión con LLM real).
+Crea la marca en estado `draft` y dispara sincrónicamente la generación del brand kit. El **logo conceptual es generación real**: se crea con Flux vía Fal.ai (1024×1024, mismo helper e integración que el Creative Agent — ver notas en `POST /agents/creative`) y se guardan `logoUrl` y `logoPrompt` en `brand_kits`; el prompt se construye con nombre, industria, mercados, brief y la paleta del kit. Sin `FAL_KEY` (o si fal falla) el logo cae a placeholder y la creación de la marca no se interrumpe. El resto del kit sigue siendo un stub determinístico (ver F2 en `features.md` para la versión con LLM real).
 
 **Body** (`brandInputSchema`, acepta alias para compatibilidad con el formulario de onboarding existente):
 
