@@ -1,6 +1,6 @@
 # Features y user stories
 
-Backlog del MVP de Polyedro /abs para la Buildathon. Cada feature tiene sus user stories, criterios de aceptación y estado actual. Complementa [`data-model.md`](./data-model.md) (esquema) y [`database.md`](./database.md) (infra de datos).
+Backlog del MVP de Polyedro /abs para la Buildathon. Cada feature tiene sus user stories, criterios de aceptación y estado actual. Complementa [`data-model.md`](./data-model.md) (esquema), [`database.md`](./database.md) (infra de datos) y [`api.md`](./api.md) (referencia de endpoints).
 
 **Alcance acordado:**
 
