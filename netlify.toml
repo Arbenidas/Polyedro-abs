@@ -4,7 +4,11 @@
 
 [build]
   base = "apps/web"
-  command = "pnpm build"
+  # Fall back to a placeholder API URL when the site has no
+  # NEXT_PUBLIC_SERVER_URL env var — a UI-set value always wins.
+  # The frontend is currently simulated and never calls the API,
+  # so the placeholder only exists to satisfy env validation.
+  command = "NEXT_PUBLIC_SERVER_URL=\"${NEXT_PUBLIC_SERVER_URL:-http://localhost:3000}\" pnpm build"
   publish = ".next"
 
 [build.environment]
