@@ -9,12 +9,12 @@ apps/web (browser)                        apps/server (Hono)
 ─────────────────────                     ─────────────────────
 supabase-js (login email/password)
   └─ sesión en localStorage
-apiFetch("/brands")
-  └─ Authorization: Bearer <jwt>  ──────▶ requireAuth middleware
+apiFetch("/api/brands")
+  └─ Authorization: Bearer <jwt>  ──────▶ requireAuth middleware (montado en /api/*)
                                             ├─ supabase.auth.getUser(jwt)  → valida el token
                                             ├─ upsert en tabla `users` (id = auth.users.id)
                                             └─ c.get("user") disponible en la ruta
-                                          GET /brands → where brands.userId = user.id
+                                          GET /api/brands → where brands.userId = user.id
 ```
 
 ### Frontend (`apps/web`)
@@ -34,20 +34,24 @@ apiFetch("/brands")
 |---|---|
 | `src/lib/supabase.ts` | Cliente de Supabase usado solo para validar tokens |
 | `src/middleware/auth.ts` | `requireAuth` — valida el JWT, upserta la fila en `users` y expone `c.get("user")` |
-| `src/index.ts` | Rutas protegidas: `GET /me`, `GET /brands` (filtra por `brands.userId`) |
+| `src/index.ts` | Monta `requireAuth` en `/api/*` — **toda** la API requiere sesión |
+| `src/api/routes/` | Rutas: `GET /api/me`, `GET /api/brands` (filtra por `brands.userId`), `POST /api/brands` (owner = usuario de la sesión), campañas |
 
 El `id` de la fila en `users` es el mismo `id` de `auth.users` de Supabase, así que el vínculo usuario↔marcas queda garantizado sin tabla puente.
 
 La validación usa `supabase.auth.getUser(jwt)` (round-trip al Auth server): funciona con cualquier configuración de signing keys y confirma que la sesión sigue viva. Si la latencia por request se vuelve un problema, se puede migrar a verificación local con `jose` + el endpoint JWKS del proyecto (requiere signing keys asimétricas).
 
-**Patrón para nuevas rutas:** monta `requireAuth` y filtra siempre por el usuario resuelto:
+**Patrón para nuevas rutas:** todo lo montado bajo `/api` ya pasa por `requireAuth`; tipa el router con `Hono<AuthEnv>` y filtra siempre por el usuario resuelto:
 
 ```ts
-app.get("/campaigns", requireAuth, async (c) => {
+const routes = new Hono<AuthEnv>();
+routes.get("/campaigns", async (c) => {
   const user = c.get("user");
   // ...where con brands.userId = user.id (join o subquery)
 });
 ```
+
+> Pendiente (F0.2): las rutas de campañas ya exigen sesión pero aún no filtran por ownership (`listCampaigns` es global). Ver `docs/api.md`.
 
 ## Variables de entorno
 
@@ -89,8 +93,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon/public key>
 ```bash
 # token: en la consola del browser
 # (await window.localStorage.getItem(...)) o supabase.auth.getSession()
-curl -H "Authorization: Bearer <access_token>" http://localhost:3000/me
-curl -H "Authorization: Bearer <access_token>" http://localhost:3000/brands
+curl -H "Authorization: Bearer <access_token>" http://localhost:3000/api/me
+curl -H "Authorization: Bearer <access_token>" http://localhost:3000/api/brands
 # sin token → 401
-curl -i http://localhost:3000/me
+curl -i http://localhost:3000/api/me
 ```

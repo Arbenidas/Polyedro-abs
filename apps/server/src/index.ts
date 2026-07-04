@@ -1,11 +1,13 @@
 import { env } from "@Polyedro-abs/env/server";
-import { desc, eq, sql } from "drizzle-orm";
+import { serve } from "@hono/node-server";
+import { sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 
+import { api } from "@/api/routes";
+import { ApiError } from "@/api/shared";
 import { db } from "@/db";
-import { brands } from "@/db/schema";
 import { requireAuth } from "@/middleware/auth";
 
 const app = new Hono();
@@ -29,22 +31,34 @@ app.get("/health/db", async (c) => {
   return c.json({ db: "ok", result });
 });
 
-/** Usuario autenticado resuelto desde el JWT de Supabase. */
-app.get("/me", requireAuth, (c) => {
-  return c.json({ user: c.get("user") });
-});
+// Toda la API requiere sesión de Supabase; el usuario resuelto queda en c.get("user").
+app.use("/api/*", requireAuth);
+app.route("/api", api);
 
-/** Marcas del usuario autenticado — toda query filtra por brands.userId. */
-app.get("/brands", requireAuth, async (c) => {
-  const user = c.get("user");
-  const result = await db.query.brands.findMany({
-    where: eq(brands.userId, user.id),
-    orderBy: desc(brands.createdAt),
-  });
-  return c.json({ brands: result });
-});
+app.onError((error, c) => {
+  if (error instanceof ApiError) {
+    return c.json(
+      {
+        error: {
+          message: error.message,
+          details: error.details,
+        },
+      },
+      error.status,
+    );
+  }
 
-import { serve } from "@hono/node-server";
+  console.error(error);
+
+  return c.json(
+    {
+      error: {
+        message: "Internal server error",
+      },
+    },
+    500,
+  );
+});
 
 serve(
   {
