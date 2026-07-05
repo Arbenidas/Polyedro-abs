@@ -3,11 +3,13 @@ export type LandingTourSectionId =
   | "problem"
   | "how-it-works"
   | "agents"
+  | "voice-agent"
   | "pipeline"
   | "approval"
   | "automation"
   | "demo"
   | "audience"
+  | "pricing"
   | "guide"
   | "cta";
 
@@ -32,11 +34,13 @@ export const LANDING_TOUR_SECTIONS: ReadonlyArray<{
   { id: "problem", labelEn: "The problem", labelEs: "El problema" },
   { id: "how-it-works", labelEn: "How it works", labelEs: "Cómo funciona" },
   { id: "agents", labelEn: "Eight agents", labelEs: "Ocho agentes" },
+  { id: "voice-agent", labelEn: "Voice agent", labelEs: "Agente Voz" },
   { id: "pipeline", labelEn: "Asset pipeline", labelEs: "Pipeline de assets" },
   { id: "approval", labelEn: "Approval flow", labelEs: "Flujo de aprobación" },
   { id: "automation", labelEn: "Automation", labelEs: "Automatización" },
   { id: "demo", labelEn: "Demo", labelEs: "Demo" },
   { id: "audience", labelEn: "Audience", labelEs: "Audiencia" },
+  { id: "pricing", labelEn: "Pricing", labelEs: "Planes" },
   { id: "guide", labelEn: "Guide agent", labelEs: "Agente guía" },
   { id: "cta", labelEn: "Get started", labelEs: "Empezar" },
 ] as const;
@@ -47,42 +51,48 @@ export const LANDING_TOUR_ORDER: readonly LandingTourSectionId[] = [
   "problem",
   "how-it-works",
   "agents",
+  "voice-agent",
   "pipeline",
   "approval",
   "automation",
   "demo",
   "audience",
+  "pricing",
   "guide",
   "cta",
 ] as const;
 
 const LANDING_TOUR_NARRATION: Record<LandingTourSectionId, Record<GuideLanguage, string>> = {
   hero: {
-    es: "Polyedro /abs convierte una marca en un sistema de campanas listo para operar: estrategia, piezas creativas, voz y aprobacion desde un solo workspace.",
+    es: "Polyedro /abs convierte una marca en un sistema de campañas listo para operar: estrategia, piezas creativas, voz y aprobación desde un solo workspace.",
     en: "Polyedro /abs turns a brand into an operating campaign system: strategy, creative assets, voice, and approval from one workspace.",
   },
   problem: {
-    es: "El dolor es claro: demasiadas herramientas desconectadas hacen que estrategia, contenido y ejecucion avancen lento y pierdan consistencia.",
+    es: "El dolor es claro: demasiadas herramientas desconectadas hacen que estrategia, contenido y ejecución avancen lento y pierdan consistencia.",
     en: "The pain is clear: disconnected tools make strategy, content, and execution slower and less consistent.",
   },
   "how-it-works": {
-    es: "El flujo reduce la friccion: creas el workspace, defines la marca y los agentes preparan una campana que el usuario revisa antes de publicar.",
+    es: "El flujo reduce la fricción: creas el workspace, defines la marca y los agentes preparan una campaña que el usuario revisa antes de publicar.",
     en: "The flow removes friction: create the workspace, define the brand, and agents prepare a campaign the user reviews before publishing.",
   },
   agents: {
-    es: "Aqui el usuario entiende el equipo: cada agente toma una tarea concreta, desde marca y anuncios hasta video, voz, automatizacion y aprobacion.",
+    es: "Aquí el usuario entiende el equipo: cada agente toma una tarea concreta, desde marca y anuncios hasta video, voz, automatización y aprobación.",
     en: "Here the user sees the team: each agent owns a clear job, from brand and ads to video, voice, automation, and approval.",
   },
+  "voice-agent": {
+    es: "El Agente Voz convierte guiones aprobados en locuciones bilingües con ElevenLabs, mantiene versiones revisables y entrega audio listo para campañas.",
+    en: "The Voice Agent turns approved scripts into bilingual ElevenLabs voiceovers, keeps reviewable versions, and hands clean audio to campaigns.",
+  },
   pipeline: {
-    es: "El pipeline muestra el avance operativo: la idea se transforma en assets concretos, ordenados por estado y listos para decision.",
+    es: "El pipeline muestra el avance operativo: la idea se transforma en assets concretos, ordenados por estado y listos para decisión.",
     en: "The pipeline shows operational progress: the idea becomes concrete assets, organized by status and ready for a decision.",
   },
   approval: {
-    es: "La aprobacion mantiene control humano: la IA acelera la produccion, pero el usuario decide que piezas pasan a publicacion.",
+    es: "La aprobación mantiene control humano: la IA acelera la producción, pero el usuario decide que piezas pasan a publicación.",
     en: "Approval keeps human control: AI speeds up production, but the user decides which assets move to publishing.",
   },
   automation: {
-    es: "La automatizacion conecta el workspace con n8n, Supabase, ElevenLabs y Meta Ads para que el flujo no termine en archivos sueltos.",
+    es: "La automatización conecta el workspace con n8n, Supabase, ElevenLabs y Meta Ads para que el flujo no termine en archivos sueltos.",
     en: "Automation connects the workspace with n8n, Supabase, ElevenLabs, and Meta Ads so the flow does not end in scattered files.",
   },
   demo: {
@@ -90,15 +100,19 @@ const LANDING_TOUR_NARRATION: Record<LandingTourSectionId, Record<GuideLanguage,
     en: "The demo makes the promise concrete: a fictional brand gets a brand kit, ad, copy, specs, and voice ready to evaluate.",
   },
   audience: {
-    es: "El publico objetivo son marcas personales y PyMEs que necesitan vender mejor sin contratar un equipo completo de marketing.",
+    es: "El público objetivo son marcas personales y PyMEs que necesitan vender mejor sin contratar un equipo completo de marketing.",
     en: "The target users are personal brands and small businesses that need better selling without hiring a full marketing team.",
   },
+  pricing: {
+    es: "Cada plan desbloquea agentes del pipeline: Starter para marca, Growth para campañas, Studio incluye los ocho agentes y Enterprise escala con control total.",
+    en: "Each plan unlocks pipeline agents: Starter for brand, Growth for campaigns, Studio includes all eight agents, and Enterprise scales with full control.",
+  },
   guide: {
-    es: "Este agente guia prueba la experiencia conversacional: explica lo importante mientras la interfaz se mueve con la narracion.",
+    es: "Este agente guía prueba la experiencia conversacional: explica lo importante mientras la interfaz se mueve con la narración.",
     en: "This guide agent proves the conversational experience: it explains what matters while the interface moves with the narration.",
   },
   cta: {
-    es: "El cierre empuja a la accion: empezar con un workspace y pasar de marca a campana aprobable sin saltar entre herramientas.",
+    es: "El cierre empuja a la acción: empezar con un workspace y pasar de marca a campaña aprobable sin saltar entre herramientas.",
     en: "The close pushes action: start with one workspace and move from brand to approvable campaign without jumping between tools.",
   },
 };
@@ -154,8 +168,20 @@ export function guideSectionNarrationPrompt(
   const narration = getGuideSectionNarration(sectionId, language);
 
   return language === "es"
-    ? `[SECCION_VISIBLE:${sectionId}] La pagina ya esta posicionada. SALIDA OBLIGATORIA: di exactamente esta frase una sola vez, sin agregar, resumir, reformular ni repetir: "${narration}" Eres un guia masculino. Prohibido: repetir la frase dos veces, hacer preguntas, usar signos ? o ¿, usar tools, pedir permiso, decir "seguimos", "quieres continuar" o cierres que ordenen escuchar, escribir analisis, razonamiento interno, conteo de palabras, markdown, etiquetas emocionales como [excited] o texto en ingles. Termina en punto y detente.`
-    : `[VISIBLE_SECTION:${sectionId}] The page is already positioned. REQUIRED OUTPUT: say exactly this sentence once, without adding, summarizing, rewriting, or repeating it: "${narration}" You are a male guide. Forbidden: repeating the sentence twice, asking questions, using question marks, using tools, asking permission, saying "shall we continue", using endings that tell the user they only need to listen, outputting analysis, hidden reasoning, word counts, markdown, emotion tags like [excited], or Spanish instruction text. End with a period, then stop.`;
+    ? `[SECCION_VISIBLE:${sectionId}] "${narration}"`
+    : `[VISIBLE_SECTION:${sectionId}] "${narration}"`;
+}
+
+/** Ultra-minimal retry when the agent leaks meta text instead of narrating. */
+export function guideSectionNarrationRetryPrompt(
+  sectionId: LandingTourSectionId,
+  language: GuideLanguage,
+): string {
+  const narration = getGuideSectionNarration(sectionId, language);
+
+  return language === "es"
+    ? `[SECCION_VISIBLE:${sectionId}] Di solo esta frase, sin introducción ni comentarios: "${narration}"`
+    : `[VISIBLE_SECTION:${sectionId}] Say only this sentence, with no introduction or commentary: "${narration}"`;
 }
 
 export async function scrollToLandingSectionAsync(
@@ -174,7 +200,7 @@ export async function scrollToLandingSectionAsync(
   await smoothScrollToElement(target);
 
   const label = LANDING_TOUR_SECTIONS.find((section) => section.id === sectionId)?.labelEs ?? sectionId;
-  return `Sección "${sectionId}" (${label}) visible y estable. Ahora responde UNICAMENTE con la frase final de narracion, maximo 28 palabras, como guia masculino. No escribas razonamiento, instrucciones, etiquetas emocionales, texto en ingles ni cierres que ordenen escuchar. No repitas la frase, no hagas preguntas, no uses signos ? ni ¿, y no cierres con invitaciones a continuar. Cuando termines, llama scrollToSection con la proxima seccion.`;
+  return `Sección "${sectionId}" (${label}) visible y estable. Ahora responde ÚNICAMENTE con la frase final de narración, máximo 28 palabras, como guía masculino en español latino. Pronuncia correctamente la letra ñ. No escribas razonamiento, instrucciones, etiquetas emocionales, texto en inglés ni cierres que ordenen escuchar. No repitas la frase, no hagas preguntas, no uses signos ? ni ¿, y no cierres con invitaciones a continuar. Cuando termines, llama scrollToSection con la próxima sección.`;
 }
 
 export { clearTourHighlights, clearTourSectionActive } from "./landing-tour-highlights";

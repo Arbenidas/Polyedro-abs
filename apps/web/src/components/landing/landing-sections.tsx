@@ -7,6 +7,7 @@ import {
   CARD,
   AGENT_DEFS,
   CORAL,
+  CYAN,
   FONT_BLACK,
   FONT_MONO,
   FONT_SANS,
@@ -14,7 +15,10 @@ import {
   INK,
   monoLabel,
   PAPER,
+  STONE,
+  SUN,
   VOLT,
+  textOnSignal,
 } from "@/components/labs/defs";
 import { BrandWordmarkLinkFooter, useBrandHomeHref } from "@/components/labs/brand-wordmark-link";
 
@@ -205,6 +209,49 @@ const AGENT_COPY_ES = [
   { name: "Agente Aprobación", role: "Valida coherencia vs brand kit; bloquea publicación hasta tu visto bueno." },
 ] as const;
 
+const VOICE_AGENT_STEPS = [
+  {
+    tourId: "voice-agent-step-script",
+    tag: "01 · GUION",
+    title: "Parte del guion aprobado",
+    body: "El Agente Video entrega escenas y líneas. Voz solo corre cuando el mensaje ya pasó revisión.",
+    accent: ACID,
+  },
+  {
+    tourId: "voice-agent-step-cast",
+    tag: "02 · CASTING",
+    title: "Elige voz, idioma y ritmo",
+    body: "ElevenLabs genera versiones ES/EN con voz consistente para cada marca, campaña y formato.",
+    accent: VOLT,
+  },
+  {
+    tourId: "voice-agent-step-review",
+    tag: "03 · REVIEW",
+    title: "Audio listo para aprobar",
+    body: "Duración, idioma, voice ID y estado quedan guardados antes de empaquetar el creativo final.",
+    accent: CORAL,
+  },
+] as const;
+
+const VOICE_AGENT_LINES = [
+  {
+    tourId: "voice-agent-line-es",
+    language: "ES",
+    line: "Cancela el ruido. Enciende tu día.",
+    meta: "Valentina · LATAM · 0:12",
+    accent: ACID,
+  },
+  {
+    tourId: "voice-agent-line-en",
+    language: "EN",
+    line: "Cut the noise. Switch on your day.",
+    meta: "Adam · EN-US · 0:11",
+    accent: CYAN,
+  },
+] as const;
+
+const VOICE_WAVE_BARS = [18, 34, 24, 48, 30, 58, 42, 72, 36, 62, 50, 28, 44, 66, 38, 54, 24, 46] as const;
+
 const AUDIENCE_CARDS = [
   {
     tourId: "audience-startups",
@@ -226,6 +273,106 @@ const AUDIENCE_CARDS = [
   },
 ] as const;
 
+const PRICING_PLANS = [
+  {
+    tourId: "pricing-starter",
+    tag: "STARTER",
+    title: "Define tu marca",
+    price: "$39",
+    period: "/mes",
+    description: "Identidad, estrategia y copy base — sin creativos ni export a Meta.",
+    accent: STONE,
+    featured: false,
+    agents: ["Brand Agent", "Strategy Agent", "Meta Ads Agent", "Approval Agent"] as const,
+    limits: [
+      "1 marca · 2 campañas / mes",
+      "Copy en un idioma (ES o EN)",
+      "Export manual de assets",
+    ],
+    cta: { href: "/dashboard", label: "Empezar →" },
+  },
+  {
+    tourId: "pricing-growth",
+    tag: "GROWTH",
+    title: "Lanza campañas",
+    price: "$129",
+    period: "/mes",
+    description: "Pipeline completo de texto + creativos estáticos listos para ads.",
+    accent: ACID,
+    featured: true,
+    agents: [
+      "Brand Agent",
+      "Strategy Agent",
+      "Meta Ads Agent",
+      "Creative Agent",
+      "Approval Agent",
+    ] as const,
+    limits: [
+      "Hasta 3 marcas · 10 campañas / mes",
+      "Copy bilingüe ES/EN + variantes A/B",
+      "~20 creativos / mes",
+    ],
+    cta: { href: "/dashboard", label: "Elegir Growth →" },
+  },
+  {
+    tourId: "pricing-studio",
+    tag: "STUDIO",
+    title: "Pipeline completo",
+    price: "$299",
+    period: "/mes",
+    description: "Los 8 agentes — de marca a borrador en Meta Ads con voz incluida.",
+    accent: VOLT,
+    featured: false,
+    agents: [
+      "Brand Agent",
+      "Strategy Agent",
+      "Meta Ads Agent",
+      "Creative Agent",
+      "Video Agent",
+      "Voice Agent",
+      "Automation Agent",
+      "Approval Agent",
+    ] as const,
+    limits: [
+      "Hasta 10 marcas · campañas con fair use",
+      "~80 creativos · 10 guiones · 20 min voz / mes",
+      "5 exports automatizados a Meta / mes",
+    ],
+    cta: { href: "/dashboard", label: "Elegir Studio →" },
+  },
+  {
+    tourId: "pricing-enterprise",
+    tag: "ENTERPRISE",
+    title: "Escala + control",
+    price: "A medida",
+    period: "",
+    description: "Workspaces ilimitados, roles, API y workflows n8n dedicados.",
+    accent: SUN,
+    featured: false,
+    agents: [
+      "Brand Agent",
+      "Strategy Agent",
+      "Meta Ads Agent",
+      "Creative Agent",
+      "Video Agent",
+      "Voice Agent",
+      "Automation Agent",
+      "Approval Agent",
+    ] as const,
+    limits: [
+      "Marcas ilimitadas · créditos negociables",
+      "SSO · roles (owner, editor, approver)",
+      "Voces custom · SLA · soporte prioritario",
+    ],
+    cta: { href: "#guide", label: "Hablar con ventas →" },
+  },
+] as const;
+
+const AGENT_GLYPH_BY_NAME = Object.fromEntries(AGENT_DEFS.map((agent) => [agent.name, agent.glyph])) as Record<
+  (typeof AGENT_DEFS)[number]["name"],
+  string
+>;
+
 const DEMO_COPY = {
   headline: "Cancela el ruido. Enciende tu día.",
   sub: "36h de batería · ANC adaptativo · garantía 2 años",
@@ -244,6 +391,8 @@ export function LandingHeader() {
   const navLinks = [
     { href: "#how-it-works", label: "Cómo funciona" },
     { href: "#agents", label: "Agentes" },
+    { href: "#voice-agent", label: "Voz IA" },
+    { href: "#pricing", label: "Planes" },
     { href: "#demo", label: "Demo" },
     { href: "#guide", label: "Guía" },
   ];
@@ -819,6 +968,183 @@ export function AgentsSection() {
   );
 }
 
+export function ElevenLabsVoiceSection() {
+  return (
+    <LandingSection id="voice-agent">
+      <MotionGroup
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+          gap: 32,
+          alignItems: "center",
+        }}
+      >
+        <motion.div variants={revealVariants}>
+          <SectionLabel accent={VOLT}>AGENTE VOZ · ELEVENLABS</SectionLabel>
+          <SectionTitle>Del guion aprobado a una locución lista.</SectionTitle>
+          <SectionLead>
+            El Voice Agent convierte scripts aprobados en voz bilingüe, guarda versiones revisables y deja el audio listo
+            para Reels, Stories y anuncios en Meta.
+          </SectionLead>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 28 }}>
+            {VOICE_AGENT_STEPS.map((step) => (
+              <motion.div
+                key={step.tag}
+                data-tour-id={step.tourId}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "auto 1fr",
+                  gap: 12,
+                  alignItems: "flex-start",
+                  padding: "14px 16px",
+                  background: CARD,
+                  border: `3px solid ${INK}`,
+                  boxShadow: `4px 4px 0 ${INK}`,
+                }}
+                variants={revealVariants}
+                whileHover={{ x: -3, y: -2, rotate: -0.25, boxShadow: `7px 7px 0 ${INK}` }}
+              >
+                <span
+                  style={{
+                    ...monoLabel,
+                    background: step.accent,
+                    color: textOnSignal(step.accent),
+                    border: `2px solid ${INK}`,
+                    padding: "4px 8px",
+                    fontSize: 8,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {step.tag}
+                </span>
+                <div>
+                  <div style={{ fontFamily: FONT_BLACK, fontSize: 16, letterSpacing: "-0.01em" }}>{step.title}</div>
+                  <p style={{ fontSize: 12.5, lineHeight: 1.45, margin: "6px 0 0", color: "rgba(10,10,10,0.68)" }}>
+                    {step.body}
+                  </p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        <Card tourId="voice-agent-console" style={{ padding: 0, overflow: "hidden", background: INK, color: PAPER }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              padding: "12px 16px",
+              borderBottom: `3px solid ${PAPER}`,
+              background: INK,
+            }}
+          >
+            <span style={{ ...monoLabel, fontSize: 9, color: "rgba(244,242,236,0.64)" }}>VOICEOVER RUN</span>
+            <span
+              style={{
+                ...monoLabel,
+                fontSize: 8,
+                background: ACID,
+                color: INK,
+                border: `2px solid ${PAPER}`,
+                padding: "3px 8px",
+              }}
+            >
+              ELEVENLABS · REVIEW
+            </span>
+          </div>
+
+          <div style={{ padding: 20 }}>
+            <div
+              data-tour-id="voice-agent-wave"
+              style={{
+                height: 128,
+                display: "flex",
+                alignItems: "end",
+                gap: 7,
+                padding: "18px 14px",
+                background: PAPER,
+                border: `3px solid ${PAPER}`,
+                color: INK,
+                overflow: "hidden",
+              }}
+            >
+              {VOICE_WAVE_BARS.map((height, i) => (
+                <motion.span
+                  key={`${height}-${i}`}
+                  style={{
+                    width: 8,
+                    height,
+                    flex: "1 1 0",
+                    minWidth: 4,
+                    maxWidth: 14,
+                    background: i % 3 === 0 ? ACID : i % 3 === 1 ? CYAN : CORAL,
+                    border: `2px solid ${INK}`,
+                    transformOrigin: "bottom",
+                  }}
+                  animate={{ scaleY: [0.62, 1, 0.72] }}
+                  transition={{ duration: 1.2 + i * 0.025, ease: "easeInOut", repeat: Infinity, delay: i * 0.04 }}
+                />
+              ))}
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
+              {VOICE_AGENT_LINES.map((voice) => (
+                <motion.div
+                  key={voice.language}
+                  data-tour-id={voice.tourId}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "auto 1fr",
+                    gap: 12,
+                    padding: "12px 14px",
+                    background: CARD,
+                    color: INK,
+                    border: `3px solid ${PAPER}`,
+                  }}
+                  variants={revealVariants}
+                  whileHover={{ x: -3, y: -2 }}
+                >
+                  <span
+                    style={{
+                      ...monoLabel,
+                      alignSelf: "start",
+                      background: voice.accent,
+                      color: textOnSignal(voice.accent),
+                      border: `2px solid ${INK}`,
+                      padding: "4px 7px",
+                      fontSize: 9,
+                    }}
+                  >
+                    {voice.language}
+                  </span>
+                  <div>
+                    <div style={{ fontFamily: FONT_BLACK, fontSize: 17, lineHeight: 1.05 }}>{voice.line}</div>
+                    <div
+                      style={{
+                        marginTop: 6,
+                        fontFamily: FONT_MONO,
+                        fontSize: 9,
+                        fontWeight: 700,
+                        letterSpacing: "0.06em",
+                        color: "rgba(10,10,10,0.52)",
+                      }}
+                    >
+                      {voice.meta}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </Card>
+      </MotionGroup>
+    </LandingSection>
+  );
+}
+
 export function PipelineSection() {
   return (
     <LandingSection id="pipeline">
@@ -1148,6 +1474,206 @@ export function AudienceSection() {
           </Card>
         ))}
       </MotionGroup>
+    </LandingSection>
+  );
+}
+
+export function PricingSection() {
+  return (
+    <LandingSection id="pricing" alt>
+      <SectionLabel accent={ACID}>PLANES</SectionLabel>
+      <SectionTitle>Paga por lo que despliegas.</SectionTitle>
+      <SectionLead>
+        Cada plan desbloquea agentes del pipeline. El Agente de Aprobación va incluido en todos — nada se publica sin ti.
+      </SectionLead>
+
+      <MotionGroup
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))",
+          gap: 20,
+          marginTop: 36,
+          alignItems: "stretch",
+        }}
+      >
+        {PRICING_PLANS.map((plan) => (
+          <Card
+            key={plan.tag}
+            tourId={plan.tourId}
+            style={{
+              padding: "22px 24px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 16,
+              position: "relative",
+              background: plan.featured ? PAPER : CARD,
+              boxShadow: plan.featured ? `8px 8px 0 ${INK}` : `5px 5px 0 ${INK}`,
+            }}
+          >
+            {plan.featured && (
+              <span
+                style={{
+                  ...monoLabel,
+                  position: "absolute",
+                  top: -14,
+                  right: 16,
+                  background: ACID,
+                  color: INK,
+                  border: `2px solid ${INK}`,
+                  padding: "4px 10px",
+                }}
+              >
+                RECOMENDADO
+              </span>
+            )}
+
+            <div>
+              <span
+                style={{
+                  ...monoLabel,
+                  background: plan.accent,
+                  color: textOnSignal(plan.accent),
+                  border: `2px solid ${INK}`,
+                  padding: "3px 10px",
+                  display: "inline-block",
+                }}
+              >
+                {plan.tag}
+              </span>
+              <div
+                style={{
+                  fontFamily: FONT_BLACK,
+                  fontSize: 22,
+                  marginTop: 12,
+                  letterSpacing: "-0.02em",
+                  lineHeight: 1.05,
+                }}
+              >
+                {plan.title}
+              </div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 4, marginTop: 10 }}>
+                <span style={{ fontFamily: FONT_BLACK, fontSize: 36, letterSpacing: "-0.03em", lineHeight: 1 }}>
+                  {plan.price}
+                </span>
+                {plan.period && (
+                  <span style={{ fontFamily: FONT_MONO, fontSize: 11, color: "rgba(10,10,10,0.5)" }}>{plan.period}</span>
+                )}
+              </div>
+              <p style={{ fontSize: 13, lineHeight: 1.45, marginTop: 10, marginBottom: 0, color: "rgba(10,10,10,0.7)" }}>
+                {plan.description}
+              </p>
+            </div>
+
+            <div>
+              <div style={{ ...monoLabel, fontSize: 9, color: "rgba(10,10,10,0.45)", marginBottom: 10 }}>
+                AGENTES INCLUIDOS
+              </div>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {plan.agents.map((agentName) => {
+                  const glyph = AGENT_GLYPH_BY_NAME[agentName];
+                  const isBrand = agentName === "Brand Agent";
+                  const chipBg = isBrand ? ACID : VOLT;
+                  return (
+                    <span
+                      key={agentName}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 5,
+                        fontFamily: FONT_MONO,
+                        fontSize: 9,
+                        fontWeight: 700,
+                        letterSpacing: "0.04em",
+                        background: chipBg,
+                        color: textOnSignal(chipBg),
+                        border: `2px solid ${INK}`,
+                        padding: "4px 8px",
+                      }}
+                      title={agentName}
+                    >
+                      <span style={{ fontFamily: FONT_BLACK, fontSize: 10 }}>{glyph}</span>
+                      {agentName.replace(" Agent", "")}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+
+            <ul
+              style={{
+                margin: 0,
+                padding: 0,
+                listStyle: "none",
+                display: "flex",
+                flexDirection: "column",
+                gap: 8,
+                flex: 1,
+              }}
+            >
+              {plan.limits.map((limit) => (
+                <li
+                  key={limit}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 8,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    lineHeight: 1.4,
+                    color: "rgba(10,10,10,0.75)",
+                  }}
+                >
+                  <span
+                    style={{
+                      flexShrink: 0,
+                      fontFamily: FONT_MONO,
+                      fontSize: 10,
+                      background: plan.featured ? ACID : STONE,
+                      border: `1px solid ${INK}`,
+                      padding: "1px 5px",
+                      marginTop: 1,
+                    }}
+                  >
+                    →
+                  </span>
+                  {limit}
+                </li>
+              ))}
+            </ul>
+
+            <div style={{ marginTop: "auto", paddingTop: 4 }}>
+              {plan.cta.href.startsWith("#") ? (
+                <SecondaryCta href={plan.cta.href}>{plan.cta.label}</SecondaryCta>
+              ) : (
+                <PrimaryCta
+                  href={plan.cta.href}
+                  style={
+                    plan.featured
+                      ? undefined
+                      : { background: CARD, padding: "12px 18px", fontSize: 12 }
+                  }
+                >
+                  {plan.cta.label}
+                </PrimaryCta>
+              )}
+            </div>
+          </Card>
+        ))}
+      </MotionGroup>
+
+      <motion.p
+        style={{
+          fontFamily: FONT_MONO,
+          fontSize: 10,
+          letterSpacing: "0.06em",
+          color: "rgba(10,10,10,0.45)",
+          marginTop: 24,
+          marginBottom: 0,
+        }}
+        variants={revealVariants}
+      >
+        CREATIVE = IMÁGENES IA · VOICE = ELEVENLABS · AUTOMATION = EXPORT META VÍA N8N · TODOS LOS PLANES INCLUYEN APPROVAL AGENT
+      </motion.p>
     </LandingSection>
   );
 }

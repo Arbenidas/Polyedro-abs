@@ -18,12 +18,14 @@ import {
   AutomationSection,
   CtaFooterSection,
   DemoSection,
+  ElevenLabsVoiceSection,
   GuideSection,
   HeroSection,
   HowItWorksSection,
   LandingFooter,
   LandingHeader,
   PipelineSection,
+  PricingSection,
   ProblemSection,
 } from "./landing-sections";
 
@@ -52,11 +54,13 @@ export default function LandingPage() {
           <ProblemSection />
           <HowItWorksSection />
           <AgentsSection />
+          <ElevenLabsVoiceSection />
           <PipelineSection />
           <ApprovalSection />
           <AutomationSection />
           <DemoSection />
           <AudienceSection />
+          <PricingSection />
           <GuideSection />
           <CtaFooterSection />
         </main>
