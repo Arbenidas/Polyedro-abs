@@ -5,9 +5,6 @@ const DEMO_VERSION = "3";
 
 export default function DemoPage() {
   const params = new URLSearchParams({ api: env.NEXT_PUBLIC_SERVER_URL, v: DEMO_VERSION });
-  if (env.NEXT_PUBLIC_ELEVENLABS_GUIDE_AGENT_ID) {
-    params.set("agent", env.NEXT_PUBLIC_ELEVENLABS_GUIDE_AGENT_ID);
-  }
   const src = `/voice-demo/index.html?${params.toString()}`;
 
   return (

@@ -1781,7 +1781,6 @@
     const API_BASE = (
       new URLSearchParams(location.search).get("api") || "http://localhost:3000"
     ).replace(/\/$/, "");
-    const AGENT_ID = new URLSearchParams(location.search).get("agent") || "";
     const WEBM_OPUS = "audio/webm;codecs=opus";
     const WEBM = "audio/webm";
     let isGeneratingFinals = false;
@@ -2728,102 +2727,6 @@
     document.addEventListener("keydown", (event) => {
       if (event.key === "Escape") closeLightbox();
     });
-
-    /* ---------- ElevenLabs guide (widget embed + client tools) ---------- */
-    const AUDIENCE_KEYS = ["creativos", "founders", "compradores", "comunidad"];
-    const GOAL_KEYS = ["awareness", "leads", "sales", "community"];
-    const STYLE_KEYS = ["neobrutal", "editorial", "tech", "minimal", "premium", "grunge", "render3d", "ilustrado", "brutalist", "pop-art", "art-deco", "botanico"];
-    const STEP_NAMES = { landing: 0, brief: 1, cliente: 2, audiencia: 2, audience: 2, objetivos: 3, objetivo: 3, goal: 3, estilo: 4, style: 4, propuesta: 5, proposal: 5, calendario: 6, calendar: 6 };
-
-    function resolveKey(value, keys, labelGroup) {
-      if (!value) return null;
-      const raw = String(value).trim().toLowerCase();
-      if (keys.includes(raw)) return raw;
-      // match por etiqueta legible (ej. "conseguir contactos" → leads)
-      const byLabel = keys.find((key) => (labels[labelGroup]?.[key] || "").toLowerCase() === raw);
-      if (byLabel) return byLabel;
-      const byPartial = keys.find((key) => (labels[labelGroup]?.[key] || "").toLowerCase().includes(raw));
-      return byPartial || null;
-    }
-
-    const guideClientTools = {
-      setBrandName: async ({ name }) => {
-        state.brandName = String(name || "").slice(0, 200);
-        saveState(false); render();
-        return `Marca fijada: ${state.brandName || "(vacío)"}`;
-      },
-      setBrief: async ({ text }) => {
-        state.brief = String(text || "").slice(0, 2000);
-        saveState(false); render();
-        return "Brief actualizado.";
-      },
-      setAudience: async ({ audience }) => {
-        const key = resolveKey(audience, AUDIENCE_KEYS, "audience");
-        if (!key) return `Audiencia no reconocida. Opciones: ${AUDIENCE_KEYS.join(", ")}.`;
-        state.audience = key; saveState(false); render();
-        return `Audiencia: ${labels.audience[key]}`;
-      },
-      setGoal: async ({ goal }) => {
-        const key = resolveKey(goal, GOAL_KEYS, "goal");
-        if (!key) return `Objetivo no reconocido. Opciones: ${GOAL_KEYS.join(", ")}.`;
-        state.goal = key; saveState(false); render();
-        return `Objetivo: ${labels.goal[key]}`;
-      },
-      setStyle: async ({ style }) => {
-        const key = resolveKey(style, STYLE_KEYS, "style");
-        if (!key) return `Estilo no reconocido. Opciones: ${STYLE_KEYS.join(", ")}.`;
-        state.style = key; saveState(false); render();
-        void ensureStylePreview(key);
-        return `Estilo: ${labels.style[key]}`;
-      },
-      addBackground: async ({ text }) => {
-        const value = String(text || "").trim();
-        if (!value) return "Nada que agregar.";
-        state.memory.push(value); saveState(false); render();
-        return "Contexto agregado al background de la empresa.";
-      },
-      goToStep: async ({ step }) => {
-        const target = typeof step === "number" ? step : STEP_NAMES[String(step || "").trim().toLowerCase()];
-        if (target == null) return `Paso desconocido. Usa: ${Object.keys(STEP_NAMES).join(", ")}.`;
-        goToStep(target);
-        return `Avanzando al paso ${target}.`;
-      },
-      generateProposal: async () => {
-        if (state.currentStep < 5) goToStep(5);
-        void generateFinals();
-        return "Generando las 3 propuestas con IA.";
-      },
-      getState: async () => JSON.stringify({
-        brandName: state.brandName,
-        brief: state.brief,
-        audience: labels.audience[state.audience],
-        goal: labels.goal[state.goal],
-        style: labels.style[state.style],
-        step: state.currentStep,
-        background: state.memory.slice(-6)
-      })
-    };
-
-    function initGuideAgent() {
-      if (!AGENT_ID) return;
-
-      const widget = document.createElement("elevenlabs-convai");
-      widget.setAttribute("agent-id", AGENT_ID);
-      widget.addEventListener("elevenlabs-convai:call", (event) => {
-        if (event.detail && event.detail.config) {
-          event.detail.config.clientTools = guideClientTools;
-        }
-      });
-      document.body.appendChild(widget);
-
-      const script = document.createElement("script");
-      script.src = "https://unpkg.com/@elevenlabs/convai-widget-embed";
-      script.async = true;
-      script.type = "text/javascript";
-      document.body.appendChild(script);
-    }
-
-    initGuideAgent();
 
     render();
   </script>
