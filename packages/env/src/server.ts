@@ -16,7 +16,18 @@ for (const envPath of [
 
 export const env = createEnv({
   server: {
-    CORS_ORIGIN: z.url(),
+    /** Origen(es) permitidos por CORS. Acepta una lista separada por comas
+     *  para soportar varios dominios (p. ej. ambos subdominios de Netlify). */
+    CORS_ORIGIN: z
+      .string()
+      .min(1)
+      .transform((value) =>
+        value
+          .split(",")
+          .map((origin) => origin.trim())
+          .filter(Boolean),
+      )
+      .pipe(z.array(z.url()).min(1)),
     NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
     DATABASE_URL: z.url().startsWith("postgresql://"),
     DIRECT_URL: z.url().optional(),
