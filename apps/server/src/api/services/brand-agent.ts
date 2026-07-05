@@ -206,32 +206,55 @@ const buildLogoPrompt = (context: BrandContext, primaryColor: string) =>
   `Brand brief: ${context.description} Target markets: ${context.marketLabel}. ` +
   `Centered composition, plain solid background, no photorealism, no gradients, no watermarks.`;
 
-/** Genera el logo con el provider de imágenes configurado (IMAGE_PROVIDER).
- *  La creación de la marca nunca debe fallar por el logo: ante cualquier
- *  error del provider cae a placeholder. */
-const generateLogoImage = async (
+const buildLogoImageRequest = (
   brandName: string,
   prompt: string,
   primaryColor: string,
-) => {
-  const request: ImageRequest = {
-    prompt,
-    width: LOGO_SIZE,
-    height: LOGO_SIZE,
-    placeholder: { label: brandName, background: primaryColor },
-  };
+): ImageRequest => ({
+  prompt,
+  width: LOGO_SIZE,
+  height: LOGO_SIZE,
+  placeholder: { label: brandName, background: primaryColor },
+});
 
+/** Genera el logo con el provider de imágenes configurado (IMAGE_PROVIDER).
+ *  La creación de la marca nunca debe fallar por el logo: ante cualquier
+ *  error del provider cae a placeholder. */
+const generateLogoImageFromRequest = async (
+  brandName: string,
+  request: ImageRequest,
+) => {
   try {
     return await generateImage(request);
   } catch (error) {
-    console.error(`Logo generation failed for "${brandName}", using placeholder:`, error);
+    console.error(
+      `Logo generation failed for "${brandName}", using placeholder:`,
+      error,
+    );
     return generatePlaceholderImage(request);
   }
 };
 
+const queueLogoImageUpdate = (input: {
+  brandKitId: string;
+  brandName: string;
+  request: ImageRequest;
+}) => {
+  void generateLogoImageFromRequest(input.brandName, input.request)
+    .then((logo) =>
+      db
+        .update(brandKits)
+        .set({ logoUrl: logo.url })
+        .where(eq(brandKits.id, input.brandKitId)),
+    )
+    .catch((error) => {
+      console.error(`Async logo update failed for "${input.brandName}":`, error);
+    });
+};
+
 /** Flujo de creación (usado por createBrand): inserta el kit en "generating",
- *  genera contenido y logo (el prompt del logo consume la paleta generada) y
- *  cierra en "review" con un solo update. */
+ *  genera el contenido y responde con un logo placeholder. La imagen real del
+ *  logo queda fuera del request path porque gpt-image puede tardar minutos. */
 export const generateBrandKitForBrand = async (
   brand: BrandRecord,
   input: BrandKitGenerationInput,
@@ -250,7 +273,12 @@ export const generateBrandKitForBrand = async (
 
   const { content, provider } = await generateBrandKitContent(context);
   const logoPrompt = buildLogoPrompt(context, content.colorPalette.primary);
-  const logo = await generateLogoImage(brand.name, logoPrompt, content.colorPalette.primary);
+  const logoRequest = buildLogoImageRequest(
+    brand.name,
+    logoPrompt,
+    content.colorPalette.primary,
+  );
+  const placeholderLogo = generatePlaceholderImage(logoRequest);
 
   const [completedKit] = await db
     .update(brandKits)
@@ -260,12 +288,18 @@ export const generateBrandKitForBrand = async (
     // campaña, cuyo readiness lo exige aprobado.
     .set({
       status: "approved",
-      logoUrl: logo.url,
+      logoUrl: placeholderLogo.url,
       logoPrompt,
       ...content,
     })
     .where(eq(brandKits.id, createdKit.id))
     .returning();
+
+  queueLogoImageUpdate({
+    brandKitId: createdKit.id,
+    brandName: brand.name,
+    request: logoRequest,
+  });
 
   return {
     brandKit: requireOne(completedKit, "Brand kit generation could not be completed"),
