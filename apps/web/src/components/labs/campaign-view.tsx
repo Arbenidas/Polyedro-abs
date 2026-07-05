@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useRef } from "react";
 
 import type { CampaignAdCopy, CampaignCreativeAsset, CampaignDashboard } from "@/lib/api";
 import {
@@ -191,7 +192,9 @@ const hasRealAssets = (dashboard: CampaignDashboard | null | undefined, key: Ass
     case "video":
       return dashboard.agents.videoScripts.length > 0;
     case "voice":
-      return dashboard.agents.voiceovers.length > 0;
+      // Se puede generar/regenerar la voz en cuanto existe un guion de video
+      // (el Voice Agent lo necesita como fuente de la narración).
+      return dashboard.agents.videoScripts.length > 0;
   }
 };
 
@@ -200,23 +203,46 @@ function WaveRow({
   onToggle,
   heights,
   meta,
+  src,
 }: {
   playing: boolean;
   onToggle: () => void;
   heights: number[];
   meta: string;
+  /** URL del audio real (ElevenLabs). Null cuando el voiceover es fallback sin audio. */
+  src: string | null;
 }) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const hasAudio = !!src;
+
+  // El estado de reproducción vive en el padre (playEs/playEn, exclusivos entre
+  // sí); acá solo sincronizamos el <audio> real con ese flag. Incluye `src` en
+  // deps para re-disparar tras regenerar (mismo id, nueva URL, aún "playing").
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playing) {
+      void audio.play().catch(() => {});
+    } else {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+  }, [playing, src]);
+
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, border: `2px solid ${INK}`, padding: "10px 12px" }}>
       <button
         onClick={onToggle}
+        disabled={!hasAudio}
+        title={hasAudio ? undefined : "Audio pendiente — configurá ELEVENLABS_API_KEY en el server"}
         style={{
           width: 34,
           height: 34,
           flex: "none",
           border: `2px solid ${INK}`,
           background: playing ? ACID : CARD,
-          cursor: "pointer",
+          cursor: hasAudio ? "pointer" : "not-allowed",
+          opacity: hasAudio ? 1 : 0.45,
           fontSize: 13,
           display: "flex",
           alignItems: "center",
@@ -240,7 +266,22 @@ function WaveRow({
           />
         ))}
       </div>
-      <div style={{ fontFamily: FONT_MONO, fontSize: 9.5, fontWeight: 600, flex: "none" }}>{meta}</div>
+      <div style={{ fontFamily: FONT_MONO, fontSize: 9.5, fontWeight: 600, flex: "none" }}>
+        {hasAudio ? meta : `${meta} · NO AUDIO`}
+      </div>
+      {hasAudio ? (
+        // onEnded/onError togglean el flag del padre de vuelta a "no
+        // reproduciendo" (evita que el botón quede trabado si el audio falla).
+        <audio
+          ref={audioRef}
+          src={src}
+          preload="none"
+          onEnded={onToggle}
+          onError={() => {
+            if (playing) onToggle();
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -689,6 +730,7 @@ export function CampaignView({
                     key={voiceover.id}
                     playing={voiceover.language === "es" ? playEs : playEn}
                     onToggle={voiceover.language === "es" ? togglePlayEs : togglePlayEn}
+                    src={voiceover.audioUrl}
                     heights={wave(index + 1)}
                     meta={`${voiceover.language.toUpperCase()} · ${voiceover.voiceId.slice(0, 16).toUpperCase()} · 0:${String(
                       voiceover.durationSeconds ?? 0,
