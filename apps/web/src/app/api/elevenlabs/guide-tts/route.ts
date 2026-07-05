@@ -8,7 +8,8 @@ import { z } from "zod";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const DEFAULT_VOICE_ID = "EXAVITQu4vr4xnSDxMaL";
+/** Same male guide voice configured on the ElevenLabs landing-tour agent. */
+const DEFAULT_VOICE_ID = "4XUsiqPDK4UACIM2BILe";
 const DEFAULT_MODEL_ID = "eleven_multilingual_v2";
 const TTS_REQUEST_TIMEOUT_MS = 60_000;
 const MAX_NARRATION_CHARS = 480;
@@ -90,7 +91,7 @@ export async function POST(request: Request) {
       model_id: modelId,
       voice_settings: {
         stability: 0.5,
-        similarity_boost: 0.75,
+        similarity_boost: 0.8,
         style: 0,
         use_speaker_boost: true,
       },
