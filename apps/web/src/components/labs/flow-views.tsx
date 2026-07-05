@@ -7,7 +7,6 @@ import type { BrandKit } from "@/lib/api";
 import {
   ACCENT,
   ACID,
-  ACCENT,
   CARD,
   CORAL,
   CYAN,
