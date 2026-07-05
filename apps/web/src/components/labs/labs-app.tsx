@@ -31,6 +31,7 @@ import {
   CARD,
   type AssetId,
   CMD,
+  CYAN,
   FONT_BLACK,
   FONT_MONO,
   FONT_SANS,
@@ -39,6 +40,8 @@ import {
   INK,
   NAV_DEFS,
   PAPER,
+  RADIUS_PILL,
+  RADIUS_SM,
   RUN_DEFS,
   type Statuses,
   STONE,
@@ -46,11 +49,12 @@ import {
   type View,
   VOLT,
 } from "./defs";
-import { GenliveView, KitgenView, type LiveGenerationStep, NewCampaignView, OnboardingView } from "./flow-views";
+import { GenliveView, type LiveGenerationStep, NewCampaignView, OnboardingView, WizardShell } from "./flow-views";
 import { AgentsView, AutomationView, BrandkitView } from "./library-views";
 import { LoginView } from "./login-view";
 import { SignOutButton } from "./sign-out-button";
 import { useAudioTranscription } from "./use-audio-transcription";
+import { Eyebrow, Marker } from "./voice-ui";
 
 const ALL_REVIEW: Statuses = {
   strategy: "review",
@@ -71,6 +75,12 @@ const ALL_DRAFT: Statuses = {
 };
 
 const STAGE_ORDER = ["DRAFT", "GENERATING", "REVIEW", "APPROVED", "READY_TO_PUBLISH"] as const;
+
+const WIZARD_STEPS: Partial<Record<View, { index: number; label: string }>> = {
+  onboard: { index: 0, label: "MARCA" },
+  newcampaign: { index: 1, label: "BRIEF" },
+  genlive: { index: 2, label: "GENERATING" },
+};
 
 type AssetAction = { target: CampaignAssetTarget; id: string };
 
@@ -197,15 +207,12 @@ export default function LabsApp() {
   const [view, setView] = useState<View>("onboard");
   const [brandInput, setBrandInput] = useState("NovaGear Tech");
   const [descInput, setDescInput] = useState(
-    "Smart gadgets: wireless earbuds, fast chargers, LED lamps, smartwatches and home-office accessories. Affordable, modern, LatAm-focused.",
+    "Gadgets inteligentes: audífonos inalámbricos, cargadores rápidos, lámparas LED, smartwatches y accesorios para home office. Accesibles, modernos, enfocados en LatAm.",
   );
   const [brandName, setBrandName] = useState("NovaGear Tech");
   const [markets, setMarkets] = useState<Record<string, boolean>>({ MX: true, CO: true, CL: true, PE: false, AR: false });
   const [brand, setBrand] = useState<Brand | null>(null);
   const [brandKit, setBrandKit] = useState<BrandKit | null>(null);
-  const [kitSteps, setKitSteps] = useState<string[]>([]);
-  const [kitLoading, setKitLoading] = useState(false);
-  const [kitError, setKitError] = useState<string | null>(null);
   const [goalInput, setGoalInput] = useState("");
   const [goalTranscriptionId, setGoalTranscriptionId] = useState<string | null>(null);
   const [savedGoalBriefText, setSavedGoalBriefText] = useState<string | null>(null);
@@ -264,12 +271,9 @@ export default function LabsApp() {
   const initWorkspace = useCallback(() => {
     const name = brandInput || "NovaGear Tech";
     setBrandName(name);
-    setView("kitgen");
     setBrand(null);
     setBrandKit(null);
-    setKitSteps([]);
-    setKitError(null);
-    setKitLoading(true);
+    setCampaignError(null);
 
     createBrand({
       name,
@@ -277,16 +281,15 @@ export default function LabsApp() {
       markets: Object.entries(markets)
         .filter(([, selected]) => selected)
         .map(([market]) => market),
-    })
-      .then(({ brand: createdBrand, brandKit: createdKit, generation }) => {
+      })
+      .then(({ brand: createdBrand, brandKit: createdKit }) => {
         setBrand(createdBrand);
         setBrandKit(createdKit);
-        setKitSteps(generation.steps);
+        setView("newcampaign");
       })
       .catch((err: unknown) => {
-        setKitError(err instanceof Error ? err.message : "Could not generate the brand kit.");
-      })
-      .finally(() => setKitLoading(false));
+        setCampaignError(err instanceof Error ? err.message : "No se pudo inicializar la marca.");
+      });
   }, [brandInput, descInput, markets]);
 
   /* ---------- load demo (safety net: full campaign in one click) ---------- */
@@ -368,7 +371,7 @@ export default function LabsApp() {
     if (!goalInput.trim()) setGoalInput(nextGoal);
 
     if (!brand) {
-      setGoalBriefError("BRAND REQUIRED BEFORE SAVING BRIEF");
+      setGoalBriefError("SE NECESITA UNA MARCA ANTES DE GUARDAR EL BRIEF");
       return;
     }
 
@@ -381,7 +384,7 @@ export default function LabsApp() {
         setSavedGoalBrief(brief);
         setGoalBriefError(null);
       } catch (err) {
-        setGoalBriefError(err instanceof Error ? err.message.toUpperCase() : "COULD NOT SAVE BRIEF");
+        setGoalBriefError(err instanceof Error ? err.message.toUpperCase() : "NO SE PUDO GUARDAR EL BRIEF");
         return;
       }
     }
@@ -392,8 +395,7 @@ export default function LabsApp() {
     setPushed(false);
     setDashboard(null);
     setCampaignError(null);
-    setCmdText("Creating campaign and starting agents…");
-
+    setCmdText("Creando campaña e iniciando agentes…");
     // Reutiliza la campaña ya creada para este mismo objetivo (reintento tras
     // un fallo de agente) en vez de crear una duplicada.
     const reuse =
@@ -424,10 +426,10 @@ export default function LabsApp() {
       const latestDashboard = await getCampaignDashboard(nextCampaignId);
       setDashboard(latestDashboard);
       setStatuses(statusesFromDashboard(latestDashboard));
-      setCmdText("Campaign agents finished — dashboard synced.");
+      setCmdText("Agentes de campaña terminados — dashboard sincronizado.");
       setView("campaign");
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Could not generate campaign.";
+      const message = err instanceof Error ? err.message : "No se pudo generar la campaña.";
       setCampaignError(message);
       setCmdText(message);
       // Si la campaña ya existe, llevar al usuario a su dashboard para que vea
@@ -460,7 +462,7 @@ export default function LabsApp() {
 
       const targets = getApprovalTargets(dashboard, id);
       if (targets.length === 0) {
-        setCampaignError("No real asset is available for this approval yet.");
+        setCampaignError("Todavía no hay ningún asset real disponible para aprobar.");
         return;
       }
 
@@ -473,7 +475,7 @@ export default function LabsApp() {
         setDashboard(nextDashboard);
         setStatuses(statusesFromDashboard(nextDashboard));
       } catch (err) {
-        setCampaignError(err instanceof Error ? err.message : "Could not approve asset.");
+        setCampaignError(err instanceof Error ? err.message : "No se pudo aprobar el asset.");
       }
     },
     [campaignId, dashboard],
@@ -508,8 +510,8 @@ export default function LabsApp() {
 
       const targets = getRegenerationTargets(dashboard, id, copyVar);
       if (targets.length === 0) {
-        setCampaignError("No real asset is available to regenerate yet.");
-        return false;
+        setCampaignError("Todavía no hay ningún asset real disponible para regenerar.");
+        return;
       }
 
       setStatus(id, "generating");
@@ -523,7 +525,7 @@ export default function LabsApp() {
         setStatuses(statusesFromDashboard(nextDashboard));
         return true;
       } catch (err) {
-        setCampaignError(err instanceof Error ? err.message : "Could not regenerate asset.");
+        setCampaignError(err instanceof Error ? err.message : "No se pudo regenerar el asset.");
         setStatuses(statusesFromDashboard(dashboard));
         return false;
       }
@@ -548,7 +550,7 @@ export default function LabsApp() {
             setCmdPhase("idle");
             if (ok) {
               setCopyUrgent(true);
-              setCmdText("Applied — Spanish headline recut by Meta Ads Agent.");
+              setCmdText("Aplicado — titular en español reajustado por el Agente de Meta Ads.");
             } else {
               setCmdText("No se pudo aplicar el cambio — reintentá.");
             }
@@ -605,7 +607,6 @@ export default function LabsApp() {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
   const paths: Record<string, string> = {
-    kitgen: `${slug}/brand-kit --generate`,
     newcampaign: `${slug}/campaigns/new`,
     genlive: `${slug}/campaigns/${campaignId?.slice(0, 8) ?? "new"} --running`,
     campaign: `${slug}/campaigns/${campaignId?.slice(0, 8) ?? "new"}`,
@@ -636,9 +637,9 @@ export default function LabsApp() {
       const result = await exportCampaignToMetaAds(campaignId);
       setDashboard(result.dashboard);
       setPushed(true);
-      setCmdText("READY_TO_PUBLISH — n8n export queued.");
+      setCmdText("READY_TO_PUBLISH — exportación a n8n en cola.");
     } catch (err) {
-      setCampaignError(err instanceof Error ? err.message : "Could not export campaign.");
+      setCampaignError(err instanceof Error ? err.message : "No se pudo exportar la campaña.");
     }
   }, [campaignId, pushable]);
 
@@ -656,16 +657,20 @@ export default function LabsApp() {
         style={{
           minHeight: "100vh",
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
+          gap: 14,
           background: PAPER,
+          backgroundImage: gridBg(0.035),
           color: INK,
           fontFamily: FONT_MONO,
           fontSize: 12,
           letterSpacing: "0.1em",
         }}
       >
-        RESTORING SESSION…
+        <Eyebrow tone="acid">Polyedro Labs</Eyebrow>
+        RESTAURANDO SESIÓN…
       </div>
     );
   }
@@ -674,21 +679,45 @@ export default function LabsApp() {
     return <LoginView />;
   }
 
-  if (view === "onboard") {
+  const wizardStep = WIZARD_STEPS[view];
+  if (wizardStep) {
     return (
-      <div className="lab-root" style={{ minHeight: "100vh", background: PAPER, color: INK, fontFamily: FONT_SANS }}>
-        <OnboardingView
-          brandInput={brandInput}
-          onBrandInput={setBrandInput}
-          descInput={descInput}
-          onDescInput={setDescInput}
-          markets={markets}
-          toggleMarket={(m) => setMarkets((s) => ({ ...s, [m]: !s[m] }))}
-          initWorkspace={initWorkspace}
-          loadDemo={loadDemo}
-          demoLoading={demoLoading}
-          demoError={demoError}
-        />
+      <div className="lab-root">
+        <WizardShell stepIndex={wizardStep.index} stepLabel={wizardStep.label}>
+          {view === "onboard" && (
+            <OnboardingView
+              brandInput={brandInput}
+              onBrandInput={setBrandInput}
+              descInput={descInput}
+              onDescInput={setDescInput}
+              markets={markets}
+              toggleMarket={(m) => setMarkets((s) => ({ ...s, [m]: !s[m] }))}
+              initWorkspace={initWorkspace}
+            />
+          )}
+          {view === "newcampaign" && (
+            <NewCampaignView
+              goalInput={goalInput}
+              onGoalInput={handleGoalInput}
+              goalPhase={goalPhase}
+              goalMessage={goalBriefError ?? goalTranscriptionMessage}
+              goalTranscriptionId={goalTranscriptionId}
+              goalOrbClick={goalOrbClick}
+              deployAgents={deployAgents}
+              goBack={() => setView("onboard")}
+            />
+          )}
+          {view === "genlive" && (
+            <GenliveView
+              runIdx={runIdx}
+              goalEcho={goalInput}
+              steps={liveSteps}
+              campaignLabel={campaignId?.slice(0, 8) ?? "new"}
+              transport={progressTransport}
+              error={campaignError}
+            />
+          )}
+        </WizardShell>
       </div>
     );
   }
@@ -710,6 +739,9 @@ export default function LabsApp() {
             gridArea: "side",
             background: CARD,
             borderRight: `3px solid ${INK}`,
+            borderTopRightRadius: RADIUS_SM,
+            borderBottomRightRadius: RADIUS_SM,
+            overflow: "hidden",
             display: "flex",
             flexDirection: "column",
             position: "sticky",
@@ -720,24 +752,30 @@ export default function LabsApp() {
           <div style={{ padding: "18px 18px 16px", borderBottom: `3px solid ${INK}` }}>
             <BrandWordmarkLink titleSize={19} suffixSize={17} />
             <div style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: "0.1em", color: "rgba(10,10,10,0.5)", marginTop: 6 }}>
-              AI MARKETING LAB
+              <Marker>LAB DE MARKETING</Marker> CON IA
             </div>
           </div>
 
           <div style={{ padding: "16px 18px", borderBottom: `2px solid ${INK}`, display: "flex", alignItems: "center", gap: 12 }}>
             <div
-              style={{
-                width: 36,
-                height: 36,
-                background: INK,
-                color: ACID,
-                fontFamily: FONT_BLACK,
-                fontSize: 14,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flex: "none",
-              }}
+              className="nb-press"
+              style={
+                {
+                  width: 36,
+                  height: 36,
+                  background: INK,
+                  color: ACID,
+                  fontFamily: FONT_BLACK,
+                  fontSize: 14,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flex: "none",
+                  borderRadius: RADIUS_SM,
+                  transform: "rotate(-5deg)",
+                  "--sx": "3px",
+                } as CSSProperties
+              }
             >
               {brandInitials}
             </div>
@@ -745,7 +783,7 @@ export default function LabsApp() {
               <div style={{ fontWeight: 800, fontSize: 13.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {brandName}
               </div>
-              <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: "rgba(10,10,10,0.5)" }}>WORKSPACE ▾</div>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: "rgba(10,10,10,0.5)" }}>ESPACIO DE TRABAJO ▾</div>
             </div>
           </div>
 
@@ -762,13 +800,14 @@ export default function LabsApp() {
                   textTransform: "uppercase",
                   background: ACID,
                   border: `3px solid ${INK}`,
+                  borderRadius: RADIUS_SM,
                   padding: 11,
                   cursor: "pointer",
                   "--sx": "3px",
                 } as CSSProperties
               }
             >
-              + New campaign
+              + Nueva campaña
             </button>
           </div>
 
@@ -803,6 +842,7 @@ export default function LabsApp() {
                       fontSize: 10,
                       background: active ? ACID : CARD,
                       border: `1.5px solid ${INK}`,
+                      borderRadius: RADIUS_PILL,
                       padding: "1px 6px",
                     }}
                   >
@@ -834,7 +874,7 @@ export default function LabsApp() {
                   animation: "pv-pulse 1.6s ease-in-out infinite",
                 }}
               />
-              {AGENT_DEFS.length} AGENTS ONLINE
+              8 AGENTES EN LÍNEA
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div
@@ -849,6 +889,7 @@ export default function LabsApp() {
                   alignItems: "center",
                   justifyContent: "center",
                   flex: "none",
+                  borderRadius: RADIUS_SM,
                 }}
               >
                 {userInitial}
@@ -866,7 +907,7 @@ export default function LabsApp() {
                 >
                   {userName}
                 </b>
-                <span style={{ fontFamily: FONT_MONO, fontSize: 10, color: "rgba(10,10,10,0.5)" }}>OWNER</span>
+                <span style={{ fontFamily: FONT_MONO, fontSize: 10, color: "rgba(10,10,10,0.5)" }}>DUEÑO</span>
               </div>
             </div>
             <SignOutButton fullWidth />
@@ -879,6 +920,9 @@ export default function LabsApp() {
             gridArea: "top",
             background: CARD,
             borderBottom: `3px solid ${INK}`,
+            borderBottomLeftRadius: RADIUS_SM,
+            borderBottomRightRadius: RADIUS_SM,
+            overflow: "hidden",
             padding: "12px 26px",
             display: "flex",
             alignItems: "center",
@@ -890,8 +934,23 @@ export default function LabsApp() {
             flexWrap: "wrap",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, fontFamily: FONT_MONO, fontSize: 12, fontWeight: 600 }}>
-            <span style={{ background: INK, color: ACID, padding: "4px 9px" }}>~</span>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              minWidth: 0,
+              fontFamily: FONT_MONO,
+              fontSize: 12,
+              fontWeight: 600,
+              border: `2px solid ${INK}`,
+              borderRadius: RADIUS_PILL,
+              padding: "6px 12px",
+              background: CARD,
+              boxShadow: `3px 3px 0 ${INK}`,
+            }}
+          >
+            <span style={{ background: INK, color: ACID, padding: "4px 9px", borderRadius: RADIUS_PILL }}>~</span>
             <span style={{ color: "rgba(10,10,10,0.75)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {paths[view] ?? slug}
             </span>
@@ -908,13 +967,24 @@ export default function LabsApp() {
           </div>
           {view === "campaign" && (
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", fontFamily: FONT_MONO, fontSize: 9.5, fontWeight: 600, letterSpacing: "0.03em" }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  fontFamily: FONT_MONO,
+                  fontSize: 9.5,
+                  fontWeight: 600,
+                  letterSpacing: "0.03em",
+                  boxShadow: `4px 4px 0 ${INK}`,
+                }}
+              >
                 {STAGE_ORDER.map((label, i) => (
                   <span
                     key={label}
                     style={{
                       padding: "4px 8px",
                       border: `2px solid ${INK}`,
+                      borderRadius: i === 0 ? `${RADIUS_PILL}px 0 0 ${RADIUS_PILL}px` : i === STAGE_ORDER.length - 1 ? `0 ${RADIUS_PILL}px ${RADIUS_PILL}px 0` : 0,
                       background: i < currentStage ? STONE : i === currentStage ? (i === 4 ? VOLT : ACID) : CARD,
                       color: i === currentStage && i === 4 ? CARD : i <= currentStage ? INK : "rgba(10,10,10,0.35)",
                       marginLeft: -2,
@@ -938,50 +1008,28 @@ export default function LabsApp() {
                     background: exported ? VOLT : allApproved ? ACID : STONE,
                     color: exported ? CARD : allApproved ? INK : "rgba(10,10,10,0.4)",
                     border: `3px solid ${INK}`,
+                    borderRadius: RADIUS_SM,
                     padding: "10px 18px",
                     cursor: pushable ? "pointer" : "default",
                     "--sx": "4px",
                   } as CSSProperties
                 }
               >
-                {exported ? "⟶ Queued in n8n" : "Push to Meta Ads"}
+                {exported ? "⟶ En cola en n8n" : "Publicar en Meta Ads"}
               </button>
             </div>
           )}
         </header>
 
         {/* MAIN */}
-        <main style={{ gridArea: "main", padding: "26px 26px 120px", minWidth: 0, backgroundImage: gridBg(0.035) }}>
-          {view === "kitgen" && (
-            <KitgenView
-              brandKit={brandKit}
-              steps={kitSteps}
-              loading={kitLoading}
-              error={kitError}
-              goNewCampaign={() => setView("newcampaign")}
-            />
-          )}
-          {view === "newcampaign" && (
-            <NewCampaignView
-              goalInput={goalInput}
-              onGoalInput={handleGoalInput}
-              goalPhase={goalPhase}
-              goalMessage={goalBriefError ?? goalTranscriptionMessage}
-              goalTranscriptionId={goalTranscriptionId}
-              goalOrbClick={goalOrbClick}
-              deployAgents={deployAgents}
-            />
-          )}
-          {view === "genlive" && (
-            <GenliveView
-              runIdx={runIdx}
-              goalEcho={goalInput}
-              steps={liveSteps}
-              campaignLabel={campaignId?.slice(0, 8) ?? "new"}
-              transport={progressTransport}
-              error={campaignError}
-            />
-          )}
+        <main
+          style={{
+            gridArea: "main",
+            padding: "26px 26px 120px",
+            minWidth: 0,
+            backgroundImage: `radial-gradient(480px circle at 100% 0%, ${CYAN}26 0%, transparent 60%), ${gridBg(0.035)}`,
+          }}
+        >
           {view === "campaign" && (
             <CampaignView
               dashboard={dashboard}

@@ -56,7 +56,7 @@ export function LoginView() {
     } else if (mode === "signup") {
       // Con email confirmation activada no hay sesión inmediata tras signUp;
       // si está desactivada, onAuthStateChange desmonta esta vista solo.
-      setNotice("Account created — check your inbox if confirmation is required.");
+      setNotice("Cuenta creada — revisa tu bandeja de entrada si se requiere confirmación.");
     }
   };
 
@@ -78,7 +78,7 @@ export function LoginView() {
       >
         <BrandWordmarkLink />
         <div style={{ fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: "0.1em", color: "rgba(10,10,10,0.55)" }}>
-          AI MARKETING LAB · v0.4
+          LAB DE MARKETING CON IA · v0.4
         </div>
       </header>
 
@@ -99,19 +99,19 @@ export function LoginView() {
               <span style={{ width: 9, height: 9, borderRadius: "50%", background: SUN, border: "1.5px solid rgba(244,242,236,0.4)" }} />
               <span style={{ width: 9, height: 9, borderRadius: "50%", background: ACCENT, border: "1.5px solid rgba(244,242,236,0.4)" }} />
               <span style={{ fontFamily: FONT_MONO, fontSize: 10.5, color: "rgba(244,242,236,0.7)", marginLeft: 8 }}>
-                ~/auth/{mode === "signin" ? "login" : "register"}
+                ~/auth/{mode === "signin" ? "iniciar-sesion" : "registro"}
               </span>
             </div>
 
             <form onSubmit={submit} style={{ padding: "30px 32px", display: "flex", flexDirection: "column", gap: 20 }}>
               <div>
                 <div style={{ fontFamily: FONT_BLACK, fontSize: 28, letterSpacing: "-0.01em", lineHeight: 1.05 }}>
-                  {mode === "signin" ? "Sign in to your lab." : "Create your account."}
+                  {mode === "signin" ? "Entra a tu lab." : "Crea tu cuenta."}
                 </div>
                 <div style={{ fontSize: 13.5, fontWeight: 500, color: "rgba(10,10,10,0.6)", marginTop: 8 }}>
                   {mode === "signin"
-                    ? "Your brands and campaigns live behind this door."
-                    : "One account, all your brand workspaces."}
+                    ? "Tus marcas y campañas viven detrás de esta puerta."
+                    : "Una cuenta, todos tus espacios de marca."}
                 </div>
               </div>
 
@@ -128,7 +128,7 @@ export function LoginView() {
               </label>
 
               <label style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                <span style={monoLabel}>PASSWORD</span>
+                <span style={monoLabel}>CONTRASEÑA</span>
                 <input
                   type={showPassword ? "text" : "password"}
                   required
@@ -185,7 +185,7 @@ export function LoginView() {
                 >
                   {showPassword ? "✓" : ""}
                 </span>
-                <span style={{ ...monoLabel, cursor: "pointer" }}>SHOW PASSWORD</span>
+                <span style={{ ...monoLabel, cursor: "pointer" }}>MOSTRAR CONTRASEÑA</span>
               </label>
 
               {error && (
@@ -236,7 +236,7 @@ export function LoginView() {
                   } as CSSProperties
                 }
               >
-                {busy ? "Authenticating…" : mode === "signin" ? "Sign in →" : "Create account →"}
+                {busy ? "Autenticando…" : mode === "signin" ? "Iniciar sesión →" : "Crear cuenta →"}
               </button>
 
               <button
@@ -259,7 +259,7 @@ export function LoginView() {
                   alignSelf: "center",
                 }}
               >
-                {mode === "signin" ? "No account yet? Create one" : "Already registered? Sign in"}
+                {mode === "signin" ? "¿Todavía no tienes cuenta? Crea una" : "¿Ya tienes cuenta? Inicia sesión"}
               </button>
             </form>
           </div>

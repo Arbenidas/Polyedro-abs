@@ -7,8 +7,8 @@ export type AudioTranscriptionPhase = "idle" | "recording" | "uploading" | "unsu
 
 const WEBM_OPUS = "audio/webm;codecs=opus";
 const WEBM = "audio/webm";
-const DEFAULT_IDLE_MESSAGE = "MIC READY · SPEAK IN SPANISH";
-const UNSUPPORTED_MESSAGE = "VOICE RECORDING NEEDS A BROWSER WITH MICROPHONE RECORDING SUPPORT";
+const DEFAULT_IDLE_MESSAGE = "MICRÓFONO LISTO · HABLA EN ESPAÑOL";
+const UNSUPPORTED_MESSAGE = "LA GRABACIÓN DE VOZ NECESITA UN NAVEGADOR CON SOPORTE DE MICRÓFONO";
 
 function getRecorderMimeType() {
   if (typeof MediaRecorder === "undefined") return "";
@@ -60,7 +60,7 @@ export function useAudioTranscription({
   const start = useCallback(async () => {
     if (!brandIdRef.current) {
       setPhase("error");
-      setMessage("BRAND REQUIRED BEFORE RECORDING");
+      setMessage("SE NECESITA UNA MARCA ANTES DE GRABAR");
       return false;
     }
 
@@ -102,18 +102,18 @@ export function useAudioTranscription({
         if (!audio.size) {
           if (!mountedRef.current) return;
           setPhase("error");
-          setMessage("NO AUDIO RECORDED · CLICK THE MIC AND TRY AGAIN");
+          setMessage("NO SE GRABÓ AUDIO · TOCA EL MICRÓFONO E INTENTA DE NUEVO");
           return;
         }
 
         if (!mountedRef.current) return;
         setPhase("uploading");
-        setMessage("TRANSCRIBING WITH WHISPER...");
+        setMessage("TRANSCRIBIENDO CON WHISPER...");
 
         const activeBrandId = brandIdRef.current;
         if (!activeBrandId) {
           setPhase("error");
-          setMessage("BRAND REQUIRED BEFORE RECORDING");
+          setMessage("SE NECESITA UNA MARCA ANTES DE GRABAR");
           return;
         }
 
@@ -128,20 +128,20 @@ export function useAudioTranscription({
           .catch((err: unknown) => {
             if (!mountedRef.current) return;
             setPhase("error");
-            setMessage(err instanceof Error ? err.message.toUpperCase() : "COULD NOT TRANSCRIBE AUDIO");
+            setMessage(err instanceof Error ? err.message.toUpperCase() : "NO SE PUDO TRANSCRIBIR EL AUDIO");
           });
       };
 
       recorder.start();
       setPhase("recording");
-      setMessage("RECORDING... CLICK AGAIN TO TRANSCRIBE");
+      setMessage("GRABANDO... TOCA DE NUEVO PARA TRANSCRIBIR");
       return true;
     } catch (err) {
       stopStream(streamRef.current);
       streamRef.current = null;
       recorderRef.current = null;
       setPhase("error");
-      setMessage(err instanceof DOMException && err.name === "NotAllowedError" ? "MICROPHONE BLOCKED · ENABLE PERMISSION" : "MICROPHONE COULD NOT START");
+      setMessage(err instanceof DOMException && err.name === "NotAllowedError" ? "MICRÓFONO BLOQUEADO · HABILITA EL PERMISO" : "NO SE PUDO INICIAR EL MICRÓFONO");
       return false;
     }
   }, []);
