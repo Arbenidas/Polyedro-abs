@@ -1,5 +1,6 @@
 import { upsertDemoUser } from "@/api/services/brand";
 import { regenerateCreativeAsset } from "@/api/services/creative";
+import { regenerateStrategy, runStrategyAgent } from "@/api/services/strategy-agent";
 import { ApiError, requireOne } from "@/api/shared";
 import { db } from "@/db";
 import {
@@ -155,7 +156,17 @@ export const createCampaign = async (input: {
     })
     .returning();
 
-  return requireOne(campaign, "Campaign could not be created");
+  const createdCampaign = requireOne(campaign, "Campaign could not be created");
+  // El Strategy Agent corre inline en la creación (mismo trade-off de
+  // latencia que el Brand Agent en POST /api/brands) y deja la campaña en
+  // "review"; el row devuelto refleja ese estado.
+  const { strategy, generation } = await runStrategyAgent(createdCampaign.id);
+
+  return {
+    campaign: { ...createdCampaign, status: "review" as const },
+    strategy,
+    generation,
+  };
 };
 
 export const listCampaigns = async () => {
@@ -385,24 +396,7 @@ export const regenerateAsset = async (
 
   switch (input.target) {
     case "strategy": {
-      const strategy = await db.query.campaignStrategies.findFirst({
-        where: and(
-          eq(campaignStrategies.id, input.id),
-          eq(campaignStrategies.campaignId, campaignId),
-        ),
-      });
-      if (!strategy) {
-        throw new ApiError(404, "Strategy not found for this campaign");
-      }
-      await db
-        .update(campaignStrategies)
-        .set({
-          status: "review",
-          commercialAngle:
-            "Quiet productivity for commuters: premium-feeling ANC earbuds at a launch price.",
-          notes: `Regenerated demo strategy at ${generatedAt}.`,
-        })
-        .where(eq(campaignStrategies.id, input.id));
+      await regenerateStrategy(campaignId, input.id);
       break;
     }
     case "ad_copy": {
