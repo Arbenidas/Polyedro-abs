@@ -1,0 +1,9 @@
+# Override Nixpacks' default install phase: it pins corepack@0.24.1, which
+# crashes loading pnpm 11.5.2 on Node 22 (ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING).
+# Install a current corepack so the packageManager pin (pnpm@11.5.2) resolves.
+[phases.install]
+cmds = [
+  "npm install -g corepack@latest",
+  "corepack enable",
+  "pnpm install --frozen-lockfile",
+]
