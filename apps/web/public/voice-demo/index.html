@@ -1422,13 +1422,13 @@
             <h1 class="hero-title">Tu campaña empieza cuando <span class="marker">hablas</span>.</h1>
             <p class="copy">Una guía de voz te ayuda a definir brief, audiencia, objetivos y estilo visual. Si algo no encaja, le das una instrucción y se guarda como memoria de campaña.</p>
             <div class="actions">
-              <button class="btn primary" id="startTourBtn" type="button">▶ Iniciar tour guiado</button>
-              <button class="btn ghost" id="startVoiceBtn" type="button">Explorar por mi cuenta</button>
+              <button class="btn primary" id="startVoiceBtn" type="button">Empezar demo</button>
+              <button class="btn ghost" id="landingMicBtn" type="button">Grabar brief</button>
             </div>
           </div>
           <aside aria-label="Micrófono principal de la demo">
             <div class="big-mic">
-              <button class="mic-button" id="landingMicBtn" type="button">MIC</button>
+              <button class="mic-button" id="landingMicOrbBtn" type="button">MIC</button>
             </div>
           </aside>
         </div>
@@ -2538,11 +2538,6 @@
     });
 
     document.addEventListener("click", (event) => {
-      if (guidedTourRunning && !guidedTourAbort) {
-        if (event.target.closest("[data-next]") || event.target.closest("[data-prev]")) {
-          abortGuidedTour();
-        }
-      }
       if (event.target.closest("[data-next]")) goToStep(state.currentStep + 1);
       if (event.target.closest("[data-prev]")) goToStep(state.currentStep - 1);
       if (event.target.closest("[data-add-instruction]")) addInstruction(false);
@@ -2571,9 +2566,12 @@
       if (element) element.addEventListener("click", handler);
     }
 
-    onReadyClick("startTourBtn", () => { void runGuidedTour(); });
     onReadyClick("startVoiceBtn", () => startDemo());
     onReadyClick("landingMicBtn", () => {
+      startDemo();
+      window.setTimeout(() => { void startVoiceRecording(); }, 980);
+    });
+    onReadyClick("landingMicOrbBtn", () => {
       startDemo();
       window.setTimeout(() => { void startVoiceRecording(); }, 980);
     });
@@ -2823,147 +2821,6 @@
       script.async = true;
       script.type = "text/javascript";
       document.body.appendChild(script);
-    }
-
-    let guidedTourRunning = false;
-    let guidedTourAbort = false;
-
-    /* ---------- Tour guiado (sin ElevenLabs) ---------- */
-    const TOUR_SCRIPT = [
-      // [step, question, assistantCopy, delayMs, action]
-      { delayMs: 500, step: 0, question: "", copy: "¡Hola! Soy Poly, tu guía de campaña. Voy a ayudarte paso a paso a crear una campaña de Facebook con IA.", action: "none" },
-      { delayMs: 900, step: 0, question: "", copy: "Primero necesito saber: ¿cómo se llama tu marca y qué vendes o qué servicio ofreces? Voy a simular que trabajamos para una marca de ejemplo llamada NovaGear.", action: "none" },
-      { delayMs: 1400, step: 1, question: "¿Cómo se llama tu marca?", copy: "Escribe el nombre de tu marca y una breve descripción de lo que haces.", action: "fillBrief" },
-      { delayMs: 1100, step: 1, question: "Perfecto.", copy: "Ahora dime: ¿a quién le quieres hablar? ¿Quién es tu cliente ideal?", action: "none" },
-      { delayMs: 900, step: 2, question: "¿Quién debería ver esta campaña?", copy: "Elige el perfil de cliente más cercano al tuyo.", action: "selectAudience" },
-      { delayMs: 800, step: 2, question: "Bien.", copy: "¿Qué resultado quieres lograr con esta campaña?", action: "none" },
-      { delayMs: 800, step: 3, question: "¿Qué resultado quieres lograr?", copy: "Define si buscas visibilidad, contactos, ventas o comunidad.", action: "selectGoal" },
-      { delayMs: 800, step: 3, question: "Buen objetivo.", copy: "Ahora viene la parte creativa: ¿cómo quieres que se vea y se sienta tu campaña?", action: "none" },
-      { delayMs: 800, step: 4, question: "¿Qué estilo se siente más correcto?", copy: "Mira las imágenes y elige la dirección visual para tus anuncios.", action: "selectStyle" },
-      { delayMs: 800, step: 4, question: "Excelente elección.", copy: "Ya tengo todo lo necesario. Voy a preparar el resumen de tu campaña.", action: "none" },
-      { delayMs: 1000, step: 5, question: "Aquí está tu resumen.", copy: "Revisa la información. Si todo está bien, voy a generar las 3 propuestas visuales con IA.", action: "reviewSummary" },
-    ];
-
-    async function runGuidedTour() {
-      if (guidedTourRunning) return;
-      guidedTourRunning = true;
-      guidedTourAbort = false;
-      const btn = document.getElementById("startTourBtn");
-      if (btn) { btn.disabled = true; btn.textContent = "Tour en curso…"; }
-
-      disableTourNav(true);
-
-      for (const line of TOUR_SCRIPT) {
-        if (guidedTourAbort) break;
-
-        if (line.step !== state.currentStep) {
-          goToStep(line.step);
-          await sleep(700);
-        }
-
-        if (line.action === "fillBrief") {
-          state.brandName = "NovaGear Tech";
-          state.brief = "Gadgets inteligentes: audífonos inalámbricos, cargadores rápidos, lámparas LED y accesorios para home-office. Precios accesibles, diseño moderno, enfocados en América Latina.";
-          saveState(false);
-          render();
-        }
-
-        if (line.action === "selectAudience") {
-          state.audience = "founders";
-          saveState(false);
-          render();
-          await sleep(500);
-        }
-
-        if (line.action === "selectGoal") {
-          state.goal = "leads";
-          saveState(false);
-          render();
-          await sleep(500);
-        }
-
-        if (line.action === "selectStyle") {
-          state.style = "neobrutal";
-          saveState(false);
-          render();
-          await sleep(500);
-        }
-
-        if (line.action === "reviewSummary") {
-          state.memory.push("Campaña guiada por el tour automático de Polyedro.");
-          saveState(false);
-          render();
-          await sleep(1000);
-        }
-
-        await updateAssistant(line.question, line.copy, line.delayMs);
-      }
-
-      // Generar las propuestas al final del tour
-      if (!guidedTourAbort) {
-        await updateAssistant("", "¡Listo! Voy a generar las 3 propuestas visuales con inteligencia artificial. Esto puede tomar unos segundos…", 800);
-        disableTourNav(false);
-        void generateFinals();
-      } else {
-        disableTourNav(false);
-      }
-
-      if (btn) { btn.disabled = false; btn.textContent = "▶ Iniciar tour guiado"; }
-      guidedTourRunning = false;
-    }
-
-    function disableTourNav(disabled) {
-      document.querySelectorAll("[data-next], [data-prev]").forEach((el) => {
-        if (disabled) {
-          el.setAttribute("data-tour-disabled", "1");
-          el.disabled = true;
-        } else if (el.getAttribute("data-tour-disabled") === "1") {
-          el.removeAttribute("data-tour-disabled");
-          el.disabled = false;
-        }
-      });
-    }
-
-    async function updateAssistant(question, copy, delayMs) {
-      const panel = document.querySelector(".screen.is-active [data-assistant]");
-      if (!panel) return;
-
-      const qEl = panel.querySelector(".voice-question");
-      const cEl = panel.querySelector(".assistant-copy");
-      const waveEl = panel.querySelector(".wave");
-
-      if (question && qEl) {
-        qEl.textContent = "";
-        await typeText(qEl, question, 35);
-      }
-
-      if (copy && cEl) {
-        cEl.textContent = "";
-        await typeText(cEl, copy, 18);
-      }
-
-      if (waveEl) waveEl.style.opacity = "1";
-
-      if (delayMs) await sleep(delayMs);
-    }
-
-    async function typeText(el, text, speedMs) {
-      for (let i = 0; i < text.length; i++) {
-        if (guidedTourAbort) { el.textContent = text; return; }
-        el.textContent += text[i];
-        await new Promise((r) => setTimeout(r, speedMs));
-      }
-    }
-
-    function abortGuidedTour() {
-      guidedTourAbort = true;
-      disableTourNav(false);
-      const btn = document.getElementById("startTourBtn");
-      if (btn) { btn.disabled = false; btn.textContent = "▶ Iniciar tour guiado"; }
-    }
-
-    function sleep(ms) {
-      return new Promise((resolve) => setTimeout(resolve, ms));
     }
 
     initGuideAgent();
