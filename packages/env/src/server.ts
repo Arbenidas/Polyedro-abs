@@ -72,6 +72,11 @@ export const env = createEnv({
       .default("https://ferodrigop.app.n8n.cloud/webhook/polyedro/export"),
     /** ID del workflow de export en n8n (solo para trazabilidad en la fila). */
     N8N_EXPORT_WORKFLOW_ID: z.string().min(1).default("jFDaLIM6iW32SykP"),
+    /** Page ID de Facebook usado por el publish directo (Meta Graph API). */
+    FB_PAGE_ID: z.string().min(1).optional(),
+    /** Access token de página de Facebook para el publish directo; sin él,
+     *  publishPost falla con un error claro en vez de intentar la llamada. */
+    FB_PAGE_ACCESS_TOKEN: z.string().min(1).optional(),
   },
   runtimeEnv: process.env,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

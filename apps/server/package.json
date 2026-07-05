@@ -24,6 +24,7 @@
     "dotenv": "catalog:",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.8.2",
+    "node-cron": "^4.5.0",
     "postgres": "^3.4.9",
     "zod": "catalog:"
   },

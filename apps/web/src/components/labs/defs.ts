@@ -92,7 +92,8 @@ export type View =
   | "campaign"
   | "brandkit"
   | "agents"
-  | "automation";
+  | "automation"
+  | "publish";
 
 export const GOAL =
   "Lanzamiento de audífonos inalámbricos con cancelación de ruido para jóvenes profesionales y estudiantes en LatAm.";
@@ -113,6 +114,7 @@ export const NAV_DEFS = [
   { id: "brandkit", label: "Brand Kit", icon: "◆", badge: "V1" },
   { id: "agents", label: "Agentes", icon: "⚙", badge: "8" },
   { id: "automation", label: "Automatización", icon: "⟶", badge: "ON" },
+  { id: "publish", label: "Publicar", icon: "➤", badge: "FB" },
 ] as const;
 
 export const AGENT_DEFS = [

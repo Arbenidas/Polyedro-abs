@@ -9,6 +9,7 @@ import { api } from "@/api/routes";
 import { publicRoutes } from "@/api/routes/public";
 import { ApiError } from "@/api/shared";
 import { db } from "@/db";
+import { startScheduledPublishJob } from "@/jobs/scheduler";
 import { privacyPolicyHtml } from "@/legal/privacy";
 import { requireAuth } from "@/middleware/auth";
 
@@ -67,6 +68,8 @@ app.onError((error, c) => {
     500,
   );
 });
+
+startScheduledPublishJob();
 
 serve(
   {

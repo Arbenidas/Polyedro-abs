@@ -435,3 +435,83 @@ export async function exportCampaignToMetaAds(campaignId: string): Promise<{
 
   return body as { export: CampaignExport; dashboard: CampaignDashboard };
 }
+
+export type SocialPostStatus = "draft" | "scheduled" | "publishing" | "published" | "failed";
+
+export type SocialPost = {
+  id: string;
+  campaignId: string;
+  creativeAssetId: string;
+  caption: string;
+  status: SocialPostStatus;
+  scheduledAt: string | null;
+  publishedAt: string | null;
+  externalPostId: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function listCampaignPosts(campaignId: string): Promise<SocialPost[]> {
+  const res = await apiFetch(`/api/campaigns/${campaignId}/posts`);
+  const body: unknown = await res.json().catch(() => undefined);
+
+  if (!res.ok) {
+    throw new Error(parseErrorMessage(body, `Listing posts failed with status ${res.status}`));
+  }
+
+  return (body as { posts: SocialPost[] }).posts;
+}
+
+export async function createSocialPost(
+  campaignId: string,
+  input: { creativeAssetId: string; caption: string; scheduledAt: string | null },
+): Promise<SocialPost> {
+  const res = await apiFetch(`/api/campaigns/${campaignId}/posts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  const body: unknown = await res.json().catch(() => undefined);
+
+  if (!res.ok) {
+    throw new Error(parseErrorMessage(body, `Post creation failed with status ${res.status}`));
+  }
+
+  return body as SocialPost;
+}
+
+export async function reschedulePost(
+  campaignId: string,
+  postId: string,
+  scheduledAt: string | null,
+): Promise<SocialPost> {
+  const res = await apiFetch(`/api/campaigns/${campaignId}/posts/${postId}/schedule`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ scheduledAt }),
+  });
+
+  const body: unknown = await res.json().catch(() => undefined);
+
+  if (!res.ok) {
+    throw new Error(parseErrorMessage(body, `Reschedule failed with status ${res.status}`));
+  }
+
+  return body as SocialPost;
+}
+
+export async function publishPost(campaignId: string, postId: string): Promise<SocialPost> {
+  const res = await apiFetch(`/api/campaigns/${campaignId}/posts/${postId}/publish`, {
+    method: "POST",
+  });
+
+  const body: unknown = await res.json().catch(() => undefined);
+
+  if (!res.ok) {
+    throw new Error(parseErrorMessage(body, `Publish failed with status ${res.status}`));
+  }
+
+  return body as SocialPost;
+}

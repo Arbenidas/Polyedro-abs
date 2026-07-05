@@ -18,6 +18,7 @@ const MIGRATION_FILES = [
   "0000_low_namora.sql",
   "0001_sticky_molten_man.sql",
   "0002_good_jack_flag.sql",
+  "0002_yellow_mastermind.sql",
 ];
 
 const migrationsDir = fileURLToPath(new URL("../db/migrations/", import.meta.url));
@@ -48,7 +49,7 @@ export const applyMigrations = async () => {
 export const resetDb = async () => {
   await testDb.execute(
     sql`TRUNCATE TABLE
-      "automation_exports", "voiceovers", "video_scripts", "creative_assets",
+      "automation_exports", "social_posts", "voiceovers", "video_scripts", "creative_assets",
       "campaign_strategies", "ad_copies", "campaign_briefs", "campaigns",
       "brand_kits", "brands", "users"
     RESTART IDENTITY CASCADE`,

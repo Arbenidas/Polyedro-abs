@@ -39,6 +39,15 @@ export const exportStatusEnum = pgEnum("export_status", [
   "failed",
 ]);
 
+/** Estado de un post publicado (o programado) directamente vía Graph API. */
+export const socialPostStatusEnum = pgEnum("social_post_status", [
+  "draft",
+  "scheduled",
+  "publishing",
+  "published",
+  "failed",
+]);
+
 // ---------------------------------------------------------------------------
 // Helpers y shapes de jsonb
 // ---------------------------------------------------------------------------
@@ -343,6 +352,31 @@ export const automationExports = pgTable(
 ).enableRLS();
 
 // ---------------------------------------------------------------------------
+// Tabla: social_posts — publish directo a Meta Graph API (sin pasar por n8n)
+// ---------------------------------------------------------------------------
+
+export const socialPosts = pgTable(
+  "social_posts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    campaignId: uuid("campaign_id")
+      .notNull()
+      .references(() => campaigns.id, { onDelete: "cascade" }),
+    creativeAssetId: uuid("creative_asset_id")
+      .notNull()
+      .references(() => creativeAssets.id, { onDelete: "restrict" }),
+    caption: text("caption").notNull(),
+    status: socialPostStatusEnum("status").notNull().default("draft"),
+    scheduledAt: timestamp("scheduled_at"),
+    publishedAt: timestamp("published_at"),
+    externalPostId: text("external_post_id"),
+    errorMessage: text("error_message"),
+    ...timestamps,
+  },
+  (table) => [index("social_posts_campaign_id_idx").on(table.campaignId)],
+).enableRLS();
+
+// ---------------------------------------------------------------------------
 // Relations (para el query API relacional: db.query.brands.findMany({ with: {...} }))
 // ---------------------------------------------------------------------------
 
@@ -375,6 +409,7 @@ export const campaignsRelations = relations(campaigns, ({ one, many }) => ({
   creativeAssets: many(creativeAssets),
   videoScripts: many(videoScripts),
   automationExports: many(automationExports),
+  socialPosts: many(socialPosts),
 }));
 
 export const campaignBriefsRelations = relations(campaignBriefs, ({ one }) => ({
@@ -407,11 +442,12 @@ export const adCopiesRelations = relations(adCopies, ({ one }) => ({
 
 export const creativeAssetsRelations = relations(
   creativeAssets,
-  ({ one }) => ({
+  ({ one, many }) => ({
     campaign: one(campaigns, {
       fields: [creativeAssets.campaignId],
       references: [campaigns.id],
     }),
+    socialPosts: many(socialPosts),
   }),
 );
 
@@ -442,3 +478,14 @@ export const automationExportsRelations = relations(
     }),
   }),
 );
+
+export const socialPostsRelations = relations(socialPosts, ({ one }) => ({
+  campaign: one(campaigns, {
+    fields: [socialPosts.campaignId],
+    references: [campaigns.id],
+  }),
+  creativeAsset: one(creativeAssets, {
+    fields: [socialPosts.creativeAssetId],
+    references: [creativeAssets.id],
+  }),
+}));

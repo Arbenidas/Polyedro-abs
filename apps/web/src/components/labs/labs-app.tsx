@@ -52,6 +52,7 @@ import {
 import { GenliveView, type LiveGenerationStep, NewCampaignView, OnboardingView, WizardShell } from "./flow-views";
 import { AgentsView, AutomationView, BrandkitView } from "./library-views";
 import { LoginView } from "./login-view";
+import { PublishView } from "./publish-view";
 import { SignOutButton } from "./sign-out-button";
 import { useAudioTranscription } from "./use-audio-transcription";
 import { Eyebrow, Marker } from "./voice-ui";
@@ -616,6 +617,7 @@ export default function LabsApp() {
     brandkit: `${slug}/brand-kit`,
     agents: `${slug}/agents`,
     automation: `${slug}/automation`,
+    publish: `${slug}/publish`,
   };
 
   const brandInitials = brandName
@@ -1074,6 +1076,7 @@ export default function LabsApp() {
           )}
           {view === "agents" && <AgentsView dashboard={dashboard} />}
           {view === "automation" && <AutomationView dashboard={dashboard} />}
+          {view === "publish" && <PublishView campaignId={campaignId} dashboard={dashboard} />}
         </main>
       </div>
     </div>

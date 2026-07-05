@@ -15,6 +15,13 @@
       "when": 1783209042607,
       "tag": "0002_good_jack_flag",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1783248065725,
+      "tag": "0002_yellow_mastermind",
+      "breakpoints": true
     }
   ]
 }

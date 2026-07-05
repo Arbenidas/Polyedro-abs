@@ -1,6 +1,7 @@
 import { brandRoutes } from "@/api/routes/brand";
 import { campaignBriefRoutes } from "@/api/routes/campaign-brief";
 import { campaignRoutes } from "@/api/routes/campaign";
+import { socialPostRoutes } from "@/api/routes/social-post";
 import { transcriptionRoutes } from "@/api/routes/transcription";
 import { Hono } from "hono";
 
@@ -17,5 +18,6 @@ api.route("/brands", brandRoutes);
 api.route("/campaign-briefs", campaignBriefRoutes);
 api.route("/transcriptions", transcriptionRoutes);
 api.route("/", campaignRoutes);
+api.route("/", socialPostRoutes);
 
 export { api };

@@ -145,6 +145,24 @@ Con todo aprobado, el usuario dispara el export; n8n construye el payload y crea
 
 ---
 
+## F7b — Publish directo a Facebook (Meta Graph API)
+
+Alternativa al export vía n8n para un post suelto: el usuario elige un creative ya aprobado, escribe un caption y lo publica ahora o lo programa — sin pasar por n8n.
+
+| # | User story | Prioridad | Estado |
+|---|---|---|---|
+| F7b.1 | Como usuario, quiero publicar un creative aprobado en la página de Facebook con un caption, ahora mismo. | P1 | ✔️ hecho |
+| F7b.2 | Como usuario, quiero programar un post para una fecha/hora futura y que se publique solo. | P1 | ✔️ hecho |
+| F7b.3 | Como usuario, quiero ver el estado de cada post (draft, scheduled, publishing, published, failed) y el error si falla. | P1 | ✔️ hecho |
+
+**Criterios de aceptación**
+- El post referencia un `creative_asset` de la campaña (su `imageUrl` público en Supabase Storage); no hay upload de archivos nuevo.
+- Publish llama directo a `https://graph.facebook.com/v19.0/{FB_PAGE_ID}/photos` (ver [`api.md`](./api.md#social-posts)); el resultado (`externalPostId` o `errorMessage`) queda en la fila.
+- Un job de `node-cron` dispara los posts `scheduled` vencidos cada minuto.
+- **Prerrequisito:** `FB_PAGE_ID` y `FB_PAGE_ACCESS_TOKEN` configurados (de una página de test/sandbox de Meta).
+
+---
+
 ## F8 — Vistas de librería
 
 Vistas de consulta del workspace: Brand Kit, Agentes y Automatización.

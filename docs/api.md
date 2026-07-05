@@ -196,4 +196,36 @@ Exporta la campaña a Meta Ads llamando al **webhook real de n8n** (`N8N_EXPORT_
 
 **Respuesta `201`**: `{ "export": { "...": "fila de automation_exports (exportStatus sent, n8nExecutionId real)" }, "dashboard": { "...": "dashboard actualizado" } }`
 
+## Social Posts
+
+Archivo de rutas: [`apps/server/src/api/routes/social-post.ts`](../apps/server/src/api/routes/social-post.ts) · servicio: [`apps/server/src/api/services/social-post.ts`](../apps/server/src/api/services/social-post.ts).
+
+Publish directo a la Meta Graph API (sin pasar por n8n) de un `creative_asset` ya aprobado de la campaña, con caption editable y programación opcional. Todas las rutas verifican ownership igual que `Campaigns` (`campaignId` en la URL → 404 si la campaña no es del usuario de sesión).
+
+### `GET /api/campaigns/:campaignId/posts`
+
+**Respuesta `200`**: `{ "posts": [{ "id": "uuid", "campaignId": "uuid", "creativeAssetId": "uuid", "caption": "string", "status": "draft|scheduled|publishing|published|failed", "scheduledAt": "...|null", "publishedAt": "...|null", "externalPostId": "string|null", "errorMessage": "string|null", "createdAt": "...", "updatedAt": "..." }] }`
+
+### `POST /api/campaigns/:campaignId/posts`
+
+**Body**: `{ "creativeAssetId": "uuid", "caption": "string", "scheduledAt": "ISO date|null" }` (el creative debe pertenecer a la campaña). `scheduledAt` futuro ⇒ status `scheduled`; si no, `draft`.
+
+**Respuesta `201`**: el post creado.
+
+### `PATCH /api/campaigns/:campaignId/posts/:postId`
+
+**Body**: `{ "creativeAssetId"?: "uuid", "caption"?: "string" }`. Solo posts `draft`/`scheduled` son editables (`409` en otro caso).
+
+### `PATCH /api/campaigns/:campaignId/posts/:postId/schedule`
+
+**Body**: `{ "scheduledAt": "ISO date|null" }`. `null` vuelve el post a `draft`; una fecha futura lo deja `scheduled` (`400` si no es futura). Mismo guard de status editable que arriba.
+
+### `POST /api/campaigns/:campaignId/posts/:postId/publish`
+
+Marca el post `publishing` y responde de inmediato; la llamada real al Graph API (`https://graph.facebook.com/v19.0/{FB_PAGE_ID}/photos` con la `imageUrl` pública del creative) corre en background y deja el post en `published` (con `externalPostId`) o `failed` (con `errorMessage`).
+
+**Variables de entorno**: `FB_PAGE_ID`, `FB_PAGE_ACCESS_TOKEN` — si faltan, el publish falla con un error claro.
+
+Un job de `node-cron` (cada minuto, [`apps/server/src/jobs/scheduler.ts`](../apps/server/src/jobs/scheduler.ts)) dispara automáticamente los posts `scheduled` cuya `scheduledAt` ya pasó, con el mismo flujo de publish.
+
 **Errores**: `404` si la campaña no existe; `409` (`"Campaign is not ready to publish"`, con `details.pending`) si aún no está lista; `502` (`"n8n export webhook ..."`) si el webhook falla — la fila queda `failed` con el error.
