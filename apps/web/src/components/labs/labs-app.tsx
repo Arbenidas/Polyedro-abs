@@ -213,6 +213,9 @@ export default function LabsApp() {
   const [markets, setMarkets] = useState<Record<string, boolean>>({ MX: true, CO: true, CL: true, PE: false, AR: false });
   const [brand, setBrand] = useState<Brand | null>(null);
   const [brandKit, setBrandKit] = useState<BrandKit | null>(null);
+  const [kitSteps, setKitSteps] = useState<string[]>([]);
+  const [kitLoading, setKitLoading] = useState(false);
+  const [kitError, setKitError] = useState<string | null>(null);
   const [goalInput, setGoalInput] = useState("");
   const [goalTranscriptionId, setGoalTranscriptionId] = useState<string | null>(null);
   const [savedGoalBriefText, setSavedGoalBriefText] = useState<string | null>(null);
@@ -511,7 +514,7 @@ export default function LabsApp() {
       const targets = getRegenerationTargets(dashboard, id, copyVar);
       if (targets.length === 0) {
         setCampaignError("Todavía no hay ningún asset real disponible para regenerar.");
-        return;
+        return false;
       }
 
       setStatus(id, "generating");
@@ -693,6 +696,9 @@ export default function LabsApp() {
               markets={markets}
               toggleMarket={(m) => setMarkets((s) => ({ ...s, [m]: !s[m] }))}
               initWorkspace={initWorkspace}
+              loadDemo={loadDemo}
+              demoLoading={demoLoading}
+              demoError={demoError}
             />
           )}
           {view === "newcampaign" && (
