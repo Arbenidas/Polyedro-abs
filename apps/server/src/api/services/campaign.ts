@@ -1,4 +1,3 @@
-import { upsertDemoUser } from "@/api/services/brand";
 import { regenerateCreativeAsset } from "@/api/services/creative";
 import { regenerateAdCopy } from "@/api/services/meta-ads-agent";
 import { emitAssetUpdated } from "@/api/services/progress";
@@ -13,10 +12,11 @@ import {
   campaigns,
   campaignStrategies,
   creativeAssets,
+  users,
   videoScripts,
   voiceovers,
 } from "@/db/schema";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 
 const APPROVED_STATUSES = new Set(["approved", "ready_to_publish"]);
 
@@ -114,6 +114,23 @@ const findCampaign = async (campaignId: string) => {
   });
 };
 
+/** Guard de ownership para las rutas /campaigns/:campaignId — la cadena es
+ *  campaign → brand.userId. 404 (no 403) para no filtrar existencia de
+ *  campañas ajenas. Las rutas lo llaman antes de delegar en los agentes. */
+export const requireCampaignOwnership = async (campaignId: string, userId: string) => {
+  const campaign = await findCampaign(campaignId);
+
+  if (!campaign || campaign.brand.userId !== userId) {
+    throw new ApiError(404, "Campaign not found");
+  }
+
+  return campaign;
+};
+
+/** Subquery de marcas del usuario, para filtrar campañas por ownership. */
+const userBrandIds = (userId: string) =>
+  db.select({ id: brands.id }).from(brands).where(eq(brands.userId, userId));
+
 const findVideoScriptForCampaign = async (campaignId: string, videoScriptId: string) => {
   return db.query.videoScripts.findFirst({
     where: and(eq(videoScripts.id, videoScriptId), eq(videoScripts.campaignId, campaignId)),
@@ -139,9 +156,11 @@ export const createCampaign = async (input: {
   brandId: string;
   name: string;
   objective: string;
+  userId: string;
 }) => {
+  // Ownership en la query; 404 para no filtrar existencia de marcas ajenas.
   const brand = await db.query.brands.findFirst({
-    where: eq(brands.id, input.brandId),
+    where: and(eq(brands.id, input.brandId), eq(brands.userId, input.userId)),
   });
 
   if (!brand) {
@@ -171,8 +190,9 @@ export const createCampaign = async (input: {
   };
 };
 
-export const listCampaigns = async () => {
+export const listCampaigns = async (userId: string) => {
   const rows = await db.query.campaigns.findMany({
+    where: inArray(campaigns.brandId, userBrandIds(userId)),
     orderBy: (campaignRows, { desc }) => [desc(campaignRows.createdAt)],
     with: {
       brand: true,
@@ -510,8 +530,14 @@ export const exportCampaignToMetaAds = async (campaignId: string) => {
   };
 };
 
-export const seedDemoCampaign = async () => {
-  const user = await upsertDemoUser();
+/** El seed cuelga la data demo del usuario de la sesión — con el scoping por
+ *  ownership, un seed a un usuario demo aparte sería invisible para quien lo
+ *  disparó. */
+export const seedDemoCampaign = async (userId: string) => {
+  const user = requireOne(
+    await db.query.users.findFirst({ where: eq(users.id, userId) }),
+    "User not found",
+  );
   const brand = await upsertDemoBrand(user.id);
   const brandKit = await upsertDemoBrandKit(brand.id);
   const campaign = await upsertDemoCampaign(brand.id);
@@ -557,7 +583,7 @@ export const seedDemoCampaign = async () => {
   };
 };
 
-export const requireCampaign = async (campaignId: string) => {
+const requireCampaign = async (campaignId: string) => {
   const campaign = await findCampaign(campaignId);
 
   if (!campaign) {
