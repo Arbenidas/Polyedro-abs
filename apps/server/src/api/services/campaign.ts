@@ -1,5 +1,6 @@
 import { upsertDemoUser } from "@/api/services/brand";
 import { regenerateCreativeAsset } from "@/api/services/creative";
+import { regenerateAdCopy } from "@/api/services/meta-ads-agent";
 import { regenerateStrategy, runStrategyAgent } from "@/api/services/strategy-agent";
 import { ApiError, requireOne } from "@/api/shared";
 import { db } from "@/db";
@@ -400,27 +401,7 @@ export const regenerateAsset = async (
       break;
     }
     case "ad_copy": {
-      const copy = await db.query.adCopies.findFirst({
-        where: and(eq(adCopies.id, input.id), eq(adCopies.campaignId, campaignId)),
-      });
-      if (!copy) {
-        throw new ApiError(404, "Ad copy not found for this campaign");
-      }
-      await db
-        .update(adCopies)
-        .set({
-          status: "review",
-          headline:
-            copy.language === "es"
-              ? "Silencio premium, precio launch."
-              : "Premium quiet, launch price.",
-          primaryText:
-            copy.language === "es"
-              ? "NovaGear ANC Earbuds bloquean el ruido, duran 36 horas y llegan con 20% off por lanzamiento."
-              : "NovaGear ANC Earbuds block noise, run for 36 hours, and launch with 20% off.",
-          description: `Demo regeneration ${generatedAt}`,
-        })
-        .where(eq(adCopies.id, input.id));
+      await regenerateAdCopy(campaignId, input.id);
       break;
     }
     case "creative_asset": {
