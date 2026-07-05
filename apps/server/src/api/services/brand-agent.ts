@@ -17,6 +17,7 @@ import { z } from "zod";
  *  template para que la creación de la marca nunca falle. */
 
 const LOGO_SIZE = 1024;
+const BRAND_KIT_CONTENT_REQUEST_TIMEOUT_MS = 4_000;
 
 const bilingualText = z.strictObject({ es: z.string(), en: z.string() });
 
@@ -252,9 +253,72 @@ const queueLogoImageUpdate = (input: {
     });
 };
 
+const withRequestTimeout = async <T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+): Promise<{ timedOut: false; value: T } | { timedOut: true }> =>
+  new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => resolve({ timedOut: true }), timeoutMs);
+
+    promise.then(
+      (value) => {
+        clearTimeout(timeout);
+        resolve({ timedOut: false, value });
+      },
+      (error: unknown) => {
+        clearTimeout(timeout);
+        reject(error);
+      },
+    );
+  });
+
+const queueBrandKitContentUpdate = (input: {
+  brandKitId: string;
+  brandName: string;
+  context: BrandContext;
+  contentPromise: Promise<{ content: BrandKitContent; provider: BrandKitProvider }>;
+}) => {
+  void input.contentPromise
+    .then(async ({ content, provider }) => {
+      if (provider === "fallback") {
+        return;
+      }
+
+      const logoPrompt = buildLogoPrompt(input.context, content.colorPalette.primary);
+      const logoRequest = buildLogoImageRequest(
+        input.brandName,
+        logoPrompt,
+        content.colorPalette.primary,
+      );
+      const placeholderLogo = generatePlaceholderImage(logoRequest);
+
+      await db
+        .update(brandKits)
+        .set({
+          status: "approved",
+          logoUrl: placeholderLogo.url,
+          logoPrompt,
+          ...content,
+        })
+        .where(eq(brandKits.id, input.brandKitId));
+
+      queueLogoImageUpdate({
+        brandKitId: input.brandKitId,
+        brandName: input.brandName,
+        request: logoRequest,
+      });
+    })
+    .catch((error) => {
+      console.error(
+        `Async brand kit content update failed for "${input.brandName}":`,
+        error,
+      );
+    });
+};
+
 /** Flujo de creación (usado por createBrand): inserta el kit en "generating",
- *  genera el contenido y responde con un logo placeholder. La imagen real del
- *  logo queda fuera del request path porque gpt-image puede tardar minutos. */
+ *  da a OpenAI una ventana corta para contenido real y si no responde usa
+ *  fallback inmediato. La generación lenta continúa fuera del request path. */
 export const generateBrandKitForBrand = async (
   brand: BrandRecord,
   input: BrandKitGenerationInput,
@@ -271,7 +335,14 @@ export const generateBrandKitForBrand = async (
 
   const createdKit = requireOne(draftKit, "Brand kit generation could not be started");
 
-  const { content, provider } = await generateBrandKitContent(context);
+  const contentPromise = generateBrandKitContent(context);
+  const timedContent = await withRequestTimeout(
+    contentPromise,
+    BRAND_KIT_CONTENT_REQUEST_TIMEOUT_MS,
+  );
+  const { content, provider } = timedContent.timedOut
+    ? { content: buildFallbackContent(context), provider: "fallback" as const }
+    : timedContent.value;
   const logoPrompt = buildLogoPrompt(context, content.colorPalette.primary);
   const logoRequest = buildLogoImageRequest(
     brand.name,
@@ -295,11 +366,20 @@ export const generateBrandKitForBrand = async (
     .where(eq(brandKits.id, createdKit.id))
     .returning();
 
-  queueLogoImageUpdate({
-    brandKitId: createdKit.id,
-    brandName: brand.name,
-    request: logoRequest,
-  });
+  if (timedContent.timedOut) {
+    queueBrandKitContentUpdate({
+      brandKitId: createdKit.id,
+      brandName: brand.name,
+      context,
+      contentPromise,
+    });
+  } else {
+    queueLogoImageUpdate({
+      brandKitId: createdKit.id,
+      brandName: brand.name,
+      request: logoRequest,
+    });
+  }
 
   return {
     brandKit: requireOne(completedKit, "Brand kit generation could not be completed"),

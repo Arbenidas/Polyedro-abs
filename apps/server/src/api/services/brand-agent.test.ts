@@ -40,10 +40,34 @@ const generatedContent = {
   },
 };
 
-const aiMock = vi.hoisted(() => ({
-  generateStructuredObject: vi.fn(async () => generatedContent),
-  isLlmConfigured: vi.fn(() => true),
-}));
+const aiMock = vi.hoisted(() => {
+  let resolveContent: ((value: typeof generatedContent) => void) | undefined;
+  const generateStructuredObject = vi.fn(async () => generatedContent);
+
+  return {
+    generateStructuredObject,
+    isLlmConfigured: vi.fn(() => true),
+    mockDeferredContent: () => {
+      resolveContent = undefined;
+      generateStructuredObject.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveContent = resolve;
+          }),
+      );
+    },
+    mockImmediateContent: () => {
+      resolveContent = undefined;
+      generateStructuredObject.mockImplementation(async () => generatedContent);
+    },
+    resolveContent: () => {
+      if (!resolveContent) {
+        throw new Error("generateStructuredObject was not called");
+      }
+      resolveContent(generatedContent);
+    },
+  };
+});
 
 const imageMock = vi.hoisted(() => {
   let resolveGenerated: ((value: {
@@ -145,6 +169,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   await resetDb();
   vi.clearAllMocks();
+  aiMock.mockImmediateContent();
   imageMock.reset();
 });
 
@@ -191,5 +216,40 @@ describe("generateBrandKitForBrand", () => {
       });
       expect(afterImage?.logoUrl).toBe("https://generated.test/logo.png");
     });
+  });
+
+  it("returns fallback content when OpenAI content exceeds the request window", async () => {
+    vi.useFakeTimers();
+    aiMock.mockDeferredContent();
+
+    try {
+      const brand = await seedBrand();
+      const resultPromise = generateBrandKitForBrand(brand, {
+        description: "Pizzas hechas a la lena con amor",
+        markets: ["MX", "CO", "CL"],
+      });
+
+      await vi.advanceTimersByTimeAsync(4_000);
+      const result = await resultPromise;
+
+      expect(result.provider).toBe("fallback");
+      expect(result.brandKit.status).toBe("approved");
+      expect(result.brandKit.valueProposition?.es).toContain("Pizzas Fantinos");
+      expect(imageMock.generateImage).not.toHaveBeenCalled();
+
+      vi.useRealTimers();
+      aiMock.resolveContent();
+
+      await vi.waitFor(async () => {
+        const afterContent = await testDb.query.brandKits.findFirst({
+          where: eq(brandKits.id, result.brandKit.id),
+        });
+        expect(afterContent?.valueProposition).toEqual(generatedContent.valueProposition);
+      });
+
+      expect(imageMock.generateImage).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
