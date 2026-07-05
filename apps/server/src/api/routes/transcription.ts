@@ -1,5 +1,10 @@
-import { env } from "@Polyedro-abs/env/server";
 import { ApiError } from "@/api/shared";
+import {
+  OPENAI_TRANSCRIPTION_MODEL,
+  TRANSCRIPTION_LANGUAGE,
+  assertValidAudioFile,
+  transcribeAudioFile,
+} from "@/api/services/transcription";
 import { db } from "@/db";
 import { brands, campaignBriefs } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
@@ -7,11 +12,6 @@ import { Hono } from "hono";
 import { z } from "zod";
 
 import type { AuthEnv } from "@/middleware/auth";
-
-const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
-const OPENAI_TRANSCRIPTIONS_URL = "https://api.openai.com/v1/audio/transcriptions";
-const OPENAI_TRANSCRIPTION_MODEL = "whisper-1";
-const TRANSCRIPTION_LANGUAGE = "es";
 
 const transcriptionRoutes = new Hono<AuthEnv>();
 
@@ -24,17 +24,7 @@ transcriptionRoutes.post("/", async (c) => {
     throw new ApiError(400, "Brand id is required.");
   }
 
-  if (!(audio instanceof File)) {
-    throw new ApiError(400, "Audio file is required.");
-  }
-
-  if (!audio.size) {
-    throw new ApiError(400, "Audio file is empty.");
-  }
-
-  if (audio.size > MAX_AUDIO_BYTES) {
-    throw new ApiError(400, "Audio file must be 25 MB or smaller.");
-  }
+  assertValidAudioFile(audio);
 
   // Ownership en la query, ANTES de llamar a OpenAI (evita quemar créditos
   // de transcripción contra marcas ajenas); 404 para no filtrar existencia.
@@ -46,32 +36,7 @@ transcriptionRoutes.post("/", async (c) => {
     throw new ApiError(404, "Brand not found.");
   }
 
-  const openaiFormData = new FormData();
-  openaiFormData.append("file", audio, audio.name || "campaign-brief.webm");
-  openaiFormData.append("model", OPENAI_TRANSCRIPTION_MODEL);
-  openaiFormData.append("language", TRANSCRIPTION_LANGUAGE);
-  openaiFormData.append("response_format", "json");
-
-  const response = await fetch(OPENAI_TRANSCRIPTIONS_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
-    },
-    body: openaiFormData,
-  });
-
-  const body: unknown = await response.json().catch(() => undefined);
-
-  if (!response.ok) {
-    console.error("OpenAI transcription failed", body);
-    throw new ApiError(500, "Could not transcribe audio.");
-  }
-
-  const text = (body as { text?: unknown } | undefined)?.text;
-
-  if (typeof text !== "string") {
-    throw new ApiError(500, "Transcription response was invalid.");
-  }
+  const text = await transcribeAudioFile(audio);
 
   const [campaignBrief] = await db
     .insert(campaignBriefs)

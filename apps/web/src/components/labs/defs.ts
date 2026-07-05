@@ -41,6 +41,39 @@ export const cardShell: CSSProperties = {
   boxShadow: `5px 5px 0 ${INK}`,
 };
 
+/** Rounded-corner tokens for the voice-UI refresh (mic orbs, pills, chips). */
+export const RADIUS_PILL = 999;
+export const RADIUS_SM = 10;
+
+export const eyebrowStyle: CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 6,
+  padding: "6px 10px",
+  borderRadius: RADIUS_PILL,
+  border: `2px solid ${INK}`,
+  background: CARD,
+  fontFamily: FONT_MONO,
+  fontSize: 10.5,
+  fontWeight: 800,
+  letterSpacing: "0.08em",
+  textTransform: "uppercase",
+};
+
+export const markerStyle: CSSProperties = {
+  background: SUN,
+  padding: "0 6px",
+  boxDecorationBreak: "clone",
+  WebkitBoxDecorationBreak: "clone",
+} as CSSProperties;
+
+/** Bar colors cycled across a wave visualizer, matching the reference demo. */
+export const WAVE_COLORS = [VOLT, ACID, CORAL, CYAN];
+
+export function waveColor(i: number): string {
+  return WAVE_COLORS[i % WAVE_COLORS.length]!;
+}
+
 export type AssetId = "strategy" | "audiences" | "copy" | "creatives" | "video" | "voice";
 export type AssetStatus = "draft" | "generating" | "review" | "approved";
 export type Statuses = Record<AssetId, AssetStatus>;
@@ -54,7 +87,6 @@ export const STATUS_STYLE: Record<AssetStatus, { bg: string; label: string; anim
 
 export type View =
   | "onboard"
-  | "kitgen"
   | "newcampaign"
   | "genlive"
   | "campaign"
@@ -64,87 +96,31 @@ export type View =
 
 export const GOAL =
   "Lanzamiento de audífonos inalámbricos con cancelación de ruido para jóvenes profesionales y estudiantes en LatAm.";
-export const CMD = "Regenerate the Spanish headline with more urgency for students.";
-
-export const KIT_LOGS: Array<[string, string]> = [
-  ["00:01", "reading brand input… ok"],
-  ["00:02", "naming + monogram → done"],
-  ["00:04", "palette: carbon / acid / volt / cyan / bone"],
-  ["00:06", "voice&tone (es/en) drafted"],
-  ["00:08", 'persona: "Diego, 26, CDMX"'],
-  ["00:10", "value prop + key messages locked"],
-  ["00:12", "visual style rules exported"],
-  ["00:12", "brand kit v1 → READY"],
-];
-
-export const KIT_DEFS = [
-  {
-    tag: "LOGO CONCEPT",
-    title: '"Signal block" monogram',
-    body: "Squared mark, engraved-device ready, favicon-safe.",
-    bg: INK,
-    ink: PAPER,
-  },
-  {
-    tag: "PALETTE",
-    title: "Carbon · Acid · Volt · Cyan · Bone",
-    body: "High-contrast, no gradients. Dark product, electric accents.",
-    bg: ACID,
-    ink: INK,
-  },
-  {
-    tag: "VOICE & TONE",
-    title: "Directo, seguro, irreverente.",
-    body: "ES/EN bilingual. Benefits over spec sheets. No fake urgency.",
-    bg: CARD,
-    ink: INK,
-  },
-  {
-    tag: "BUYER PERSONA",
-    title: '"Diego, 26 — hybrid analyst, CDMX"',
-    body: "70-min commute, buys on Instagram, trigger = discount + reviews.",
-    bg: CARD,
-    ink: INK,
-  },
-  {
-    tag: "VALUE PROP",
-    title: "Flagship audio, mid-range LatAm price.",
-    body: "36h battery · adaptive ANC · 2-yr warranty.",
-    bg: CARD,
-    ink: INK,
-  },
-  {
-    tag: "VISUAL STYLE",
-    title: "Carbon grids, hard edges.",
-    body: "Condensed black caps for claims, mono for specs.",
-    bg: CARD,
-    ink: INK,
-  },
-] as const;
+export const CMD = "Regenera el titular en español con más urgencia para estudiantes.";
 
 export const RUN_DEFS = [
-  { name: "Strategy Agent", glyph: "S", color: VOLT, task: "objective · funnel split · commercial angle" },
-  { name: "Meta Ads Agent", glyph: "M", color: VOLT, task: "audience segments · placements · campaign structure" },
-  { name: "Meta Ads Agent · copy", glyph: "M", color: VOLT, task: "ES/EN copies · CTAs · A/B variants" },
-  { name: "Creative Agent", glyph: "C", color: VOLT, task: "static creatives 1080×1080 · concept boards" },
-  { name: "Video Agent", glyph: "V", color: VOLT, task: "15s Reels script · storyboard beats" },
-  { name: "Voice Agent", glyph: "W", color: VOLT, task: "ElevenLabs voiceover ES/EN from script" },
-  { name: "Approval Agent", glyph: "✓", color: VOLT, task: "coherence check vs brand kit → queue for review" },
+  { name: "Agente de Estrategia", glyph: "S", color: VOLT, task: "objetivo · split de funnel · ángulo comercial" },
+  { name: "Agente de Meta Ads", glyph: "M", color: VOLT, task: "segmentos de audiencia · ubicaciones · estructura de campaña" },
+  { name: "Agente de Meta Ads · copy", glyph: "M", color: VOLT, task: "copies ES/EN · CTAs · variantes A/B" },
+  { name: "Agente Creativo", glyph: "C", color: VOLT, task: "creatividades estáticas 1080×1080 · mood boards" },
+  { name: "Agente de Video", glyph: "V", color: VOLT, task: "guion de Reels de 15s · beats del storyboard" },
+  { name: "Agente de Voz", glyph: "W", color: VOLT, task: "voiceover ElevenLabs ES/EN a partir del guion" },
+  { name: "Agente de Aprobación", glyph: "✓", color: VOLT, task: "chequeo de coherencia vs brand kit → cola de revisión" },
 ] as const;
 
 export const NAV_DEFS = [
-  { id: "campaign", label: "Campaigns", icon: "▸", badge: "04" },
+  { id: "campaign", label: "Campañas", icon: "▸", badge: "04" },
   { id: "brandkit", label: "Brand Kit", icon: "◆", badge: "V1" },
-  { id: "agents", label: "Agents", icon: "⚙", badge: "8" },
-  { id: "automation", label: "Automation", icon: "⟶", badge: "ON" },
+  { id: "agents", label: "Agentes", icon: "⚙", badge: "8" },
+  { id: "automation", label: "Automatización", icon: "⟶", badge: "ON" },
 ] as const;
 
 export const AGENT_DEFS = [
   {
-    name: "Brand Agent",
+    name: "Agente de Marca",
     glyph: "B",
     color: ACID,
-    role: "Builds visual and verbal identity — the Brand Kit every agent reads.",
+    role: "Construye la identidad visual y verbal — el Brand Kit que lee cada agente.",
     tool: "CLAUDE",
     runs: 12,
     status: "IDLE",
@@ -152,10 +128,10 @@ export const AGENT_DEFS = [
     pulse: false,
   },
   {
-    name: "Strategy Agent",
+    name: "Agente de Estrategia",
     glyph: "S",
     color: VOLT,
-    role: "Defines objective, audience and commercial angle.",
+    role: "Define objetivo, audiencia y ángulo comercial.",
     tool: "CLAUDE",
     runs: 9,
     status: "IDLE",
@@ -163,10 +139,10 @@ export const AGENT_DEFS = [
     pulse: false,
   },
   {
-    name: "Meta Ads Agent",
+    name: "Agente de Meta Ads",
     glyph: "M",
     color: VOLT,
-    role: "Campaign structure, copies, CTAs and A/B variants.",
+    role: "Estructura de campaña, copies, CTAs y variantes A/B.",
     tool: "META API",
     runs: 17,
     status: "ACTIVE",
@@ -174,10 +150,10 @@ export const AGENT_DEFS = [
     pulse: true,
   },
   {
-    name: "Creative Agent",
+    name: "Agente Creativo",
     glyph: "C",
     color: VOLT,
-    role: "AI images and visual concepts in the brand system.",
+    role: "Imágenes y conceptos visuales generados con IA dentro del sistema de marca.",
     tool: "CLAUDE + IMG",
     runs: 31,
     status: "ACTIVE",
@@ -185,10 +161,10 @@ export const AGENT_DEFS = [
     pulse: true,
   },
   {
-    name: "Video Agent",
+    name: "Agente de Video",
     glyph: "V",
     color: VOLT,
-    role: "Short scripts for ads — Reels and Stories formats.",
+    role: "Guiones cortos para anuncios — formatos Reels y Stories.",
     tool: "CLAUDE",
     runs: 8,
     status: "IDLE",
@@ -196,10 +172,10 @@ export const AGENT_DEFS = [
     pulse: false,
   },
   {
-    name: "Voice Agent",
+    name: "Agente de Voz",
     glyph: "W",
     color: VOLT,
-    role: "Bilingual voiceovers generated from approved scripts.",
+    role: "Voiceovers bilingües generados a partir de guiones aprobados.",
     tool: "ELEVENLABS",
     runs: 6,
     status: "IDLE",
@@ -207,10 +183,10 @@ export const AGENT_DEFS = [
     pulse: false,
   },
   {
-    name: "Automation Agent",
+    name: "Agente de Automatización",
     glyph: "A",
     color: VOLT,
-    role: "Connects n8n, Supabase and Meta Ads export.",
+    role: "Conecta n8n, Supabase y la exportación a Meta Ads.",
     tool: "N8N + SUPABASE",
     runs: 14,
     status: "STANDBY",
@@ -218,10 +194,10 @@ export const AGENT_DEFS = [
     pulse: false,
   },
   {
-    name: "Approval Agent",
+    name: "Agente de Aprobación",
     glyph: "✓",
     color: VOLT,
-    role: "Validates coherence vs brand kit; blocks publishing until sign-off.",
+    role: "Valida la coherencia contra el brand kit; bloquea la publicación hasta el visto bueno.",
     tool: "INTERNAL",
     runs: 44,
     status: "ACTIVE",
@@ -233,8 +209,8 @@ export const AGENT_DEFS = [
 export const PIPE_STEPS = [
   {
     n: "01",
-    title: "Trigger: campaign approved",
-    desc: "All six assets signed off by owner.",
+    title: "Disparador: campaña aprobada",
+    desc: "Los seis assets fueron aprobados por el dueño.",
     tag: "N8N",
     tagBg: CORAL,
     nodeBg: ACID,
@@ -243,8 +219,8 @@ export const PIPE_STEPS = [
   },
   {
     n: "02",
-    title: "Sync to Supabase",
-    desc: "Assets, copy variants and audiences written to DB.",
+    title: "Sincroniza con Supabase",
+    desc: "Assets, variantes de copy y audiencias escritos en la base de datos.",
     tag: "SUPABASE",
     tagBg: VOLT,
     nodeBg: ACID,
@@ -253,8 +229,8 @@ export const PIPE_STEPS = [
   },
   {
     n: "03",
-    title: "Package creatives",
-    desc: "Statics rendered at 1080×1080 + 9:16, VO attached.",
+    title: "Empaqueta las creatividades",
+    desc: "Estáticos renderizados en 1080×1080 + 9:16, con voiceover adjunto.",
     tag: "N8N",
     tagBg: CORAL,
     nodeBg: ACID,
@@ -263,8 +239,8 @@ export const PIPE_STEPS = [
   },
   {
     n: "04",
-    title: "Meta Ads draft upload",
-    desc: "Campaign, ad sets and ads created in draft mode.",
+    title: "Carga borrador en Meta Ads",
+    desc: "Campaña, conjuntos de anuncios y anuncios creados en modo borrador.",
     tag: "META API",
     tagBg: VOLT,
     nodeBg: VOLT,
@@ -273,8 +249,8 @@ export const PIPE_STEPS = [
   },
   {
     n: "05",
-    title: "Notify owner",
-    desc: "WhatsApp + email with preview links for final publish.",
+    title: "Notifica al dueño",
+    desc: "WhatsApp + email con links de previsualización para la publicación final.",
     tag: "N8N",
     tagBg: CORAL,
     nodeBg: CARD,

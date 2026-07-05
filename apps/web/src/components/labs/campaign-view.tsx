@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useRef } from "react";
 
 import type { CampaignAdCopy, CampaignCreativeAsset, CampaignDashboard } from "@/lib/api";
 import {
@@ -16,6 +17,8 @@ import {
   FONT_SANS,
   INK,
   PAPER,
+  RADIUS_PILL,
+  RADIUS_SM,
   STATUS_STYLE,
   type Statuses,
   STONE,
@@ -24,6 +27,7 @@ import {
   VOLT,
   wave,
 } from "./defs";
+import { MicOrb, VoiceStatePill } from "./voice-ui";
 
 function chipFor(st: AssetStatus) {
   const style = STATUS_STYLE[st];
@@ -42,7 +46,7 @@ function AssetCard({
   onApprove,
   onRegen,
   canRegen = true,
-  regenLabel = "↻ Regenerate",
+  regenLabel = "↻ Regenerar",
   children,
 }: {
   dotColor: string;
@@ -107,12 +111,12 @@ function AssetCard({
           }}
         >
           {status === "approved"
-            ? "✓ Approved"
+            ? "✓ Aprobado"
             : status === "generating"
-              ? "Generating…"
+              ? "Generando…"
               : status === "draft"
-                ? "Awaiting asset"
-                : "✓ Approve"}
+                ? "Esperando asset"
+                : "✓ Aprobar"}
         </button>
         <button
           onClick={onRegen}
@@ -191,7 +195,9 @@ const hasRealAssets = (dashboard: CampaignDashboard | null | undefined, key: Ass
     case "video":
       return dashboard.agents.videoScripts.length > 0;
     case "voice":
-      return dashboard.agents.voiceovers.length > 0;
+      // Se puede generar/regenerar la voz en cuanto existe un guion de video
+      // (el Voice Agent lo necesita como fuente de la narración).
+      return dashboard.agents.videoScripts.length > 0;
   }
 };
 
@@ -200,23 +206,46 @@ function WaveRow({
   onToggle,
   heights,
   meta,
+  src,
 }: {
   playing: boolean;
   onToggle: () => void;
   heights: number[];
   meta: string;
+  /** URL del audio real (ElevenLabs). Null cuando el voiceover es fallback sin audio. */
+  src: string | null;
 }) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const hasAudio = !!src;
+
+  // El estado de reproducción vive en el padre (playEs/playEn, exclusivos entre
+  // sí); acá solo sincronizamos el <audio> real con ese flag. Incluye `src` en
+  // deps para re-disparar tras regenerar (mismo id, nueva URL, aún "playing").
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playing) {
+      void audio.play().catch(() => {});
+    } else {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+  }, [playing, src]);
+
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, border: `2px solid ${INK}`, padding: "10px 12px" }}>
       <button
         onClick={onToggle}
+        disabled={!hasAudio}
+        title={hasAudio ? undefined : "Audio pendiente — configurá ELEVENLABS_API_KEY en el server"}
         style={{
           width: 34,
           height: 34,
           flex: "none",
           border: `2px solid ${INK}`,
           background: playing ? ACID : CARD,
-          cursor: "pointer",
+          cursor: hasAudio ? "pointer" : "not-allowed",
+          opacity: hasAudio ? 1 : 0.45,
           fontSize: 13,
           display: "flex",
           alignItems: "center",
@@ -240,7 +269,22 @@ function WaveRow({
           />
         ))}
       </div>
-      <div style={{ fontFamily: FONT_MONO, fontSize: 9.5, fontWeight: 600, flex: "none" }}>{meta}</div>
+      <div style={{ fontFamily: FONT_MONO, fontSize: 9.5, fontWeight: 600, flex: "none" }}>
+        {hasAudio ? meta : `${meta} · NO AUDIO`}
+      </div>
+      {hasAudio ? (
+        // onEnded/onError togglean el flag del padre de vuelta a "no
+        // reproduciendo" (evita que el botón quede trabado si el audio falla).
+        <audio
+          ref={audioRef}
+          src={src}
+          preload="none"
+          onEnded={onToggle}
+          onError={() => {
+            if (playing) onToggle();
+          }}
+        />
+      ) : null}
     </div>
   );
 }
@@ -318,10 +362,10 @@ export function CampaignView({
       : `${brandName} ANC earbuds — 36h battery, adaptive noise canceling. Pre-order and save 20%.`);
   const campaignTitle = dashboard
     ? `${dashboard.campaign.id.slice(0, 8).toUpperCase()} · ${dashboard.campaign.name}`
-    : "CMP-004 · Earbuds Launch — LatAm";
+    : "CMP-004 · Lanzamiento de Audífonos — LatAm";
   const campaignSubtitle = dashboard
     ? dashboard.campaign.objective
-    : "Noise-canceling earbuds · young professionals & students · MX / CO / CL · ES/EN";
+    : "Audífonos con cancelación de ruido · profesionales jóvenes y estudiantes · MX / CO / CL · ES/EN";
 
   return (
     <div>
@@ -360,7 +404,7 @@ export function CampaignView({
         >
           <div style={{ width: 14, height: 14, background: ACID, border: `2px solid ${INK}`, animation: "pv-spin 1.2s linear infinite" }} />
           <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, fontWeight: 600 }}>
-            READY_TO_PUBLISH → n8n pipeline queued · packaging assets → Supabase → Meta Ads draft upload
+            READY_TO_PUBLISH → pipeline de n8n en cola · empaquetando assets → Supabase → borrador subido a Meta Ads
           </div>
         </div>
       )}
@@ -400,23 +444,23 @@ export function CampaignView({
         {/* STRATEGY */}
         <AssetCard
           dotColor={VOLT}
-          agentLabel="STRATEGY AGENT"
+          agentLabel="AGENTE DE ESTRATEGIA"
           status={statuses.strategy}
           onApprove={() => approve("strategy")}
           onRegen={() => regen("strategy")}
           canRegen={hasRealAssets(dashboard, "strategy")}
         >
           <div style={{ padding: 16, flex: 1 }}>
-            <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>Launch strategy</div>
+            <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>Estrategia de lanzamiento</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12.5, fontWeight: 500 }}>
               <div style={{ display: "flex", gap: 8 }}>
-                <span style={specTag}>OBJECTIVE</span> {dashboard?.campaign.objective ?? "Conversions — earbuds pre-orders, 3-week burst"}
+                <span style={specTag}>OBJETIVO</span> {dashboard?.campaign.objective ?? "Conversiones — preventas de audífonos, ráfaga de 3 semanas"}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <span style={specTag}>FUNNEL</span> {strategy?.notes ?? "60% cold reach · 25% retargeting · 15% lookalike"}
+                <span style={specTag}>FUNNEL</span> {strategy?.notes ?? "60% alcance frío · 25% retargeting · 15% lookalike"}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <span style={specTag}>ANGLE</span> {strategy?.commercialAngle ?? "\"Silence the commute\" — focus & productivity, not specs"}
+                <span style={specTag}>ÁNGULO</span> {strategy?.commercialAngle ?? "\"Silencia tu trayecto\" — foco y productividad, no specs"}
               </div>
             </div>
           </div>
@@ -425,31 +469,31 @@ export function CampaignView({
         {/* AUDIENCES */}
         <AssetCard
           dotColor={VOLT}
-          agentLabel="META ADS AGENT"
+          agentLabel="AGENTE DE META ADS"
           status={statuses.audiences}
           onApprove={() => approve("audiences")}
           onRegen={() => regen("audiences")}
           canRegen={hasRealAssets(dashboard, "audiences")}
         >
           <div style={{ padding: 16, flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
-            <div style={{ fontWeight: 800, fontSize: 15 }}>Audience segmentation</div>
+            <div style={{ fontWeight: 800, fontSize: 15 }}>Segmentación de audiencia</div>
             <div style={{ border: `2px solid ${INK}`, padding: "10px 12px", background: PAPER }}>
               <div style={{ fontFamily: FONT_MONO, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>
-                SEG A · {typeof audience.ageRange === "string" ? audience.ageRange : "YOUNG PROFESSIONALS 24-32"}
+                SEG A · {typeof audience.ageRange === "string" ? audience.ageRange : "PROFESIONALES JÓVENES 24-32"}
               </div>
               <div style={{ fontSize: 12, fontWeight: 500 }}>
                 {typeof audience.description === "string"
                   ? audience.description
-                  : "MX · CO · CL — commuting, productivity apps, remote work. Est. reach 2.1M"}
+                  : "MX · CO · CL — traslados, apps de productividad, trabajo remoto. Alcance est. 2.1M"}
               </div>
             </div>
             <div style={{ border: `2px solid ${INK}`, padding: "10px 12px", background: PAPER }}>
               <div style={{ fontFamily: FONT_MONO, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>
-                META TARGETING
+                SEGMENTACIÓN META
               </div>
               <div style={{ fontSize: 12, fontWeight: 500 }}>
-                {joinList(segmentation.locations, "study music, gaming audio, budget tech")} ·{" "}
-                {joinList(segmentation.interests, "Est. reach 3.4M")}
+                {joinList(segmentation.locations, "música de estudio, audio gaming, tech económica")} ·{" "}
+                {joinList(segmentation.interests, "Alcance est. 3.4M")}
               </div>
             </div>
           </div>
@@ -458,7 +502,7 @@ export function CampaignView({
         {/* COPY */}
         <AssetCard
           dotColor={VOLT}
-          agentLabel="META ADS AGENT · COPY"
+          agentLabel="AGENTE DE META ADS · COPY"
           status={statuses.copy}
           onApprove={() => approve("copy")}
           onRegen={() => regen("copy")}
@@ -466,7 +510,7 @@ export function CampaignView({
         >
           <div style={{ padding: 16, flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ fontWeight: 800, fontSize: 15 }}>Ad copy</div>
+              <div style={{ fontWeight: 800, fontSize: 15 }}>Copy del anuncio</div>
               <div style={{ display: "flex", gap: 0 }}>
                 <button
                   onClick={() => setCopyVar("A")}
@@ -515,14 +559,14 @@ export function CampaignView({
         {/* CREATIVES */}
         <AssetCard
           dotColor={VOLT}
-          agentLabel="CREATIVE AGENT · STATICS"
+          agentLabel="AGENTE CREATIVO · ESTÁTICOS"
           status={statuses.creatives}
           onApprove={() => approve("creatives")}
           onRegen={() => regen("creatives")}
           canRegen={hasRealAssets(dashboard, "creatives")}
         >
           <div style={{ padding: 16, flex: 1 }}>
-            <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>Static creatives · 1080×1080</div>
+            <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>Creatividades estáticas · 1080×1080</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div
                 style={{
@@ -553,7 +597,7 @@ export function CampaignView({
                 {assetA?.imageUrl ? (
                   <img
                     src={assetA.imageUrl}
-                    alt={assetA.altText ?? "Creative variant A"}
+                    alt={assetA.altText ?? "Variante creativa A"}
                     style={{ flex: 1, minHeight: 0, margin: "10px 0", width: "100%", objectFit: "cover", border: `1.5px solid ${ACID}` }}
                   />
                 ) : (
@@ -570,11 +614,11 @@ export function CampaignView({
                         "repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(198,244,50,0.08) 6px, rgba(198,244,50,0.08) 7px)",
                     }}
                   >
-                    <span style={{ fontFamily: FONT_MONO, fontSize: 8.5 }}>[ awaiting creative ]</span>
+                    <span style={{ fontFamily: FONT_MONO, fontSize: 8.5 }}>[ esperando creatividad ]</span>
                   </div>
                 )}
                 <div style={{ fontFamily: FONT_BLACK, fontSize: 15, lineHeight: 1.05, textTransform: "uppercase" }}>
-                  {assetA?.prompt?.slice(0, 48) ?? "Silence the commute."}
+                  {assetA?.prompt?.slice(0, 48) ?? "Silencia tu trayecto."}
                 </div>
               </div>
               <div
@@ -605,18 +649,18 @@ export function CampaignView({
                 {assetB?.imageUrl ? (
                   <img
                     src={assetB.imageUrl}
-                    alt={assetB.altText ?? "Creative variant B"}
+                    alt={assetB.altText ?? "Variante creativa B"}
                     style={{ flex: 1, minHeight: 0, margin: "10px 0", width: "100%", objectFit: "cover", border: `1.5px solid ${INK}` }}
                   />
                 ) : (
                   <div style={{ fontFamily: FONT_BLACK, fontSize: 26, lineHeight: 0.95 }}>
                     36H
                     <br />
-                    BATTERY.
+                    BATERÍA.
                   </div>
                 )}
                 <div style={{ fontFamily: FONT_MONO, fontSize: 9, fontWeight: 600 }}>
-                  {assetB?.prompt?.slice(0, 54) ?? "ANC EARBUDS — PRE-ORDER -20%"}
+                  {assetB?.prompt?.slice(0, 54) ?? "AUDÍFONOS ANC — PREVENTA -20%"}
                 </div>
               </div>
             </div>
@@ -626,7 +670,7 @@ export function CampaignView({
         {/* VIDEO SCRIPT */}
         <AssetCard
           dotColor={VOLT}
-          agentLabel="VIDEO AGENT"
+          agentLabel="AGENTE DE VIDEO"
           status={statuses.video}
           onApprove={() => approve("video")}
           onRegen={() => regen("video")}
@@ -634,7 +678,7 @@ export function CampaignView({
         >
           <div style={{ padding: 16, flex: 1 }}>
             <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>
-              {videoScript?.title ?? "Short video script · 15s Reels"}
+              {videoScript?.title ?? "Guion corto de video · Reels de 15s"}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12.5, fontWeight: 500 }}>
               {(videoScript?.scenes && videoScript.scenes.length > 0
@@ -643,14 +687,14 @@ export function CampaignView({
                     [scene.description, scene.dialogue].filter(Boolean).join(" — "),
                   ])
                 : [
-                    ["0:00-03", "Chaotic metro sounds — close-up: earbud goes in. Sudden silence."],
-                    ["0:03-09", 'Split shots: studying, commuting, deep work. On-screen: "36h. Zero ruido."'],
-                    ["0:09-15", 'Product spin + price card. VO CTA + "Pre-ordena hoy — 20% off."'],
+                    ["0:00-03", "Sonido caótico del metro — close-up: se coloca el audífono. Silencio repentino."],
+                    ["0:03-09", 'Tomas divididas: estudiando, viajando, trabajo profundo. En pantalla: "36h. Cero ruido."'],
+                    ["0:09-15", 'Giro de producto + tarjeta de precio. CTA de voz + "Pre-ordena hoy — 20% off."'],
                   ]
               ).map(([t, s]) => (
                 <div key={`${t}-${s}`} style={{ display: "flex", gap: 10 }}>
                   <span style={{ fontFamily: FONT_MONO, fontSize: 10, fontWeight: 700, flex: "none", width: 52 }}>{t}</span>
-                  <span>{s || "Scene pending content."}</span>
+                  <span>{s || "Escena pendiente de contenido."}</span>
                 </div>
               ))}
             </div>
@@ -660,12 +704,12 @@ export function CampaignView({
         {/* VOICEOVER */}
         <AssetCard
           dotColor={VOLT}
-          agentLabel="VOICE AGENT · ELEVENLABS"
+          agentLabel="AGENTE DE VOZ · ELEVENLABS"
           status={statuses.voice}
           onApprove={() => approve("voice")}
           onRegen={() => regen("voice")}
           canRegen={hasRealAssets(dashboard, "voice")}
-          regenLabel={statuses.voice === "draft" ? "Generate" : "↻ Regenerate"}
+          regenLabel={statuses.voice === "draft" ? "Generar" : "↻ Regenerar"}
         >
           <div style={{ padding: 16, flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ fontWeight: 800, fontSize: 15 }}>Voiceovers</div>
@@ -680,7 +724,7 @@ export function CampaignView({
                   color: "rgba(10,10,10,0.55)",
                 }}
               >
-                No voiceover yet. Generate from the approved video script.
+                Todavía no hay voiceover. Genéralo a partir del guion de video aprobado.
               </div>
             ) : (
               <>
@@ -689,6 +733,7 @@ export function CampaignView({
                     key={voiceover.id}
                     playing={voiceover.language === "es" ? playEs : playEn}
                     onToggle={voiceover.language === "es" ? togglePlayEs : togglePlayEn}
+                    src={voiceover.audioUrl}
                     heights={wave(index + 1)}
                     meta={`${voiceover.language.toUpperCase()} · ${voiceover.voiceId.slice(0, 16).toUpperCase()} · 0:${String(
                       voiceover.durationSeconds ?? 0,
@@ -715,40 +760,18 @@ export function CampaignView({
           background: INK,
           color: PAPER,
           border: `3px solid ${INK}`,
+          borderRadius: RADIUS_SM,
           padding: "11px 13px",
           boxShadow: `6px 6px 0 ${ACID}`,
         }}
       >
-        <button
+        <MicOrb
+          size="mini"
+          phase={cmdPhase === "listening" ? "recording" : "idle"}
           onClick={voiceCmdClick}
-          aria-label="Voice command"
-          style={{
-            flex: "none",
-            width: 44,
-            height: 44,
-            borderRadius: "50%",
-            border: `2.5px solid ${PAPER}`,
-            cursor: "pointer",
-            background: cmdPhase === "listening" ? CORAL : "transparent",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          {cmdPhase === "listening" ? (
-            <div style={{ display: "flex", alignItems: "center", gap: 3, height: 18 }}>
-              {[
-                "pv-bar 0.8s ease-in-out infinite",
-                "pv-bar 0.6s ease-in-out 0.12s infinite",
-                "pv-bar 1s ease-in-out 0.05s infinite",
-              ].map((animation, i) => (
-                <div key={i} style={{ width: 3, height: 18, background: PAPER, animation }} />
-              ))}
-            </div>
-          ) : (
-            <div style={{ width: 11, height: 17, border: `2.5px solid ${PAPER}`, borderRadius: 7 }} />
-          )}
-        </button>
+          ariaLabel="Comando de voz"
+          ringColor={CORAL}
+        />
         <div
           style={{
             flex: 1,
@@ -762,9 +785,10 @@ export function CampaignView({
           }}
         >
           {cmdPhase === "listening"
-            ? "Listening…"
-            : cmdText || "Voice command — try “regenerate the Spanish headline with more urgency”"}
+            ? "Escuchando…"
+            : cmdText || "Comando de voz — prueba “regenera el titular en español con más urgencia”"}
         </div>
+        <VoiceStatePill listening={cmdPhase === "listening"} labelListening="Escuchando" labelIdle="Inactivo" />
         <div
           style={{
             fontFamily: FONT_MONO,
@@ -772,11 +796,12 @@ export function CampaignView({
             fontWeight: 600,
             letterSpacing: "0.06em",
             border: "2px solid rgba(244,242,236,0.35)",
+            borderRadius: RADIUS_PILL,
             padding: "5px 10px",
             flex: "none",
           }}
         >
-          VOICE COMMANDS · ES/EN
+          COMANDOS DE VOZ · ES/EN
         </div>
       </div>
     </div>

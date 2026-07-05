@@ -4,6 +4,7 @@ import { dispatchCampaignExport } from "@/api/services/n8n";
 import { emitAssetUpdated } from "@/api/services/progress";
 import { regenerateStrategy, runStrategyAgent } from "@/api/services/strategy-agent";
 import { regenerateVideoScript } from "@/api/services/video-agent";
+import { regenerateVoiceover } from "@/api/services/voice-agent";
 import { ApiError, requireOne } from "@/api/shared";
 import { env } from "@Polyedro-abs/env/server";
 import { db } from "@/db";
@@ -33,20 +34,18 @@ export type AssetTarget =
   | "video_script"
   | "voiceover";
 
+const DEMO_WEB_ASSET_BASE = "https://polyedro-ads.netlify.app/voice-demo/assets";
+const DEMO_CREATIVE_IMAGE_URLS: Record<Variant, string> = {
+  a: `${DEMO_WEB_ASSET_BASE}/facebook-tech.png`,
+  b: `${DEMO_WEB_ASSET_BASE}/facebook-launch.png`,
+};
+
 type ProgressBlock = {
   key: string;
   label: string;
   approved: boolean;
   missing: boolean;
-  /** Un bloque opcional no bloquea el publish si no se generó; si existe,
-   *  igual debe estar aprobado. */
-  optional?: boolean;
 };
-
-/** Un bloque se considera satisfecho para publicar cuando está aprobado, o
- *  cuando es opcional y no se generó (ej. voiceover, que aún no tiene agente). */
-const isBlockSatisfied = (block: ProgressBlock) =>
-  block.approved || (!!block.optional && block.missing);
 
 const isApproved = (status: AssetStatus | null | undefined) =>
   !!status && APPROVED_STATUSES.has(status);
@@ -79,11 +78,9 @@ const getProgressBlocks = (dashboard: {
     key: string,
     label: string,
     items: { status: AssetStatus }[],
-    optional = false,
   ): ProgressBlock => ({
     key,
     label,
-    optional,
     missing: items.length === 0,
     approved: items.length > 0 && items.every((item) => isApproved(item.status)),
   });
@@ -104,9 +101,9 @@ const getProgressBlocks = (dashboard: {
     collectionBlock("ad_copy", "Ad Copy", dashboard.agents.adCopies),
     collectionBlock("creative_asset", "Visual Assets", dashboard.agents.visualAssets),
     collectionBlock("video_script", "Video Agent", dashboard.agents.videoScripts),
-    // Voiceover es opcional: aún no hay agente de voz, así que no debe bloquear
-    // el publish cuando no se generó (si algún día existe, seguirá exigiéndose).
-    collectionBlock("voiceover", "Voice Agent", dashboard.agents.voiceovers, true),
+    // El Voice Agent (ElevenLabs) ya existe, así que el voiceover es un
+    // deliverable obligatorio como el resto: debe generarse y aprobarse.
+    collectionBlock("voiceover", "Voice Agent", dashboard.agents.voiceovers),
   ];
 };
 
@@ -333,19 +330,17 @@ export const getCampaignDashboard = async (campaignId: string) => {
   };
 
   const blocks = getProgressBlocks(dashboard);
-  // Bloques opcionales no generados no cuentan para el total ni bloquean.
-  const requiredBlocks = blocks.filter((block) => !(block.optional && block.missing));
-  const approved = requiredBlocks.filter((block) => block.approved).length;
+  // Todos los deliverables son obligatorios: la campaña publica cuando todos
+  // los bloques están aprobados.
+  const approved = blocks.filter((block) => block.approved).length;
 
   return {
     ...dashboard,
     progress: {
       approved,
-      total: requiredBlocks.length,
-      readyToPublish: requiredBlocks.length > 0 && requiredBlocks.every(isBlockSatisfied),
-      pending: requiredBlocks
-        .filter((block) => !isBlockSatisfied(block))
-        .map((block) => block.label),
+      total: blocks.length,
+      readyToPublish: blocks.length > 0 && blocks.every((block) => block.approved),
+      pending: blocks.filter((block) => !block.approved).map((block) => block.label),
       blocks,
     },
   };
@@ -433,7 +428,6 @@ export const regenerateAsset = async (
   input: { target: AssetTarget; id: string },
 ) => {
   await requireCampaign(campaignId);
-  const generatedAt = new Date().toISOString();
 
   switch (input.target) {
     case "strategy": {
@@ -453,24 +447,9 @@ export const regenerateAsset = async (
       break;
     }
     case "voiceover": {
-      const voiceover = await findVoiceoverForCampaign(campaignId, input.id);
-      if (!voiceover) {
-        throw new ApiError(404, "Voiceover not found for this campaign");
-      }
-      await db
-        .update(voiceovers)
-        .set({
-          status: "review",
-          audioUrl: "https://cdn.polyedro.abs/demo/novagear-voiceover-v2.mp3",
-          durationSeconds: 14,
-          settings: {
-            provider: "elevenlabs-demo",
-            voice: "Valentina",
-            regeneratedAt: generatedAt,
-          },
-        })
-        .where(eq(voiceovers.id, input.id));
-      emitAssetUpdated(campaignId, { target: "voiceover", id: input.id, status: "review" });
+      // Re-corre el Voice Agent (ElevenLabs) para el guion de esta voiceover,
+      // regenerando el par ES/EN; emite sus propios eventos de progreso.
+      await regenerateVoiceover(campaignId, input.id);
       break;
     }
   }
@@ -510,6 +489,7 @@ export const exportCampaignToMetaAds = async (campaignId: string) => {
       brandId: campaign.brand.id,
       campaignId,
       target: "meta_ads",
+      payload: metaAdsPayload,
     });
 
     const [sent] = await db
@@ -517,6 +497,7 @@ export const exportCampaignToMetaAds = async (campaignId: string) => {
       .set({
         exportStatus: "sent",
         n8nExecutionId: result.executionId,
+        metaCampaignId: result.metaCampaignId,
         completedAt: new Date(),
       })
       .where(eq(automationExports.id, exportRow.id))
@@ -640,7 +621,7 @@ const upsertDemoBrandKit = async (brandId: string) => {
   const values = {
     brandId,
     status: "approved" as const,
-    logoUrl: "https://cdn.polyedro.abs/demo/novagear-logo.png",
+    logoUrl: `${DEMO_WEB_ASSET_BASE}/style-neobrutal.png`,
     logoPrompt:
       "Bold slash-inspired NovaGear Tech logo, neo-brutalist AI lab aesthetic.",
     colorPalette: {
@@ -805,7 +786,7 @@ const upsertDemoCreativeAsset = async (campaignId: string, variant: Variant) => 
     campaignId,
     variant,
     status: "approved" as const,
-    imageUrl: `https://cdn.polyedro.abs/demo/novagear-earbuds-${variant}.png`,
+    imageUrl: DEMO_CREATIVE_IMAGE_URLS[variant],
     prompt:
       variant === "a"
         ? "Spanish Meta Ads static creative, black product card, acid green line art, NovaGear ANC earbuds."
@@ -887,7 +868,7 @@ const upsertDemoVoiceover = async (videoScriptId: string) => {
     status: "review" as const,
     language: "es" as const,
     voiceId: "elevenlabs-valentina-demo",
-    audioUrl: "https://cdn.polyedro.abs/demo/novagear-voiceover.mp3",
+    audioUrl: null,
     durationSeconds: 14,
     settings: {
       provider: "elevenlabs-demo",

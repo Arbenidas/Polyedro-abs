@@ -251,6 +251,53 @@ export async function createBrand(input: CreateBrandInput): Promise<CreateBrandR
   return body as CreateBrandResponse;
 }
 
+export type RegenerateBrandKitResponse = {
+  brandKit: BrandKit;
+  provider: string;
+};
+
+/** Re-ejecuta el Brand Agent sobre una marca existente. Body opcional
+ *  (`{ markets }`); el server tolera body vacío. */
+export async function regenerateBrandKit(
+  brandId: string,
+  input: { markets?: string[] } = {},
+): Promise<RegenerateBrandKitResponse> {
+  const res = await apiFetch(`/api/brands/${brandId}/agents/brand-kit`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  const body: unknown = await res.json().catch(() => undefined);
+
+  if (!res.ok) {
+    throw new Error(parseErrorMessage(body, `Brand kit regeneration failed with status ${res.status}`));
+  }
+
+  return body as RegenerateBrandKitResponse;
+}
+
+export type SeedDemoResponse = {
+  brand: Brand;
+  brandKit: BrandKit;
+  campaign: CampaignSummary;
+  dashboard: CampaignDashboard;
+};
+
+/** Sembrado de una campaña demo completa (NovaGear Tech) para el usuario —
+ *  strategy, copies, creatives, video, voiceover y export listos. */
+export async function seedDemo(): Promise<SeedDemoResponse> {
+  const res = await apiFetch("/api/demo/seed", { method: "POST" });
+
+  const body: unknown = await res.json().catch(() => undefined);
+
+  if (!res.ok) {
+    throw new Error(parseErrorMessage(body, `Demo seed failed with status ${res.status}`));
+  }
+
+  return body as SeedDemoResponse;
+}
+
 export async function transcribeAudio(audio: Blob, input: { brandId: string }): Promise<TranscriptionResponse> {
   const formData = new FormData();
   formData.append("audio", audio, "campaign-brief.webm");
@@ -319,7 +366,7 @@ export async function getCampaignDashboard(campaignId: string): Promise<Campaign
 
 export async function runCampaignAgent(
   campaignId: string,
-  agent: "strategy" | "creative" | "meta-ads" | "video",
+  agent: "strategy" | "creative" | "meta-ads" | "video" | "voice",
 ) {
   const res = await apiFetch(`/api/campaigns/${campaignId}/agents/${agent}`, {
     method: "POST",

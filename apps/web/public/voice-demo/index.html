@@ -1102,6 +1102,159 @@
     .toast.is-visible { transform: translateY(0); }
     .hidden { display: none !important; }
 
+    .gen-progress {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+      padding: 18px;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: #fff8d9;
+      box-shadow: var(--shadow);
+    }
+
+    .gen-progress-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .gen-progress-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 1000;
+    }
+
+    .gen-progress-count {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 5px 10px;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      background: var(--acid);
+      box-shadow: 2px 2px 0 var(--ink);
+      font-size: 12px;
+      font-weight: 950;
+      font-variant-numeric: tabular-nums;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .gen-progress-track {
+      position: relative;
+      height: 22px;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: var(--card);
+      overflow: hidden;
+    }
+
+    .gen-progress-fill {
+      height: 100%;
+      width: 0%;
+      background:
+        repeating-linear-gradient(45deg, var(--acid) 0 12px, var(--cyan) 12px 24px);
+      border-right: 3px solid var(--ink);
+      transition: width .35s cubic-bezier(.2, .8, .2, 1);
+    }
+
+    .gen-progress-pct {
+      margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--muted);
+    }
+
+    .proposal-card.is-generating {
+      position: relative;
+    }
+
+    .proposal-card.is-generating::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, .55) 50%, transparent 80%);
+      background-size: 220% 100%;
+      animation: genShimmer 1.1s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes genShimmer {
+      from { background-position: 180% 0; }
+      to { background-position: -80% 0; }
+    }
+
+    .lightbox-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(10, 10, 10, .88);
+      backdrop-filter: blur(10px);
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .lightbox-overlay.is-active {
+      display: flex;
+      animation: lbFadeIn .28s ease;
+    }
+
+    @keyframes lbFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .lightbox-frame {
+      position: relative;
+      max-width: 90vw;
+      max-height: 90vh;
+      border: 4px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .lightbox-frame img {
+      display: block;
+      width: auto;
+      height: auto;
+      max-width: 90vw;
+      max-height: 85vh;
+      object-fit: contain;
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border: 3px solid var(--ink);
+      border-radius: 50%;
+      background: var(--acid);
+      box-shadow: 3px 3px 0 var(--ink);
+      font-size: 22px;
+      font-weight: 1000;
+      cursor: pointer;
+      transition: transform .14s ease;
+    }
+
+    .lightbox-close:hover {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 var(--ink);
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *,
       *::before,
@@ -1269,12 +1422,13 @@
             <h1 class="hero-title">Tu campaña empieza cuando <span class="marker">hablas</span>.</h1>
             <p class="copy">Una guía de voz te ayuda a definir brief, audiencia, objetivos y estilo visual. Si algo no encaja, le das una instrucción y se guarda como memoria de campaña.</p>
             <div class="actions">
-              <button class="btn primary" id="startVoiceBtn" type="button">Presionar micrófono</button>
+              <button class="btn primary" id="startVoiceBtn" type="button">Empezar demo</button>
+              <button class="btn ghost" id="landingMicBtn" type="button">Grabar brief</button>
             </div>
           </div>
           <aside aria-label="Micrófono principal de la demo">
             <div class="big-mic">
-              <button class="mic-button" id="landingMicBtn" type="button">MIC</button>
+              <button class="mic-button" id="landingMicOrbBtn" type="button">MIC</button>
             </div>
           </aside>
         </div>
@@ -1448,7 +1602,89 @@
                   <span class="option-copy">Ideal para producto, automatización y performance.</span>
                 </span>
               </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="minimal">
+                <img src="assets/style-minimal.png" alt="Estilo minimalista">
+                <span class="style-body">
+                  <span class="option-kicker">Clean</span>
+                  <strong class="option-title">Minimalista</strong>
+                  <span class="option-copy">Blanco, aire quirúrgico, foco único, arquitectónico.</span>
+                </span>
+              </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="premium">
+                <img src="assets/style-premium.png" alt="Estilo premium de lujo">
+                <span class="style-body">
+                  <span class="option-kicker">Luxury</span>
+                  <strong class="option-title">Premium lujo</strong>
+                  <span class="option-copy">Negros, dorados, texturas de seda y mármol.</span>
+                </span>
+               </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="grunge">
+                <img src="assets/style-grunge.png" alt="Estilo grunge zine collage DIY">
+                <span class="style-body">
+                  <span class="option-kicker">Zine</span>
+                  <strong class="option-title">Grunge collage</strong>
+                  <span class="option-copy">Fotocopia rasgada, tipografía ransom, energía punk.</span>
+                </span>
+              </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="render3d">
+                <img src="assets/style-render3d.png" alt="Estilo render 3D">
+                <span class="style-body">
+                  <span class="option-kicker">3D</span>
+                  <strong class="option-title">Render 3D</strong>
+                  <span class="option-copy">Producto CGI con luz de estudio y texturas hiper-reales.</span>
+                </span>
+              </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="ilustrado">
+                <img src="assets/style-ilustrado.png" alt="Estilo ilustrado a mano">
+                <span class="style-body">
+                  <span class="option-kicker">Hand-drawn</span>
+                  <strong class="option-title">Ilustrado</strong>
+                  <span class="option-copy">Trazo orgánico, acuarela y calidez artesanal.</span>
+                </span>
+              </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="brutalist">
+                <img src="assets/style-brutalist.png" alt="Estilo brutalista arquitectónico">
+                <span class="style-body">
+                  <span class="option-kicker">Raw</span>
+                  <strong class="option-title">Brutalista</strong>
+                  <span class="option-copy">Concreto, blueprint, tipografía suiza, severo y honesto.</span>
+                </span>
+              </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="pop-art">
+                <img src="assets/style-pop-art.png" alt="Estilo pop art cómic">
+                <span class="style-body">
+                  <span class="option-kicker">Comic</span>
+                  <strong class="option-title">Pop art</strong>
+                  <span class="option-copy">Halftone dots, Ben-Day colors, speech bubbles, Lichtenstein.</span>
+                </span>
+              </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="art-deco">
+                <img src="assets/style-art-deco.png" alt="Estilo art deco geométrico">
+                <span class="style-body">
+                  <span class="option-kicker">Gatsby</span>
+                  <strong class="option-title">Art deco</strong>
+                  <span class="option-copy">Oro, simetría geométrica, laca negra, elegancia 1920s.</span>
+                </span>
+              </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="botanico">
+                <img src="assets/style-botanico.png" alt="Estilo botánico herbario">
+                <span class="style-body">
+                  <span class="option-kicker">Botanical</span>
+                  <strong class="option-title">Botánico</strong>
+                  <span class="option-copy">Herbario vintage, terracota, salvia, papel verjurado.</span>
+                </span>
+              </label>
             </div>
+
 
             <div class="style-preview">
               <div class="preview-frame">
@@ -1480,6 +1716,16 @@
                 <span class="label">Ajustes a la propuesta</span>
                 <textarea class="textarea" data-bind="proposalNotes" placeholder="Tono, restricciones, oferta, objeciones o ideas para el prompt final."></textarea>
               </label>
+            </div>
+            <div class="gen-progress hidden" id="genProgress" role="status" aria-live="polite">
+              <div class="gen-progress-head">
+                <h3 class="gen-progress-title">Generando propuestas con IA…</h3>
+                <span class="gen-progress-count" id="genProgressCount">Pieza 1 de 3</span>
+              </div>
+              <div class="gen-progress-track">
+                <div class="gen-progress-fill" id="genProgressFill"></div>
+              </div>
+              <p class="gen-progress-pct" id="genProgressPct">0% · preparando prompt del brief…</p>
             </div>
             <div class="proposal-board" id="proposalBoard"></div>
             <div class="actions">
@@ -1522,19 +1768,67 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <div class="lightbox-overlay" id="lightbox" role="dialog" aria-modal="true" aria-label="Imagen ampliada">
+    <div class="lightbox-frame">
+      <button class="lightbox-close" id="lightboxClose" type="button" aria-label="Cerrar">×</button>
+      <img id="lightboxImg" src="" alt="Propuesta ampliada">
+    </div>
+  </div>
+
   <script>
     const STORAGE_KEY = "polyedro_voice_demo_v2";
+
+    const API_BASE = (
+      new URLSearchParams(location.search).get("api") || "http://localhost:3000"
+    ).replace(/\/$/, "");
+    const WEBM_OPUS = "audio/webm;codecs=opus";
+    const WEBM = "audio/webm";
+    let isGeneratingFinals = false;
+    let voicePhase = "idle";
+    let voiceMessage = "Micrófono listo · habla en español";
+    let mediaRecorder = null;
+    let mediaStream = null;
+    let audioChunks = [];
+
+    const STYLE_PREVIEW_KEY = "polyedro_style_previews_v1";
+    const stylePreviewCache = loadStylePreviews();
+
+    function loadStylePreviews() {
+      try {
+        return JSON.parse(localStorage.getItem(STYLE_PREVIEW_KEY) || "{}") || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveStylePreviews() {
+      try {
+        localStorage.setItem(STYLE_PREVIEW_KEY, JSON.stringify(stylePreviewCache));
+      } catch {
+        /* storage lleno o bloqueado — no crítico */
+      }
+    }
 
     const styleAssets = {
       neobrutal: "assets/style-neobrutal.png",
       editorial: "assets/style-editorial.png",
-      tech: "assets/style-tech.png"
+      tech: "assets/style-tech.png",
+      minimal: "assets/style-minimal.png",
+      premium: "assets/style-premium.png",
+      grunge: "assets/style-grunge.png",
+      render3d: "assets/style-render3d.png",
+      ilustrado: "assets/style-ilustrado.png",
+      brutalist: "assets/style-brutalist.png",
+      "pop-art": "assets/style-pop-art.png",
+      "art-deco": "assets/style-art-deco.png",
+      botanico: "assets/style-botanico.png"
     };
 
     const finalCreatives = [
       {
         id: "launch",
         img: "assets/facebook-launch.png",
+        staticImg: "assets/facebook-launch.png",
         title: "Manifiesto de marca",
         channel: "Facebook",
         day: 7,
@@ -1545,6 +1839,7 @@
       {
         id: "leads",
         img: "assets/facebook-leads.png",
+        staticImg: "assets/facebook-leads.png",
         title: "Oferta para contactos",
         channel: "Facebook Ads",
         day: 16,
@@ -1555,6 +1850,7 @@
       {
         id: "proof",
         img: "assets/facebook-tech.png",
+        staticImg: "assets/facebook-tech.png",
         title: "Prueba visual",
         channel: "Facebook",
         day: 25,
@@ -1595,8 +1891,23 @@
       style: {
         neobrutal: "Neobrutal limpio",
         editorial: "Editorial preciso",
-        tech: "Tech modular"
+        tech: "Tech modular",
+        minimal: "Minimalista",
+        premium: "Premium lujo",
+        grunge: "Grunge collage",
+        render3d: "Render 3D",
+        ilustrado: "Ilustrado",
+        brutalist: "Brutalista",
+        "pop-art": "Pop art",
+        "art-deco": "Art deco",
+        botanico: "Botánico"
       }
+    };
+
+    const validChoices = {
+      audience: Object.keys(labels.audience),
+      goal: Object.keys(labels.goal),
+      style: Object.keys(labels.style)
     };
 
     const initialState = {
@@ -1629,7 +1940,11 @@
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return structuredClone(initialState);
         const saved = JSON.parse(raw);
-      return { ...structuredClone(initialState), ...saved, memory: Array.isArray(saved.memory) ? saved.memory : initialState.memory };
+        const next = { ...structuredClone(initialState), ...saved, memory: Array.isArray(saved.memory) ? saved.memory : initialState.memory };
+        if (!validChoices.audience.includes(next.audience)) next.audience = initialState.audience;
+        if (!validChoices.goal.includes(next.goal)) next.goal = initialState.goal;
+        if (!validChoices.style.includes(next.style)) next.style = initialState.style;
+        return next;
       } catch {
         return structuredClone(initialState);
       }
@@ -1712,12 +2027,19 @@
     }
 
     function renderVoiceState() {
-      document.body.classList.toggle("is-manual", !state.voiceListening);
+      state.voiceListening = voicePhase === "recording";
+      document.body.classList.toggle("is-manual", voicePhase !== "recording");
       const briefSummary = document.getElementById("briefVoiceSummary");
       if (briefSummary) {
-        briefSummary.textContent = state.brandName
-          ? `${state.brandName}: brief capturado`
-          : "Escuchando brief...";
+        if (voicePhase === "recording") {
+          briefSummary.textContent = "Escuchando brief...";
+        } else if (voicePhase === "uploading") {
+          briefSummary.textContent = "Transcribiendo audio...";
+        } else {
+          briefSummary.textContent = state.brandName
+            ? `${state.brandName}: brief capturado`
+            : "Toca el micrófono para capturar el brief";
+        }
       }
     }
 
@@ -1754,15 +2076,15 @@
         panel.innerHTML = `
           <div class="voice-header">
             <h3>Guía de voz</h3>
-            <span class="voice-state">${state.voiceListening ? "Escuchando" : "Pausada"}</span>
+            <span class="voice-state">${voiceStatusLabel()}</span>
           </div>
           <div class="voice-core">
             <div class="mini-mic">
-              <button class="mic-button" type="button" data-toggle-voice>${state.voiceListening ? "ON" : "OFF"}</button>
+              <button class="mic-button" type="button" data-toggle-voice ${voicePhase === "uploading" ? "disabled" : ""}>${voiceButtonLabel()}</button>
             </div>
             <div>
               <p class="voice-question">${assistantQuestion()}</p>
-              <p class="assistant-copy">${assistantPrompt()}</p>
+              <p class="assistant-copy">${escapeHtml(voiceMessage || assistantPrompt())}</p>
             </div>
             <div class="wave" aria-hidden="true">
               ${Array.from({ length: 11 }, () => "<span></span>").join("")}
@@ -1814,9 +2136,86 @@
       return prompts[state.currentStep] || "Presiona el micrófono para iniciar la experiencia guiada.";
     }
 
+    function voiceStatusLabel() {
+      const labelsByPhase = {
+        idle: "Micrófono listo",
+        recording: "Grabando",
+        uploading: "Transcribiendo",
+        unsupported: "No soportado",
+        error: "Error"
+      };
+      return labelsByPhase[voicePhase] || "Micrófono";
+    }
+
+    function voiceButtonLabel() {
+      if (voicePhase === "recording") return "STOP";
+      if (voicePhase === "uploading") return "...";
+      return "MIC";
+    }
+
+    function styleImageFor(key) {
+      return styleAssets[key] || stylePreviewCache[key] || "";
+    }
+
+    const pendingStylePreviews = new Set();
+
+    async function ensureStylePreview(key) {
+      if (styleAssets[key] || stylePreviewCache[key] || pendingStylePreviews.has(key)) return;
+      pendingStylePreviews.add(key);
+
+      const thumb = document.querySelector(`[data-style-thumb="${key}"]`);
+      if (thumb) thumb.classList.add("proposal-card");
+
+      try {
+        const response = await fetch(`${API_BASE}/public/demo/style-preview`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ styleKey: key, brandName: state.brandName, audience: state.audience, goal: state.goal })
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        const url = data?.preview?.imageUrl;
+        if (url) {
+          stylePreviewCache[key] = url;
+          saveStylePreviews();
+          const el = document.querySelector(`[data-style-thumb="${key}"]`);
+          if (el) el.src = url;
+          if (state.style === key) {
+            const big = document.getElementById("selectedStyleImg");
+            if (big) big.src = url;
+          }
+        }
+      } catch {
+        /* preview no disponible — se queda el gradiente placeholder */
+      } finally {
+        pendingStylePreviews.delete(key);
+      }
+    }
+
+    function renderStyleThumbs() {
+      document.querySelectorAll("[data-style-thumb]").forEach((el) => {
+        const key = el.dataset.styleThumb;
+        const cached = stylePreviewCache[key];
+        if (cached) {
+          if (el.src !== cached) el.src = cached;
+        } else if (state.currentStep === 4) {
+          void ensureStylePreview(key);
+        }
+      });
+    }
+
     function renderStylePreview() {
+      renderStyleThumbs();
+
       const img = document.getElementById("selectedStyleImg");
-      if (img) img.src = styleAssets[state.style] || styleAssets.neobrutal;
+      if (img) {
+        const src = styleImageFor(state.style);
+        if (src) {
+          img.src = src;
+        } else if (state.currentStep === 4) {
+          void ensureStylePreview(state.style);
+        }
+      }
 
       const background = document.getElementById("campaignBackground");
       if (background) {
@@ -1862,9 +2261,9 @@
         board.innerHTML = "";
         return;
       }
-      board.innerHTML = finalCreatives.map((creative) => `
-        <article class="proposal-card">
-          <img src="${creative.img}" alt="Creatividad demo ${escapeHtml(creative.title)}">
+      board.innerHTML = finalCreatives.map((creative, index) => `
+        <article class="proposal-card${creative.generating ? " is-generating" : ""}">
+          <img src="${creative.img}" alt="Creatividad demo ${escapeHtml(creative.title)}" data-lightbox="${index}" style="cursor:zoom-in">
           <div>
             <h3>${escapeHtml(creative.title)}</h3>
             <p>${escapeHtml(creative.channel)} · ${escapeHtml(labels.goal[state.goal])}</p>
@@ -1979,6 +2378,133 @@
       render();
     }
 
+    function getRecorderMimeType() {
+      if (typeof MediaRecorder === "undefined") return "";
+      if (MediaRecorder.isTypeSupported(WEBM_OPUS)) return WEBM_OPUS;
+      if (MediaRecorder.isTypeSupported(WEBM)) return WEBM;
+      return "";
+    }
+
+    function stopMediaStream() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach((track) => track.stop());
+      }
+      mediaStream = null;
+    }
+
+    async function toggleVoiceRecording() {
+      if (voicePhase === "recording") {
+        stopVoiceRecording();
+        return;
+      }
+
+      if (voicePhase === "uploading") return;
+      await startVoiceRecording();
+    }
+
+    async function startVoiceRecording() {
+      if (
+        typeof navigator === "undefined" ||
+        !navigator.mediaDevices?.getUserMedia ||
+        typeof MediaRecorder === "undefined"
+      ) {
+        voicePhase = "unsupported";
+        voiceMessage = "La grabación de voz necesita un navegador con soporte de micrófono.";
+        render();
+        return;
+      }
+
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mimeType = getRecorderMimeType();
+        mediaRecorder = mimeType ? new MediaRecorder(mediaStream, { mimeType }) : new MediaRecorder(mediaStream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const activeMimeType = mediaRecorder?.mimeType || mimeType || WEBM;
+          const audio = new Blob(audioChunks, { type: activeMimeType });
+          mediaRecorder = null;
+          audioChunks = [];
+          stopMediaStream();
+          void transcribeDemoAudio(audio);
+        };
+
+        mediaRecorder.start();
+        voicePhase = "recording";
+        voiceMessage = "Grabando... toca STOP para transcribir tu brief.";
+        render();
+      } catch (error) {
+        stopMediaStream();
+        mediaRecorder = null;
+        voicePhase = "error";
+        voiceMessage = error instanceof DOMException && error.name === "NotAllowedError"
+          ? "Micrófono bloqueado. Habilita el permiso del navegador."
+          : "No se pudo iniciar el micrófono.";
+        render();
+      }
+    }
+
+    function stopVoiceRecording() {
+      if (mediaRecorder?.state === "recording") {
+        mediaRecorder.stop();
+      }
+    }
+
+    async function transcribeDemoAudio(audio) {
+      if (!audio.size) {
+        voicePhase = "error";
+        voiceMessage = "No se grabó audio. Intenta hablar después de tocar MIC.";
+        render();
+        return;
+      }
+
+      voicePhase = "uploading";
+      voiceMessage = "Transcribiendo con Whisper...";
+      render();
+
+      const formData = new FormData();
+      formData.append("audio", audio, "voice-demo-brief.webm");
+
+      try {
+        const response = await fetch(`${API_BASE}/public/demo/transcriptions`, {
+          method: "POST",
+          body: formData
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data?.error?.message || data?.message || `HTTP ${response.status}`);
+        if (typeof data?.text !== "string") throw new Error("Respuesta de transcripción inválida.");
+        applyTranscript(data.text);
+        voicePhase = "idle";
+        voiceMessage = "Brief capturado. Puedes grabar otra vez para reemplazarlo o seguir avanzando.";
+        showToast("Brief transcrito y guardado en la demo.");
+      } catch (error) {
+        voicePhase = "error";
+        voiceMessage = error instanceof Error ? error.message : "No se pudo transcribir el audio.";
+        showToast("No se pudo transcribir el audio.");
+      } finally {
+        render();
+      }
+    }
+
+    function applyTranscript(text) {
+      const clean = String(text || "").trim();
+      if (!clean) return;
+
+      if (!state.brandName) {
+        const match = clean.match(/(?:marca|empresa|negocio|proyecto)\s+(?:se llama|llamado|es)\s+([^,.]{2,80})/i);
+        state.brandName = match?.[1]?.trim() || "Marca capturada por voz";
+      }
+
+      state.brief = clean.slice(0, 2000);
+      state.memory.push(`Transcripción de voz: ${clean.slice(0, 500)}`);
+      state.completedStep = Math.max(state.completedStep, 1);
+      saveState(false);
+    }
+
     function showToast(message) {
       const toast = document.getElementById("toast");
       toast.textContent = message;
@@ -2022,9 +2548,15 @@
         renderCalendar();
       }
       if (event.target.closest("[data-toggle-voice]")) {
-        state.voiceListening = !state.voiceListening;
-        saveState(false);
-        render();
+        void toggleVoiceRecording();
+      }
+      const zoomable = event.target.closest("[data-lightbox]");
+      if (zoomable && zoomable.tagName === "IMG") {
+        openLightbox(zoomable.src, zoomable.alt);
+        return;
+      }
+      if (event.target.closest("#lightboxClose") || event.target.id === "lightbox") {
+        closeLightbox();
       }
     });
 
@@ -2033,8 +2565,15 @@
       if (element) element.addEventListener("click", handler);
     }
 
-    onReadyClick("startVoiceBtn", startDemo);
-    onReadyClick("landingMicBtn", startDemo);
+    onReadyClick("startVoiceBtn", () => startDemo());
+    onReadyClick("landingMicBtn", () => {
+      startDemo();
+      window.setTimeout(() => { void startVoiceRecording(); }, 980);
+    });
+    onReadyClick("landingMicOrbBtn", () => {
+      startDemo();
+      window.setTimeout(() => { void startVoiceRecording(); }, 980);
+    });
     onReadyClick("resumeBtn", () => goToStep(Math.max(1, state.completedStep || 1)));
     onReadyClick("saveBtn", () => saveState(true));
 
@@ -2047,10 +2586,7 @@
 
     onReadyClick("refineBtn", () => addInstruction(true));
     onReadyClick("generateFinalsBtn", () => {
-      state.finalGenerated = true;
-      state.memory.push("Propuestas finales generadas con imagen demo, copy editable y canal Facebook.");
-      saveState(true);
-      render();
+      void generateFinals();
     });
     onReadyClick("approveBtn", () => {
       if (!state.finalGenerated) state.finalGenerated = true;
@@ -2064,6 +2600,132 @@
         saveState(true);
         showToast("Demo cerrada. El background y el calendario quedaron persistidos.");
       });
+    });
+
+    function setProgress(pct, note) {
+      const fill = document.getElementById("genProgressFill");
+      const label = document.getElementById("genProgressPct");
+      const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+      if (fill) fill.style.width = clamped + "%";
+      if (label) label.textContent = `${clamped}%${note ? " · " + note : ""}`;
+    }
+
+    function setProgressCount(text) {
+      const count = document.getElementById("genProgressCount");
+      if (count) count.textContent = text;
+    }
+
+    function buildCreativePayload(concept) {
+      return {
+        concept,
+        brandName: state.brandName,
+        brief: state.brief,
+        audience: state.audience,
+        audienceLabel: labels.audience[state.audience],
+        goal: state.goal,
+        goalLabel: labels.goal[state.goal],
+        style: state.style,
+        styleLabel: labels.style[state.style],
+        audienceNotes: state.audienceNotes,
+        socialLink: state.socialLink,
+        proposalNotes: state.proposalNotes,
+        memory: state.memory
+      };
+    }
+
+    function fallbackCreativeImage() {
+      return styleImageFor(state.style) || "assets/style-neobrutal.png";
+    }
+
+    // Genera las 3 piezas en paralelo (una request por concepto) para que la
+    // barra avance de verdad conforme cada imagen llega.
+    async function generateFinals() {
+      if (isGeneratingFinals) return;
+      isGeneratingFinals = true;
+
+      const button = document.getElementById("generateFinalsBtn");
+      if (button) button.disabled = true;
+
+      const panel = document.getElementById("genProgress");
+      if (panel) panel.classList.remove("hidden");
+
+      // Board visible con las 3 cards en estado "generando" (shimmer).
+      state.finalGenerated = true;
+      finalCreatives.forEach((creative) => { creative.generating = true; });
+      render();
+
+      const total = finalCreatives.length;
+      let done = 0;
+      setProgressCount(`0 de ${total} listas`);
+      setProgress(6, "componiendo con IA…");
+
+      let realCount = 0;
+
+      await Promise.all(
+        finalCreatives.map(async (creative) => {
+          try {
+            const response = await fetch(`${API_BASE}/public/demo/creatives`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(buildCreativePayload(creative.id))
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            const imageUrl = data?.creative?.imageUrl;
+            if (imageUrl) {
+              creative.img = imageUrl;
+              realCount += 1;
+            } else {
+              creative.img = fallbackCreativeImage();
+            }
+          } catch {
+            creative.img = fallbackCreativeImage();
+          } finally {
+            creative.generating = false;
+            done += 1;
+            setProgressCount(`${done} de ${total} listas`);
+            setProgress(6 + (done / total) * 94, done === total ? "propuestas generadas" : "generando siguiente…");
+            renderProposalBoard();
+          }
+        })
+      );
+
+      setProgress(100, "propuestas generadas");
+      await new Promise((resolve) => setTimeout(resolve, 420));
+      if (panel) panel.classList.add("hidden");
+
+      showToast(
+        realCount === total
+          ? "3 propuestas generadas con OpenAI."
+          : realCount > 0
+            ? `${realCount} de ${total} generadas con IA — el resto usa referencia.`
+            : "No se pudo generar con IA — se muestran propuestas de referencia."
+      );
+
+      state.memory.push(`Propuestas finales generadas: ${realCount} con IA (OpenAI) de ${total} para Facebook.`);
+      saveState(true);
+      render();
+      if (button) button.disabled = false;
+      isGeneratingFinals = false;
+    }
+
+    /* ---------- lightbox ---------- */
+    function openLightbox(src, alt) {
+      const overlay = document.getElementById("lightbox");
+      const img = document.getElementById("lightboxImg");
+      if (!overlay || !img || !src) return;
+      img.src = src;
+      img.alt = alt || "Propuesta ampliada";
+      overlay.classList.add("is-active");
+    }
+
+    function closeLightbox() {
+      const overlay = document.getElementById("lightbox");
+      if (overlay) overlay.classList.remove("is-active");
+    }
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeLightbox();
     });
 
     render();

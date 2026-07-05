@@ -1,38 +1,19 @@
-import { ApiError } from "@/api/shared";
-import { supabase } from "@/lib/supabase";
+import { uploadGeneratedAsset } from "@/api/services/storage";
 
-/** Sube bytes de imagen a Supabase Storage (bucket público `generated-assets`,
- *  con policy de insert para anon) y devuelve la URL pública permanente.
- *  Providers que devuelven bytes en vez de URL hosteada (gpt-image) dependen
- *  de esto; hostear nosotros también elimina el riesgo de URLs que expiran. */
-
-const BUCKET = "generated-assets";
+/** Sube bytes de imagen a Supabase Storage (bucket público `generated-assets`).
+ *  Wrapper delgado sobre `uploadGeneratedAsset`: providers que devuelven bytes en
+ *  vez de URL hosteada (gpt-image) dependen de esto; hostear nosotros elimina el
+ *  riesgo de URLs que expiran. */
 
 export const uploadGeneratedImage = async (input: {
   bytes: Uint8Array;
   contentType: string;
   /** Carpeta lógica dentro del bucket, ej. "creatives" o "logos". */
   keyPrefix: string;
-}): Promise<string> => {
-  const extension = input.contentType.split("/")[1] ?? "png";
-  const path = `${input.keyPrefix}/${crypto.randomUUID()}.${extension}`;
-
-  const { error } = await supabase.storage.from(BUCKET).upload(path, input.bytes, {
+}): Promise<string> =>
+  uploadGeneratedAsset({
+    bytes: input.bytes,
     contentType: input.contentType,
-    // El nombre lleva uuid → el objeto es inmutable; cache larga.
-    cacheControl: "31536000",
-    upsert: false,
+    keyPrefix: input.keyPrefix,
+    extension: input.contentType.split("/")[1] ?? "png",
   });
-
-  if (error) {
-    throw new ApiError(500, `Image upload to storage failed: ${error.message}`);
-  }
-
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(path);
-
-  if (!data.publicUrl) {
-    throw new ApiError(500, "Storage did not return a public URL");
-  }
-
-  return data.publicUrl;
-};

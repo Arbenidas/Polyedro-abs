@@ -11,12 +11,12 @@ export type KitCard = {
 };
 
 export const PLACEHOLDER_CARDS: KitCard[] = [
-  { tag: "LOGO CONCEPT", title: "", body: "", bg: INK, ink: PAPER },
-  { tag: "PALETTE", title: "", body: "", bg: ACCENT, ink: INK },
-  { tag: "VOICE & TONE", title: "", body: "", bg: "#FFFFFF", ink: INK },
+  { tag: "CONCEPTO DE LOGO", title: "", body: "", bg: INK, ink: PAPER },
+  { tag: "PALETA", title: "", body: "", bg: ACCENT, ink: INK },
+  { tag: "VOZ Y TONO", title: "", body: "", bg: "#FFFFFF", ink: INK },
   { tag: "BUYER PERSONA", title: "", body: "", bg: "#FFFFFF", ink: INK },
-  { tag: "VALUE PROP", title: "", body: "", bg: "#FFFFFF", ink: INK },
-  { tag: "VISUAL STYLE", title: "", body: "", bg: "#FFFFFF", ink: INK },
+  { tag: "PROPUESTA DE VALOR", title: "", body: "", bg: "#FFFFFF", ink: INK },
+  { tag: "ESTILO VISUAL", title: "", body: "", bg: "#FFFFFF", ink: INK },
 ];
 
 export function buildKitCards(brandKit: BrandKit): KitCard[] {
@@ -29,46 +29,46 @@ export function buildKitCards(brandKit: BrandKit): KitCard[] {
 
   return [
     {
-      tag: "LOGO CONCEPT",
-      title: brandKit.logoUrl ? "Logo generated" : "Logo concept drafted",
-      body: brandKit.logoPrompt ?? "No logo prompt available yet.",
+      tag: "CONCEPTO DE LOGO",
+      title: brandKit.logoUrl ? "Logo generado" : "Concepto de logo redactado",
+      body: brandKit.logoPrompt ?? "Todavía no hay prompt de logo disponible.",
       bg: INK,
       ink: PAPER,
     },
     {
-      tag: "PALETTE",
-      title: palette ? [palette.primary, palette.secondary, palette.accent].join(" · ") : "Palette pending",
-      body: palette?.neutrals?.length ? `Neutrals: ${palette.neutrals.join(", ")}` : "No neutrals defined.",
+      tag: "PALETA",
+      title: palette ? [palette.primary, palette.secondary, palette.accent].join(" · ") : "Paleta pendiente",
+      body: palette?.neutrals?.length ? `Neutros: ${palette.neutrals.join(", ")}` : "No se definieron neutros.",
       bg: ACCENT,
       ink: INK,
     },
     {
-      tag: "VOICE & TONE",
-      title: tone?.es ?? "Tone of voice pending",
-      body: tone?.en ?? "No English tone of voice yet.",
+      tag: "VOZ Y TONO",
+      title: tone?.es ?? "Tono de voz pendiente",
+      body: tone?.en ?? "Todavía no hay tono de voz en inglés.",
       bg: "#FFFFFF",
       ink: INK,
     },
     {
       tag: "BUYER PERSONA",
-      title: persona?.name ?? "Persona pending",
+      title: persona?.name ?? "Persona pendiente",
       body: persona
         ? [persona.occupation, persona.goals?.[0]].filter(Boolean).join(" — ")
-        : "No buyer persona yet.",
+        : "Todavía no hay buyer persona.",
       bg: "#FFFFFF",
       ink: INK,
     },
     {
-      tag: "VALUE PROP",
-      title: valueProp?.es ?? "Value proposition pending",
-      body: keyMessages?.es?.join(" · ") ?? "No key messages yet.",
+      tag: "PROPUESTA DE VALOR",
+      title: valueProp?.es ?? "Propuesta de valor pendiente",
+      body: keyMessages?.es?.join(" · ") ?? "Todavía no hay mensajes clave.",
       bg: "#FFFFFF",
       ink: INK,
     },
     {
-      tag: "VISUAL STYLE",
-      title: visualStyle?.mood ?? "Visual style pending",
-      body: visualStyle?.imageryStyle ?? "No imagery style yet.",
+      tag: "ESTILO VISUAL",
+      title: visualStyle?.mood ?? "Estilo visual pendiente",
+      body: visualStyle?.imageryStyle ?? "Todavía no hay estilo de imagen.",
       bg: "#FFFFFF",
       ink: INK,
     },
