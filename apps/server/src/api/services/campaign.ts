@@ -34,6 +34,12 @@ export type AssetTarget =
   | "video_script"
   | "voiceover";
 
+const DEMO_WEB_ASSET_BASE = "https://polyedro-ads.netlify.app/voice-demo/assets";
+const DEMO_CREATIVE_IMAGE_URLS: Record<Variant, string> = {
+  a: `${DEMO_WEB_ASSET_BASE}/facebook-tech.png`,
+  b: `${DEMO_WEB_ASSET_BASE}/facebook-launch.png`,
+};
+
 type ProgressBlock = {
   key: string;
   label: string;
@@ -615,7 +621,7 @@ const upsertDemoBrandKit = async (brandId: string) => {
   const values = {
     brandId,
     status: "approved" as const,
-    logoUrl: "https://cdn.polyedro.abs/demo/novagear-logo.png",
+    logoUrl: `${DEMO_WEB_ASSET_BASE}/style-neobrutal.png`,
     logoPrompt:
       "Bold slash-inspired NovaGear Tech logo, neo-brutalist AI lab aesthetic.",
     colorPalette: {
@@ -780,7 +786,7 @@ const upsertDemoCreativeAsset = async (campaignId: string, variant: Variant) => 
     campaignId,
     variant,
     status: "approved" as const,
-    imageUrl: `https://cdn.polyedro.abs/demo/novagear-earbuds-${variant}.png`,
+    imageUrl: DEMO_CREATIVE_IMAGE_URLS[variant],
     prompt:
       variant === "a"
         ? "Spanish Meta Ads static creative, black product card, acid green line art, NovaGear ANC earbuds."
@@ -862,7 +868,7 @@ const upsertDemoVoiceover = async (videoScriptId: string) => {
     status: "review" as const,
     language: "es" as const,
     voiceId: "elevenlabs-valentina-demo",
-    audioUrl: "https://cdn.polyedro.abs/demo/novagear-voiceover.mp3",
+    audioUrl: null,
     durationSeconds: 14,
     settings: {
       provider: "elevenlabs-demo",
