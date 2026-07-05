@@ -318,7 +318,7 @@ export function LandingHeader() {
             {link.label}
           </motion.a>
         ))}
-        <PrimaryCta href="/dashboard" style={{ padding: "10px 16px", fontSize: 11 }}>
+        <PrimaryCta href="/demo" style={{ padding: "10px 16px", fontSize: 11 }}>
           Crear workspace →
         </PrimaryCta>
       </motion.nav>
@@ -457,7 +457,7 @@ export function HeroSection() {
           }}
           variants={staggerVariants}
         >
-          <PrimaryCta href="/dashboard" tourId="hero-cta-create">
+          <PrimaryCta href="/demo" tourId="hero-cta-create">
             Crear workspace →
           </PrimaryCta>
           <StartTourCta />
@@ -1172,7 +1172,7 @@ export function GuideSection() {
           </SectionLead>
           <div style={{ marginTop: 24, display: "flex", flexWrap: "wrap", gap: 12 }}>
             <StartTourCta />
-            <PrimaryCta href="/dashboard">Empezar con workspace →</PrimaryCta>
+            <PrimaryCta href="/demo">Empezar con workspace →</PrimaryCta>
           </div>
         </motion.div>
 
@@ -1276,7 +1276,7 @@ export function CtaFooterSection() {
           Crea un workspace por marca. Los agentes hacen el resto — tú mantienes el control.
         </p>
         <div style={{ marginTop: 28 }}>
-          <PrimaryCta href="/dashboard" tourId="cta-button">
+          <PrimaryCta href="/demo" tourId="cta-button">
             Crear workspace →
           </PrimaryCta>
         </div>

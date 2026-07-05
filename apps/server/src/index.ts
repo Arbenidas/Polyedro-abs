@@ -6,6 +6,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 
 import { api } from "@/api/routes";
+import { publicRoutes } from "@/api/routes/public";
 import { ApiError } from "@/api/shared";
 import { db } from "@/db";
 import { privacyPolicyHtml } from "@/legal/privacy";
@@ -34,6 +35,9 @@ app.get("/health/db", async (c) => {
 
 // Público: URL de política de privacidad requerida para publicar la app de Meta.
 app.get("/privacy", (c) => c.html(privacyPolicyHtml));
+
+// Rutas públicas del voice-demo (sin auth), fuera de /api/*.
+app.route("/public", publicRoutes);
 
 // Toda la API requiere sesión de Supabase; el usuario resuelto queda en c.get("user").
 app.use("/api/*", requireAuth);

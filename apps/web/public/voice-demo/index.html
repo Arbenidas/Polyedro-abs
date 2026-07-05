@@ -1102,6 +1102,159 @@
     .toast.is-visible { transform: translateY(0); }
     .hidden { display: none !important; }
 
+    .gen-progress {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+      padding: 18px;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: #fff8d9;
+      box-shadow: var(--shadow);
+    }
+
+    .gen-progress-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .gen-progress-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 1000;
+    }
+
+    .gen-progress-count {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 5px 10px;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      background: var(--acid);
+      box-shadow: 2px 2px 0 var(--ink);
+      font-size: 12px;
+      font-weight: 950;
+      font-variant-numeric: tabular-nums;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .gen-progress-track {
+      position: relative;
+      height: 22px;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: var(--card);
+      overflow: hidden;
+    }
+
+    .gen-progress-fill {
+      height: 100%;
+      width: 0%;
+      background:
+        repeating-linear-gradient(45deg, var(--acid) 0 12px, var(--cyan) 12px 24px);
+      border-right: 3px solid var(--ink);
+      transition: width .35s cubic-bezier(.2, .8, .2, 1);
+    }
+
+    .gen-progress-pct {
+      margin: 0;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--muted);
+    }
+
+    .proposal-card.is-generating {
+      position: relative;
+    }
+
+    .proposal-card.is-generating::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, .55) 50%, transparent 80%);
+      background-size: 220% 100%;
+      animation: genShimmer 1.1s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes genShimmer {
+      from { background-position: 180% 0; }
+      to { background-position: -80% 0; }
+    }
+
+    .lightbox-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(10, 10, 10, .88);
+      backdrop-filter: blur(10px);
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .lightbox-overlay.is-active {
+      display: flex;
+      animation: lbFadeIn .28s ease;
+    }
+
+    @keyframes lbFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .lightbox-frame {
+      position: relative;
+      max-width: 90vw;
+      max-height: 90vh;
+      border: 4px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .lightbox-frame img {
+      display: block;
+      width: auto;
+      height: auto;
+      max-width: 90vw;
+      max-height: 85vh;
+      object-fit: contain;
+    }
+
+    .lightbox-close {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border: 3px solid var(--ink);
+      border-radius: 50%;
+      background: var(--acid);
+      box-shadow: 3px 3px 0 var(--ink);
+      font-size: 22px;
+      font-weight: 1000;
+      cursor: pointer;
+      transition: transform .14s ease;
+    }
+
+    .lightbox-close:hover {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0 var(--ink);
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *,
       *::before,
@@ -1269,7 +1422,8 @@
             <h1 class="hero-title">Tu campaña empieza cuando <span class="marker">hablas</span>.</h1>
             <p class="copy">Una guía de voz te ayuda a definir brief, audiencia, objetivos y estilo visual. Si algo no encaja, le das una instrucción y se guarda como memoria de campaña.</p>
             <div class="actions">
-              <button class="btn primary" id="startVoiceBtn" type="button">Presionar micrófono</button>
+              <button class="btn primary" id="startTourBtn" type="button">▶ Iniciar tour guiado</button>
+              <button class="btn ghost" id="startVoiceBtn" type="button">Explorar por mi cuenta</button>
             </div>
           </div>
           <aside aria-label="Micrófono principal de la demo">
@@ -1448,7 +1602,89 @@
                   <span class="option-copy">Ideal para producto, automatización y performance.</span>
                 </span>
               </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="minimal">
+                <img src="assets/style-minimal.png" alt="Estilo minimalista">
+                <span class="style-body">
+                  <span class="option-kicker">Clean</span>
+                  <strong class="option-title">Minimalista</strong>
+                  <span class="option-copy">Blanco, aire quirúrgico, foco único, arquitectónico.</span>
+                </span>
+              </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="premium">
+                <img src="assets/style-premium.png" alt="Estilo premium de lujo">
+                <span class="style-body">
+                  <span class="option-kicker">Luxury</span>
+                  <strong class="option-title">Premium lujo</strong>
+                  <span class="option-copy">Negros, dorados, texturas de seda y mármol.</span>
+                </span>
+               </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="grunge">
+                <img src="assets/style-grunge.png" alt="Estilo grunge zine collage DIY">
+                <span class="style-body">
+                  <span class="option-kicker">Zine</span>
+                  <strong class="option-title">Grunge collage</strong>
+                  <span class="option-copy">Fotocopia rasgada, tipografía ransom, energía punk.</span>
+                </span>
+              </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="render3d">
+                <img src="assets/style-render3d.png" alt="Estilo render 3D">
+                <span class="style-body">
+                  <span class="option-kicker">3D</span>
+                  <strong class="option-title">Render 3D</strong>
+                  <span class="option-copy">Producto CGI con luz de estudio y texturas hiper-reales.</span>
+                </span>
+              </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="ilustrado">
+                <img src="assets/style-ilustrado.png" alt="Estilo ilustrado a mano">
+                <span class="style-body">
+                  <span class="option-kicker">Hand-drawn</span>
+                  <strong class="option-title">Ilustrado</strong>
+                  <span class="option-copy">Trazo orgánico, acuarela y calidez artesanal.</span>
+                </span>
+              </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="brutalist">
+                <img src="assets/style-brutalist.png" alt="Estilo brutalista arquitectónico">
+                <span class="style-body">
+                  <span class="option-kicker">Raw</span>
+                  <strong class="option-title">Brutalista</strong>
+                  <span class="option-copy">Concreto, blueprint, tipografía suiza, severo y honesto.</span>
+                </span>
+              </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="pop-art">
+                <img src="assets/style-pop-art.png" alt="Estilo pop art cómic">
+                <span class="style-body">
+                  <span class="option-kicker">Comic</span>
+                  <strong class="option-title">Pop art</strong>
+                  <span class="option-copy">Halftone dots, Ben-Day colors, speech bubbles, Lichtenstein.</span>
+                </span>
+              </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="art-deco">
+                <img src="assets/style-art-deco.png" alt="Estilo art deco geométrico">
+                <span class="style-body">
+                  <span class="option-kicker">Gatsby</span>
+                  <strong class="option-title">Art deco</strong>
+                  <span class="option-copy">Oro, simetría geométrica, laca negra, elegancia 1920s.</span>
+                </span>
+              </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="botanico">
+                <img src="assets/style-botanico.png" alt="Estilo botánico herbario">
+                <span class="style-body">
+                  <span class="option-kicker">Botanical</span>
+                  <strong class="option-title">Botánico</strong>
+                  <span class="option-copy">Herbario vintage, terracota, salvia, papel verjurado.</span>
+                </span>
+              </label>
             </div>
+
 
             <div class="style-preview">
               <div class="preview-frame">
@@ -1480,6 +1716,16 @@
                 <span class="label">Ajustes a la propuesta</span>
                 <textarea class="textarea" data-bind="proposalNotes" placeholder="Tono, restricciones, oferta, objeciones o ideas para el prompt final."></textarea>
               </label>
+            </div>
+            <div class="gen-progress hidden" id="genProgress" role="status" aria-live="polite">
+              <div class="gen-progress-head">
+                <h3 class="gen-progress-title">Generando propuestas con IA…</h3>
+                <span class="gen-progress-count" id="genProgressCount">Pieza 1 de 3</span>
+              </div>
+              <div class="gen-progress-track">
+                <div class="gen-progress-fill" id="genProgressFill"></div>
+              </div>
+              <p class="gen-progress-pct" id="genProgressPct">0% · preparando prompt del brief…</p>
             </div>
             <div class="proposal-board" id="proposalBoard"></div>
             <div class="actions">
@@ -1522,19 +1768,61 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <div class="lightbox-overlay" id="lightbox" role="dialog" aria-modal="true" aria-label="Imagen ampliada">
+    <div class="lightbox-frame">
+      <button class="lightbox-close" id="lightboxClose" type="button" aria-label="Cerrar">×</button>
+      <img id="lightboxImg" src="" alt="Propuesta ampliada">
+    </div>
+  </div>
+
   <script>
     const STORAGE_KEY = "polyedro_voice_demo_v2";
+
+    const API_BASE = (
+      new URLSearchParams(location.search).get("api") || "http://localhost:3000"
+    ).replace(/\/$/, "");
+    const AGENT_ID = new URLSearchParams(location.search).get("agent") || "";
+    let isGeneratingFinals = false;
+
+    const STYLE_PREVIEW_KEY = "polyedro_style_previews_v1";
+    const stylePreviewCache = loadStylePreviews();
+
+    function loadStylePreviews() {
+      try {
+        return JSON.parse(localStorage.getItem(STYLE_PREVIEW_KEY) || "{}") || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveStylePreviews() {
+      try {
+        localStorage.setItem(STYLE_PREVIEW_KEY, JSON.stringify(stylePreviewCache));
+      } catch {
+        /* storage lleno o bloqueado — no crítico */
+      }
+    }
 
     const styleAssets = {
       neobrutal: "assets/style-neobrutal.png",
       editorial: "assets/style-editorial.png",
-      tech: "assets/style-tech.png"
+      tech: "assets/style-tech.png",
+      minimal: "assets/style-minimal.png",
+      premium: "assets/style-premium.png",
+      grunge: "assets/style-grunge.png",
+      render3d: "assets/style-render3d.png",
+      ilustrado: "assets/style-ilustrado.png",
+      brutalist: "assets/style-brutalist.png",
+      "pop-art": "assets/style-pop-art.png",
+      "art-deco": "assets/style-art-deco.png",
+      botanico: "assets/style-botanico.png"
     };
 
     const finalCreatives = [
       {
         id: "launch",
         img: "assets/facebook-launch.png",
+        staticImg: "assets/facebook-launch.png",
         title: "Manifiesto de marca",
         channel: "Facebook",
         day: 7,
@@ -1545,6 +1833,7 @@
       {
         id: "leads",
         img: "assets/facebook-leads.png",
+        staticImg: "assets/facebook-leads.png",
         title: "Oferta para contactos",
         channel: "Facebook Ads",
         day: 16,
@@ -1555,6 +1844,7 @@
       {
         id: "proof",
         img: "assets/facebook-tech.png",
+        staticImg: "assets/facebook-tech.png",
         title: "Prueba visual",
         channel: "Facebook",
         day: 25,
@@ -1595,7 +1885,16 @@
       style: {
         neobrutal: "Neobrutal limpio",
         editorial: "Editorial preciso",
-        tech: "Tech modular"
+        tech: "Tech modular",
+        minimal: "Minimalista",
+        premium: "Premium lujo",
+        grunge: "Grunge collage",
+        render3d: "Render 3D",
+        ilustrado: "Ilustrado",
+        brutalist: "Brutalista",
+        "pop-art": "Pop art",
+        "art-deco": "Art deco",
+        botanico: "Botánico"
       }
     };
 
@@ -1814,9 +2113,69 @@
       return prompts[state.currentStep] || "Presiona el micrófono para iniciar la experiencia guiada.";
     }
 
+    function styleImageFor(key) {
+      return styleAssets[key] || stylePreviewCache[key] || "";
+    }
+
+    const pendingStylePreviews = new Set();
+
+    async function ensureStylePreview(key) {
+      if (styleAssets[key] || stylePreviewCache[key] || pendingStylePreviews.has(key)) return;
+      pendingStylePreviews.add(key);
+
+      const thumb = document.querySelector(`[data-style-thumb="${key}"]`);
+      if (thumb) thumb.classList.add("proposal-card");
+
+      try {
+        const response = await fetch(`${API_BASE}/public/demo/style-preview`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ styleKey: key, brandName: state.brandName, audience: state.audience, goal: state.goal })
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        const url = data?.preview?.imageUrl;
+        if (url) {
+          stylePreviewCache[key] = url;
+          saveStylePreviews();
+          const el = document.querySelector(`[data-style-thumb="${key}"]`);
+          if (el) el.src = url;
+          if (state.style === key) {
+            const big = document.getElementById("selectedStyleImg");
+            if (big) big.src = url;
+          }
+        }
+      } catch {
+        /* preview no disponible — se queda el gradiente placeholder */
+      } finally {
+        pendingStylePreviews.delete(key);
+      }
+    }
+
+    function renderStyleThumbs() {
+      document.querySelectorAll("[data-style-thumb]").forEach((el) => {
+        const key = el.dataset.styleThumb;
+        const cached = stylePreviewCache[key];
+        if (cached) {
+          if (el.src !== cached) el.src = cached;
+        } else if (state.currentStep === 4) {
+          void ensureStylePreview(key);
+        }
+      });
+    }
+
     function renderStylePreview() {
+      renderStyleThumbs();
+
       const img = document.getElementById("selectedStyleImg");
-      if (img) img.src = styleAssets[state.style] || styleAssets.neobrutal;
+      if (img) {
+        const src = styleImageFor(state.style);
+        if (src) {
+          img.src = src;
+        } else if (state.currentStep === 4) {
+          void ensureStylePreview(state.style);
+        }
+      }
 
       const background = document.getElementById("campaignBackground");
       if (background) {
@@ -1862,9 +2221,9 @@
         board.innerHTML = "";
         return;
       }
-      board.innerHTML = finalCreatives.map((creative) => `
-        <article class="proposal-card">
-          <img src="${creative.img}" alt="Creatividad demo ${escapeHtml(creative.title)}">
+      board.innerHTML = finalCreatives.map((creative, index) => `
+        <article class="proposal-card${creative.generating ? " is-generating" : ""}">
+          <img src="${creative.img}" alt="Creatividad demo ${escapeHtml(creative.title)}" data-lightbox="${index}" style="cursor:zoom-in">
           <div>
             <h3>${escapeHtml(creative.title)}</h3>
             <p>${escapeHtml(creative.channel)} · ${escapeHtml(labels.goal[state.goal])}</p>
@@ -2011,6 +2370,11 @@
     });
 
     document.addEventListener("click", (event) => {
+      if (guidedTourRunning && !guidedTourAbort) {
+        if (event.target.closest("[data-next]") || event.target.closest("[data-prev]")) {
+          abortGuidedTour();
+        }
+      }
       if (event.target.closest("[data-next]")) goToStep(state.currentStep + 1);
       if (event.target.closest("[data-prev]")) goToStep(state.currentStep - 1);
       if (event.target.closest("[data-add-instruction]")) addInstruction(false);
@@ -2026,6 +2390,14 @@
         saveState(false);
         render();
       }
+      const zoomable = event.target.closest("[data-lightbox]");
+      if (zoomable && zoomable.tagName === "IMG") {
+        openLightbox(zoomable.src, zoomable.alt);
+        return;
+      }
+      if (event.target.closest("#lightboxClose") || event.target.id === "lightbox") {
+        closeLightbox();
+      }
     });
 
     function onReadyClick(id, handler) {
@@ -2033,8 +2405,9 @@
       if (element) element.addEventListener("click", handler);
     }
 
-    onReadyClick("startVoiceBtn", startDemo);
-    onReadyClick("landingMicBtn", startDemo);
+    onReadyClick("startTourBtn", () => { void runGuidedTour(); });
+    onReadyClick("startVoiceBtn", () => { void runGuidedTour(); });
+    onReadyClick("landingMicBtn", () => { void runGuidedTour(); });
     onReadyClick("resumeBtn", () => goToStep(Math.max(1, state.completedStep || 1)));
     onReadyClick("saveBtn", () => saveState(true));
 
@@ -2047,10 +2420,7 @@
 
     onReadyClick("refineBtn", () => addInstruction(true));
     onReadyClick("generateFinalsBtn", () => {
-      state.finalGenerated = true;
-      state.memory.push("Propuestas finales generadas con imagen demo, copy editable y canal Facebook.");
-      saveState(true);
-      render();
+      void generateFinals();
     });
     onReadyClick("approveBtn", () => {
       if (!state.finalGenerated) state.finalGenerated = true;
@@ -2065,6 +2435,365 @@
         showToast("Demo cerrada. El background y el calendario quedaron persistidos.");
       });
     });
+
+    function setProgress(pct, note) {
+      const fill = document.getElementById("genProgressFill");
+      const label = document.getElementById("genProgressPct");
+      const clamped = Math.max(0, Math.min(100, Math.round(pct)));
+      if (fill) fill.style.width = clamped + "%";
+      if (label) label.textContent = `${clamped}%${note ? " · " + note : ""}`;
+    }
+
+    function setProgressCount(text) {
+      const count = document.getElementById("genProgressCount");
+      if (count) count.textContent = text;
+    }
+
+    function buildCreativePayload(concept) {
+      return {
+        concept,
+        brandName: state.brandName,
+        brief: state.brief,
+        audience: state.audience,
+        audienceLabel: labels.audience[state.audience],
+        goal: state.goal,
+        goalLabel: labels.goal[state.goal],
+        style: state.style,
+        styleLabel: labels.style[state.style],
+        audienceNotes: state.audienceNotes,
+        socialLink: state.socialLink,
+        proposalNotes: state.proposalNotes,
+        memory: state.memory
+      };
+    }
+
+    // Genera las 3 piezas en paralelo (una request por concepto) para que la
+    // barra avance de verdad conforme cada imagen llega.
+    async function generateFinals() {
+      if (isGeneratingFinals) return;
+      isGeneratingFinals = true;
+
+      const button = document.getElementById("generateFinalsBtn");
+      if (button) button.disabled = true;
+
+      const panel = document.getElementById("genProgress");
+      if (panel) panel.classList.remove("hidden");
+
+      // Board visible con las 3 cards en estado "generando" (shimmer).
+      state.finalGenerated = true;
+      finalCreatives.forEach((creative) => { creative.generating = true; });
+      render();
+
+      const total = finalCreatives.length;
+      let done = 0;
+      setProgressCount(`0 de ${total} listas`);
+      setProgress(6, "componiendo con IA…");
+
+      let realCount = 0;
+
+      await Promise.all(
+        finalCreatives.map(async (creative) => {
+          try {
+            const response = await fetch(`${API_BASE}/public/demo/creatives`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(buildCreativePayload(creative.id))
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            const imageUrl = data?.creative?.imageUrl;
+            if (imageUrl) {
+              creative.img = imageUrl;
+              realCount += 1;
+            } else {
+              creative.img = creative.staticImg;
+            }
+          } catch {
+            creative.img = creative.staticImg;
+          } finally {
+            creative.generating = false;
+            done += 1;
+            setProgressCount(`${done} de ${total} listas`);
+            setProgress(6 + (done / total) * 94, done === total ? "propuestas generadas" : "generando siguiente…");
+            renderProposalBoard();
+          }
+        })
+      );
+
+      setProgress(100, "propuestas generadas");
+      await new Promise((resolve) => setTimeout(resolve, 420));
+      if (panel) panel.classList.add("hidden");
+
+      showToast(
+        realCount === total
+          ? "3 propuestas generadas con OpenAI."
+          : realCount > 0
+            ? `${realCount} de ${total} generadas con IA — el resto usa referencia.`
+            : "No se pudo generar con IA — se muestran propuestas de referencia."
+      );
+
+      state.memory.push(`Propuestas finales generadas: ${realCount} con IA (OpenAI) de ${total} para Facebook.`);
+      saveState(true);
+      render();
+      if (button) button.disabled = false;
+      isGeneratingFinals = false;
+    }
+
+    /* ---------- lightbox ---------- */
+    function openLightbox(src, alt) {
+      const overlay = document.getElementById("lightbox");
+      const img = document.getElementById("lightboxImg");
+      if (!overlay || !img || !src) return;
+      img.src = src;
+      img.alt = alt || "Propuesta ampliada";
+      overlay.classList.add("is-active");
+    }
+
+    function closeLightbox() {
+      const overlay = document.getElementById("lightbox");
+      if (overlay) overlay.classList.remove("is-active");
+    }
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeLightbox();
+    });
+
+    /* ---------- ElevenLabs guide (widget embed + client tools) ---------- */
+    const AUDIENCE_KEYS = ["creativos", "founders", "compradores", "comunidad"];
+    const GOAL_KEYS = ["awareness", "leads", "sales", "community"];
+    const STYLE_KEYS = ["neobrutal", "editorial", "tech", "minimal", "premium", "grunge", "render3d", "ilustrado", "brutalist", "pop-art", "art-deco", "botanico"];
+    const STEP_NAMES = { landing: 0, brief: 1, cliente: 2, audiencia: 2, audience: 2, objetivos: 3, objetivo: 3, goal: 3, estilo: 4, style: 4, propuesta: 5, proposal: 5, calendario: 6, calendar: 6 };
+
+    function resolveKey(value, keys, labelGroup) {
+      if (!value) return null;
+      const raw = String(value).trim().toLowerCase();
+      if (keys.includes(raw)) return raw;
+      // match por etiqueta legible (ej. "conseguir contactos" → leads)
+      const byLabel = keys.find((key) => (labels[labelGroup]?.[key] || "").toLowerCase() === raw);
+      if (byLabel) return byLabel;
+      const byPartial = keys.find((key) => (labels[labelGroup]?.[key] || "").toLowerCase().includes(raw));
+      return byPartial || null;
+    }
+
+    const guideClientTools = {
+      setBrandName: async ({ name }) => {
+        state.brandName = String(name || "").slice(0, 200);
+        saveState(false); render();
+        return `Marca fijada: ${state.brandName || "(vacío)"}`;
+      },
+      setBrief: async ({ text }) => {
+        state.brief = String(text || "").slice(0, 2000);
+        saveState(false); render();
+        return "Brief actualizado.";
+      },
+      setAudience: async ({ audience }) => {
+        const key = resolveKey(audience, AUDIENCE_KEYS, "audience");
+        if (!key) return `Audiencia no reconocida. Opciones: ${AUDIENCE_KEYS.join(", ")}.`;
+        state.audience = key; saveState(false); render();
+        return `Audiencia: ${labels.audience[key]}`;
+      },
+      setGoal: async ({ goal }) => {
+        const key = resolveKey(goal, GOAL_KEYS, "goal");
+        if (!key) return `Objetivo no reconocido. Opciones: ${GOAL_KEYS.join(", ")}.`;
+        state.goal = key; saveState(false); render();
+        return `Objetivo: ${labels.goal[key]}`;
+      },
+      setStyle: async ({ style }) => {
+        const key = resolveKey(style, STYLE_KEYS, "style");
+        if (!key) return `Estilo no reconocido. Opciones: ${STYLE_KEYS.join(", ")}.`;
+        state.style = key; saveState(false); render();
+        void ensureStylePreview(key);
+        return `Estilo: ${labels.style[key]}`;
+      },
+      addBackground: async ({ text }) => {
+        const value = String(text || "").trim();
+        if (!value) return "Nada que agregar.";
+        state.memory.push(value); saveState(false); render();
+        return "Contexto agregado al background de la empresa.";
+      },
+      goToStep: async ({ step }) => {
+        const target = typeof step === "number" ? step : STEP_NAMES[String(step || "").trim().toLowerCase()];
+        if (target == null) return `Paso desconocido. Usa: ${Object.keys(STEP_NAMES).join(", ")}.`;
+        goToStep(target);
+        return `Avanzando al paso ${target}.`;
+      },
+      generateProposal: async () => {
+        if (state.currentStep < 5) goToStep(5);
+        void generateFinals();
+        return "Generando las 3 propuestas con IA.";
+      },
+      getState: async () => JSON.stringify({
+        brandName: state.brandName,
+        brief: state.brief,
+        audience: labels.audience[state.audience],
+        goal: labels.goal[state.goal],
+        style: labels.style[state.style],
+        step: state.currentStep,
+        background: state.memory.slice(-6)
+      })
+    };
+
+    function initGuideAgent() {
+      if (!AGENT_ID) return;
+
+      const widget = document.createElement("elevenlabs-convai");
+      widget.setAttribute("agent-id", AGENT_ID);
+      widget.addEventListener("elevenlabs-convai:call", (event) => {
+        if (event.detail && event.detail.config) {
+          event.detail.config.clientTools = guideClientTools;
+        }
+      });
+      document.body.appendChild(widget);
+
+      const script = document.createElement("script");
+      script.src = "https://unpkg.com/@elevenlabs/convai-widget-embed";
+      script.async = true;
+      script.type = "text/javascript";
+      document.body.appendChild(script);
+    }
+
+    let guidedTourRunning = false;
+    let guidedTourAbort = false;
+
+    /* ---------- Tour guiado (sin ElevenLabs) ---------- */
+    const TOUR_SCRIPT = [
+      // [step, question, assistantCopy, delayMs, action]
+      { delayMs: 500, step: 0, question: "", copy: "¡Hola! Soy Poly, tu guía de campaña. Voy a ayudarte paso a paso a crear una campaña de Facebook con IA.", action: "none" },
+      { delayMs: 900, step: 0, question: "", copy: "Primero necesito saber: ¿cómo se llama tu marca y qué vendes o qué servicio ofreces? Voy a simular que trabajamos para una marca de ejemplo llamada NovaGear.", action: "none" },
+      { delayMs: 1400, step: 1, question: "¿Cómo se llama tu marca?", copy: "Escribe el nombre de tu marca y una breve descripción de lo que haces.", action: "fillBrief" },
+      { delayMs: 1100, step: 1, question: "Perfecto.", copy: "Ahora dime: ¿a quién le quieres hablar? ¿Quién es tu cliente ideal?", action: "none" },
+      { delayMs: 900, step: 2, question: "¿Quién debería ver esta campaña?", copy: "Elige el perfil de cliente más cercano al tuyo.", action: "selectAudience" },
+      { delayMs: 800, step: 2, question: "Bien.", copy: "¿Qué resultado quieres lograr con esta campaña?", action: "none" },
+      { delayMs: 800, step: 3, question: "¿Qué resultado quieres lograr?", copy: "Define si buscas visibilidad, contactos, ventas o comunidad.", action: "selectGoal" },
+      { delayMs: 800, step: 3, question: "Buen objetivo.", copy: "Ahora viene la parte creativa: ¿cómo quieres que se vea y se sienta tu campaña?", action: "none" },
+      { delayMs: 800, step: 4, question: "¿Qué estilo se siente más correcto?", copy: "Mira las imágenes y elige la dirección visual para tus anuncios.", action: "selectStyle" },
+      { delayMs: 800, step: 4, question: "Excelente elección.", copy: "Ya tengo todo lo necesario. Voy a preparar el resumen de tu campaña.", action: "none" },
+      { delayMs: 1000, step: 5, question: "Aquí está tu resumen.", copy: "Revisa la información. Si todo está bien, voy a generar las 3 propuestas visuales con IA.", action: "reviewSummary" },
+    ];
+
+    async function runGuidedTour() {
+      if (guidedTourRunning) return;
+      guidedTourRunning = true;
+      guidedTourAbort = false;
+      const btn = document.getElementById("startTourBtn");
+      if (btn) { btn.disabled = true; btn.textContent = "Tour en curso…"; }
+
+      disableTourNav(true);
+
+      for (const line of TOUR_SCRIPT) {
+        if (guidedTourAbort) break;
+
+        if (line.step !== state.currentStep) {
+          goToStep(line.step);
+          await sleep(700);
+        }
+
+        if (line.action === "fillBrief") {
+          state.brandName = "NovaGear Tech";
+          state.brief = "Gadgets inteligentes: audífonos inalámbricos, cargadores rápidos, lámparas LED y accesorios para home-office. Precios accesibles, diseño moderno, enfocados en América Latina.";
+          saveState(false);
+          render();
+        }
+
+        if (line.action === "selectAudience") {
+          state.audience = "founders";
+          saveState(false);
+          render();
+          await sleep(500);
+        }
+
+        if (line.action === "selectGoal") {
+          state.goal = "leads";
+          saveState(false);
+          render();
+          await sleep(500);
+        }
+
+        if (line.action === "selectStyle") {
+          state.style = "neobrutal";
+          saveState(false);
+          render();
+          await sleep(500);
+        }
+
+        if (line.action === "reviewSummary") {
+          state.memory.push("Campaña guiada por el tour automático de Polyedro.");
+          saveState(false);
+          render();
+          await sleep(1000);
+        }
+
+        await updateAssistant(line.question, line.copy, line.delayMs);
+      }
+
+      // Generar las propuestas al final del tour
+      if (!guidedTourAbort) {
+        await updateAssistant("", "¡Listo! Voy a generar las 3 propuestas visuales con inteligencia artificial. Esto puede tomar unos segundos…", 800);
+        disableTourNav(false);
+        void generateFinals();
+      } else {
+        disableTourNav(false);
+      }
+
+      if (btn) { btn.disabled = false; btn.textContent = "▶ Iniciar tour guiado"; }
+      guidedTourRunning = false;
+    }
+
+    function disableTourNav(disabled) {
+      document.querySelectorAll("[data-next], [data-prev]").forEach((el) => {
+        if (disabled) {
+          el.setAttribute("data-tour-disabled", "1");
+          el.disabled = true;
+        } else if (el.getAttribute("data-tour-disabled") === "1") {
+          el.removeAttribute("data-tour-disabled");
+          el.disabled = false;
+        }
+      });
+    }
+
+    async function updateAssistant(question, copy, delayMs) {
+      const panel = document.querySelector(".screen.is-active [data-assistant]");
+      if (!panel) return;
+
+      const qEl = panel.querySelector(".voice-question");
+      const cEl = panel.querySelector(".assistant-copy");
+      const waveEl = panel.querySelector(".wave");
+
+      if (question && qEl) {
+        qEl.textContent = "";
+        await typeText(qEl, question, 35);
+      }
+
+      if (copy && cEl) {
+        cEl.textContent = "";
+        await typeText(cEl, copy, 18);
+      }
+
+      if (waveEl) waveEl.style.opacity = "1";
+
+      if (delayMs) await sleep(delayMs);
+    }
+
+    async function typeText(el, text, speedMs) {
+      for (let i = 0; i < text.length; i++) {
+        if (guidedTourAbort) { el.textContent = text; return; }
+        el.textContent += text[i];
+        await new Promise((r) => setTimeout(r, speedMs));
+      }
+    }
+
+    function abortGuidedTour() {
+      guidedTourAbort = true;
+      disableTourNav(false);
+      const btn = document.getElementById("startTourBtn");
+      if (btn) { btn.disabled = false; btn.textContent = "▶ Iniciar tour guiado"; }
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    initGuideAgent();
 
     render();
   </script>
