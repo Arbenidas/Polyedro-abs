@@ -73,3 +73,12 @@ Polyedro-abs/
 - `pnpm run dev:web`: Start only the web application
 - `pnpm run dev:server`: Start only the server
 - `pnpm run check-types`: Check TypeScript types across all apps
+
+## Deployment
+
+- **Web (`apps/web`)** → Netlify (`netlify.toml`, `base = "apps/web"`). Set `NEXT_PUBLIC_SERVER_URL` (the deployed API origin) plus `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` in Site settings → Environment variables.
+- **Server (`apps/server`)** → Railway, config-as-code in `railway.json` (build `pnpm install --frozen-lockfile && pnpm --filter server build`, start `pnpm --filter server start`, healthcheck `/`).
+
+> **Single instance, always on.** The server keeps campaign progress in an in-memory, per-process bus (`apps/server/src/api/services/progress.ts`) and streams it over SSE. Railway is configured for **one replica with sleep disabled** (`numReplicas: 1`, `sleepApplication: false`). Do **not** enable horizontal autoscaling or scale-to-zero until the bus is moved to a shared store (e.g. Redis pub/sub) — otherwise SSE clients can connect to an instance that never sees the events.
+
+Required server env vars (validated at boot in `packages/env/src/server.ts`): `CORS_ORIGIN` (the web origin), `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`. Optional: `DIRECT_URL`, `OPENAI_API_KEY` (+ image-provider keys), `NODE_ENV`. `PORT` is injected by the platform. See `apps/server/.env.example`.
