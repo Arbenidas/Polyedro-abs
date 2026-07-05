@@ -173,6 +173,36 @@ export const campaigns = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Tabla: campaign_briefs — input capturado antes de crear/generar campaña
+// ---------------------------------------------------------------------------
+
+export const campaignBriefs = pgTable(
+  "campaign_briefs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    brandId: uuid("brand_id")
+      .notNull()
+      .references(() => brands.id, { onDelete: "cascade" }),
+    campaignId: uuid("campaign_id").references(() => campaigns.id, {
+      onDelete: "set null",
+    }),
+    language: languageEnum("language").notNull().default("es"),
+    source: text("source").notNull().default("microphone"),
+    provider: text("provider").notNull().default("openai"),
+    model: text("model").notNull(),
+    text: text("text").notNull(),
+    audioMimeType: text("audio_mime_type"),
+    audioSizeBytes: integer("audio_size_bytes"),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    ...timestamps,
+  },
+  (table) => [
+    index("campaign_briefs_brand_id_idx").on(table.brandId),
+    index("campaign_briefs_campaign_id_idx").on(table.campaignId),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // Tabla: campaign_strategies (1:1 con campaign) — Strategy Agent
 // ---------------------------------------------------------------------------
 
@@ -323,6 +353,7 @@ export const brandsRelations = relations(brands, ({ one, many }) => ({
     references: [brandKits.brandId],
   }),
   campaigns: many(campaigns),
+  campaignBriefs: many(campaignBriefs),
 }));
 
 export const brandKitsRelations = relations(brandKits, ({ one }) => ({
@@ -331,6 +362,7 @@ export const brandKitsRelations = relations(brandKits, ({ one }) => ({
 
 export const campaignsRelations = relations(campaigns, ({ one, many }) => ({
   brand: one(brands, { fields: [campaigns.brandId], references: [brands.id] }),
+  campaignBriefs: many(campaignBriefs),
   strategy: one(campaignStrategies, {
     fields: [campaigns.id],
     references: [campaignStrategies.campaignId],
@@ -339,6 +371,17 @@ export const campaignsRelations = relations(campaigns, ({ one, many }) => ({
   creativeAssets: many(creativeAssets),
   videoScripts: many(videoScripts),
   automationExports: many(automationExports),
+}));
+
+export const campaignBriefsRelations = relations(campaignBriefs, ({ one }) => ({
+  brand: one(brands, {
+    fields: [campaignBriefs.brandId],
+    references: [brands.id],
+  }),
+  campaign: one(campaigns, {
+    fields: [campaignBriefs.campaignId],
+    references: [campaigns.id],
+  }),
 }));
 
 export const campaignStrategiesRelations = relations(
