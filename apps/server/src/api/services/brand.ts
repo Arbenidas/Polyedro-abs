@@ -57,7 +57,7 @@ export const createBrand = async (input: BrandInput) => {
         "brand.created:draft",
         "brand_kit.created:generating",
         `brand_kit.content:${provider}`,
-        "brand_kit.completed:review",
+        "brand_kit.completed:approved",
       ],
     },
   };

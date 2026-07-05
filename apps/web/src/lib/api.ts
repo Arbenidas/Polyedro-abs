@@ -317,7 +317,10 @@ export async function getCampaignDashboard(campaignId: string): Promise<Campaign
   return body as CampaignDashboard;
 }
 
-export async function runCampaignAgent(campaignId: string, agent: "strategy" | "creative" | "meta-ads") {
+export async function runCampaignAgent(
+  campaignId: string,
+  agent: "strategy" | "creative" | "meta-ads" | "video",
+) {
   const res = await apiFetch(`/api/campaigns/${campaignId}/agents/${agent}`, {
     method: "POST",
   });
