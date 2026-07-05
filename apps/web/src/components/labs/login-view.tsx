@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useAuth } from "../auth-provider";
 import {
   ACCENT,
+  CARD,
   CORAL,
   FONT_BLACK,
   FONT_MONO,
@@ -32,6 +33,7 @@ export function LoginView() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -142,7 +144,7 @@ export function LoginView() {
               <label style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                 <span style={monoLabel}>PASSWORD</span>
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   required
                   minLength={6}
                   autoComplete={mode === "signin" ? "current-password" : "new-password"}
@@ -150,6 +152,54 @@ export function LoginView() {
                   onChange={(e) => setPassword(e.target.value)}
                   style={inputStyle}
                 />
+              </label>
+
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  cursor: "pointer",
+                  alignSelf: "flex-start",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={showPassword}
+                  onChange={(e) => setShowPassword(e.target.checked)}
+                  style={{
+                    position: "absolute",
+                    width: 1,
+                    height: 1,
+                    padding: 0,
+                    margin: -1,
+                    overflow: "hidden",
+                    clip: "rect(0, 0, 0, 0)",
+                    whiteSpace: "nowrap",
+                    border: 0,
+                  }}
+                />
+                <span
+                  aria-hidden
+                  style={{
+                    width: 18,
+                    height: 18,
+                    flexShrink: 0,
+                    border: `2px solid ${INK}`,
+                    background: showPassword ? ACCENT : CARD,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontFamily: FONT_MONO,
+                    fontSize: 13,
+                    fontWeight: 800,
+                    lineHeight: 1,
+                    color: INK,
+                  }}
+                >
+                  {showPassword ? "✓" : ""}
+                </span>
+                <span style={{ ...monoLabel, cursor: "pointer" }}>SHOW PASSWORD</span>
               </label>
 
               {error && (
