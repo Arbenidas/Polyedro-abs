@@ -8,6 +8,7 @@ import { logger } from "hono/logger";
 import { api } from "@/api/routes";
 import { ApiError } from "@/api/shared";
 import { db } from "@/db";
+import { privacyPolicyHtml } from "@/legal/privacy";
 import { requireAuth } from "@/middleware/auth";
 
 const app = new Hono();
@@ -30,6 +31,9 @@ app.get("/health/db", async (c) => {
   const result = await db.execute(sql`select 1 as ok`);
   return c.json({ db: "ok", result });
 });
+
+// Público: URL de política de privacidad requerida para publicar la app de Meta.
+app.get("/privacy", (c) => c.html(privacyPolicyHtml));
 
 // Toda la API requiere sesión de Supabase; el usuario resuelto queda en c.get("user").
 app.use("/api/*", requireAuth);
