@@ -1,0 +1,2072 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Demo guiada de Polyedro /abs para crear campañas con voz, brief, audiencia, objetivos y estilo visual.">
+  <title>Polyedro /abs - Voice campaign demo</title>
+  <style>
+    :root {
+      --paper: #f7f3ea;
+      --card: #fffefa;
+      --ink: #0a0a0a;
+      --muted: #62655b;
+      --acid: #c6f432;
+      --cyan: #45d8e8;
+      --blue: #2f5ce5;
+      --coral: #ff6b57;
+      --sun: #ffd02f;
+      --stone: #e4e2dd;
+      --shadow: 7px 7px 0 var(--ink);
+      --shadow-soft: 4px 4px 0 var(--ink);
+      --radius: 10px;
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(10, 10, 10, .045) 1px, transparent 1px),
+        linear-gradient(rgba(10, 10, 10, .045) 1px, transparent 1px),
+        radial-gradient(circle at 82% 12%, rgba(69, 216, 232, .26), transparent 34%),
+        var(--paper);
+      background-size: 28px 28px, 28px 28px, auto, auto;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    img { max-width: 100%; display: block; }
+
+    .skip-link {
+      position: fixed;
+      left: 16px;
+      top: 12px;
+      z-index: 20;
+      padding: 10px 12px;
+      border: 3px solid var(--ink);
+      background: var(--acid);
+      color: var(--ink);
+      font-weight: 950;
+      transform: translateY(-160%);
+    }
+
+    .skip-link:focus { transform: translateY(0); }
+
+    .app {
+      min-height: 100dvh;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px clamp(16px, 4vw, 42px);
+      border-bottom: 3px solid rgba(10, 10, 10, .12);
+      background: rgba(247, 243, 234, .86);
+      backdrop-filter: blur(12px);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 46px;
+      height: 46px;
+      border: 3px solid var(--ink);
+      background: var(--acid);
+      box-shadow: 4px 4px 0 var(--ink);
+      font-size: 26px;
+      font-weight: 1000;
+      transform: rotate(-5deg);
+    }
+
+    .brand-title {
+      margin: 0;
+      font-size: clamp(20px, 3vw, 30px);
+      line-height: .94;
+      font-weight: 1000;
+      text-wrap: balance;
+    }
+
+    .brand-subtitle {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .progress-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      padding: 7px 11px;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: var(--card);
+      box-shadow: 3px 3px 0 var(--ink);
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .stage {
+      width: min(1440px, 100%);
+      margin: 0 auto;
+      padding: clamp(16px, 4vw, 42px);
+    }
+
+    .screen {
+      display: none;
+      min-height: calc(100dvh - 88px);
+      animation: enter .34s cubic-bezier(.2, .8, .2, 1);
+    }
+
+    .screen.is-active { display: block; }
+
+    @keyframes enter {
+      from { opacity: 0; transform: translateY(14px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .landing {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 430px);
+      gap: clamp(26px, 5vw, 72px);
+      align-items: center;
+      min-height: calc(100dvh - 120px);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 7px 10px;
+      border: 3px solid var(--ink);
+      border-radius: 999px;
+      background: var(--ink);
+      color: var(--card);
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+    }
+
+    .hero-title {
+      max-width: 980px;
+      margin: 0 0 18px;
+      font-size: clamp(48px, 8vw, 112px);
+      line-height: .88;
+      font-weight: 1000;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .screen-title {
+      max-width: 780px;
+      margin: 0 0 14px;
+      font-size: clamp(34px, 5vw, 68px);
+      line-height: .94;
+      font-weight: 1000;
+      letter-spacing: 0;
+      text-wrap: balance;
+    }
+
+    .copy {
+      max-width: 720px;
+      margin: 0 0 24px;
+      color: var(--muted);
+      font-size: clamp(17px, 2vw, 22px);
+      line-height: 1.42;
+      font-weight: 700;
+      text-wrap: pretty;
+    }
+
+    .marker {
+      display: inline;
+      padding: 0 .12em;
+      background: var(--sun);
+      box-decoration-break: clone;
+      -webkit-box-decoration-break: clone;
+    }
+
+    .demo-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+      gap: clamp(18px, 3vw, 34px);
+      align-items: start;
+    }
+
+    .main-panel,
+    .voice-panel,
+    .card {
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
+
+    .main-panel {
+      min-height: auto;
+      padding: clamp(18px, 3vw, 30px);
+    }
+
+    .voice-panel {
+      position: sticky;
+      top: 106px;
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      background:
+        linear-gradient(180deg, #fff8d9 0%, #fffefa 100%);
+      overflow: hidden;
+    }
+
+    .voice-panel::before {
+      content: "";
+      position: absolute;
+      inset: auto -32px -46px auto;
+      width: 140px;
+      height: 140px;
+      border: 3px solid var(--ink);
+      border-radius: 50%;
+      background: rgba(69, 216, 232, .22);
+      pointer-events: none;
+    }
+
+    .voice-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .voice-state {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      background: var(--card);
+      box-shadow: 2px 2px 0 var(--ink);
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+    }
+
+    .voice-state::before {
+      content: "";
+      width: 10px;
+      height: 10px;
+      border: 2px solid var(--ink);
+      border-radius: 50%;
+      background: var(--coral);
+      animation: blink 1.2s infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: .35; transform: scale(.78); }
+    }
+
+    .big-mic {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: min(360px, 78vw);
+      aspect-ratio: 1;
+      margin: 0 auto;
+      border: 5px solid var(--ink);
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 50% 48%, var(--card) 0 22%, transparent 23%),
+        var(--cyan);
+      box-shadow: 14px 14px 0 var(--ink);
+      animation: micBounce 1.15s cubic-bezier(.34, 1.56, .64, 1) infinite;
+    }
+
+    .big-mic::before,
+    .big-mic::after {
+      content: "";
+      position: absolute;
+      inset: 30px;
+      border: 4px solid var(--ink);
+      border-radius: 50%;
+      opacity: .45;
+      animation: ringPulse 2.2s ease-out infinite;
+    }
+
+    .big-mic::after {
+      inset: 58px;
+      animation-delay: .32s;
+    }
+
+    .mini-mic {
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 108px;
+      aspect-ratio: 1;
+      margin: 0;
+      border: 4px solid var(--ink);
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 7px 7px 0 var(--ink);
+    }
+
+    .mini-mic::before {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border: 3px solid var(--ink);
+      border-radius: 50%;
+      animation: ringPulse 2.1s ease-out infinite;
+    }
+
+    .mic-button {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      width: 116px;
+      height: 116px;
+      border: 4px solid var(--ink);
+      border-radius: 50%;
+      background: var(--acid);
+      box-shadow: 7px 7px 0 var(--ink);
+      color: var(--ink);
+      font-size: 18px;
+      font-weight: 1000;
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+
+    .mini-mic .mic-button {
+      width: 52px;
+      height: 52px;
+      font-size: 12px;
+      box-shadow: 4px 4px 0 var(--ink);
+    }
+
+    .voice-core {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 14px;
+      align-items: center;
+      padding: 12px;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .mic-button:hover,
+    .mic-button:focus-visible {
+      transform: translate(3px, 3px);
+      box-shadow: 3px 3px 0 var(--ink);
+      outline: 4px solid rgba(47, 92, 229, .32);
+      outline-offset: 4px;
+    }
+
+    @keyframes micBounce {
+      0%, 100% { transform: translateY(0) rotate(-1deg); }
+      50% { transform: translateY(-16px) rotate(1deg); }
+    }
+
+    @keyframes ringPulse {
+      from { transform: scale(.78); opacity: .72; }
+      to { transform: scale(1.18); opacity: 0; }
+    }
+
+    .wave {
+      display: grid;
+      grid-template-columns: repeat(11, 1fr);
+      align-items: end;
+      gap: 5px;
+      height: 34px;
+      padding: 6px;
+      border: 2px solid var(--ink);
+      border-radius: 8px;
+      background: var(--card);
+    }
+
+    .voice-core .wave {
+      grid-column: 1 / -1;
+    }
+
+    .wave span {
+      display: block;
+      width: 100%;
+      min-height: 8px;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      background: var(--blue);
+      animation: voiceBar 1.2s ease-in-out infinite;
+    }
+
+    .wave span:nth-child(2n) { animation-delay: .12s; background: var(--acid); }
+    .wave span:nth-child(3n) { animation-delay: .22s; background: var(--coral); }
+    .wave span:nth-child(4n) { animation-delay: .32s; background: var(--cyan); }
+
+    @keyframes voiceBar {
+      0%, 100% { height: 10px; }
+      45% { height: 32px; }
+    }
+
+    .assistant-copy {
+      position: relative;
+      z-index: 1;
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.42;
+      font-weight: 750;
+    }
+
+    .voice-question {
+      margin: 0 0 5px;
+      font-size: 15px;
+      line-height: 1.18;
+      font-weight: 1000;
+    }
+
+    .memory-wrap {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 8px;
+    }
+
+    .memory-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      max-height: 92px;
+      overflow: auto;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .memory-list li {
+      padding: 6px 8px;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      background: var(--card);
+      font-size: 11px;
+      font-weight: 800;
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .empty {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .transition-layer {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: none;
+      place-items: center;
+      padding: 20px;
+      background: var(--ink);
+      color: var(--card);
+    }
+
+    .transition-layer.is-active {
+      display: grid;
+      animation: transitionIn .86s cubic-bezier(.2, .8, .2, 1) forwards;
+    }
+
+    .transition-card {
+      width: min(680px, 100%);
+      padding: clamp(22px, 6vw, 46px);
+      border: 4px solid var(--card);
+      border-radius: var(--radius);
+      background: var(--ink);
+      box-shadow: 10px 10px 0 var(--acid);
+      text-align: center;
+    }
+
+    .transition-card strong {
+      display: block;
+      font-size: clamp(32px, 7vw, 72px);
+      line-height: .9;
+      font-weight: 1000;
+    }
+
+    .transition-card span {
+      display: block;
+      margin-top: 12px;
+      color: #d7d7d1;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    @keyframes transitionIn {
+      0% { clip-path: circle(0% at 50% 50%); opacity: 0; }
+      35% { clip-path: circle(140% at 50% 50%); opacity: 1; }
+      100% { clip-path: circle(140% at 50% 50%); opacity: 1; }
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .label {
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+    }
+
+    .input,
+    .textarea,
+    .select {
+      width: 100%;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--card);
+      color: var(--ink);
+      box-shadow: 4px 4px 0 var(--ink);
+      outline: none;
+      padding: 13px 14px;
+      font-weight: 750;
+    }
+
+    .textarea {
+      min-height: 138px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    .manual-entry {
+      display: none;
+      margin-top: 16px;
+      padding-top: 16px;
+      border-top: 3px dashed var(--ink);
+    }
+
+    body.is-manual .manual-entry {
+      display: block;
+    }
+
+    .voice-focus {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 14px;
+      align-items: center;
+      min-height: 190px;
+      padding: 18px;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: #fff8d9;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .voice-focus h3 {
+      margin: 0 0 8px;
+      font-size: clamp(24px, 4vw, 44px);
+      line-height: 1;
+      font-weight: 1000;
+    }
+
+    .voice-focus p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.35;
+      font-weight: 800;
+    }
+
+    .voice-orb-small {
+      display: grid;
+      place-items: center;
+      width: 112px;
+      aspect-ratio: 1;
+      border: 4px solid var(--ink);
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 6px 6px 0 var(--ink);
+      font-weight: 1000;
+    }
+
+    .input:focus,
+    .textarea:focus,
+    .select:focus,
+    .option:focus-within,
+    .style-card:focus-within,
+    .btn:focus-visible {
+      outline: 4px solid rgba(47, 92, 229, .32);
+      outline-offset: 3px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 46px;
+      padding: 12px 17px;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--card);
+      color: var(--ink);
+      box-shadow: 4px 4px 0 var(--ink);
+      font-weight: 950;
+      text-decoration: none;
+      transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+    }
+
+    .btn:hover {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 var(--ink);
+    }
+
+    .btn.primary { background: var(--acid); }
+    .btn.blue { background: var(--blue); color: white; }
+    .btn.coral { background: var(--coral); }
+    .btn.ghost { background: transparent; }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    .option-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .option,
+    .style-card {
+      position: relative;
+      display: grid;
+      gap: 10px;
+      min-height: 140px;
+      padding: 16px;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: 4px 4px 0 var(--ink);
+      cursor: pointer;
+      transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+    }
+
+    .option:hover,
+      .style-card:hover {
+      transform: translate(2px, 2px);
+      box-shadow: 2px 2px 0 var(--ink);
+    }
+
+    .option input,
+    .style-card input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .option.is-selected,
+    .style-card.is-selected {
+      background: var(--acid);
+      box-shadow: var(--shadow);
+      transform: translate(-1px, -1px);
+    }
+
+    .option-kicker {
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+    }
+
+    .option-title {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.08;
+      font-weight: 1000;
+    }
+
+    .option-copy {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 750;
+      line-height: 1.36;
+    }
+
+    .style-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .style-card {
+      padding: 10px;
+      min-height: auto;
+    }
+
+    .style-card img {
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      border: 3px solid var(--ink);
+      border-radius: 8px;
+      background: var(--stone);
+    }
+
+    .option.with-image {
+      padding: 10px;
+    }
+
+    .option.with-image img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border: 3px solid var(--ink);
+      border-radius: 8px;
+      background: var(--stone);
+    }
+
+    .choice-preview {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 190px minmax(0, 1fr);
+      gap: 14px;
+      align-items: center;
+      padding: 12px;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .choice-preview img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border: 3px solid var(--ink);
+      border-radius: 8px;
+    }
+
+    .style-body {
+      padding: 8px 4px 2px;
+    }
+
+    .style-preview {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 18px;
+      align-items: stretch;
+      margin-top: 20px;
+    }
+
+    .preview-frame {
+      overflow: hidden;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow);
+    }
+
+    .preview-frame img {
+      width: 100%;
+      height: 100%;
+      min-height: 330px;
+      object-fit: cover;
+    }
+
+    .campaign-bg {
+      display: grid;
+      gap: 12px;
+      padding: 18px;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: #fff8d9;
+      box-shadow: var(--shadow);
+    }
+
+    .campaign-bg h3,
+    .voice-panel h3,
+    .card h3 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.1;
+      font-weight: 1000;
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 5px 9px;
+      border: 2px solid var(--ink);
+      border-radius: 999px;
+      background: var(--card);
+      box-shadow: 2px 2px 0 var(--ink);
+      font-size: 12px;
+      font-weight: 950;
+      text-transform: uppercase;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .proposal-board {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .proposal-card {
+      overflow: hidden;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .proposal-card img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-bottom: 3px solid var(--ink);
+    }
+
+    .proposal-card div {
+      padding: 12px;
+    }
+
+    .proposal-card h3 {
+      margin: 0 0 6px;
+      font-size: 18px;
+      font-weight: 1000;
+    }
+
+    .proposal-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 800;
+    }
+
+    .calendar-workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 18px;
+      margin-top: 18px;
+    }
+
+    .calendar-board {
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+    }
+
+    .calendar-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 14px;
+      border-bottom: 3px solid var(--ink);
+      background: #fff8d9;
+    }
+
+    .calendar-top h3 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1;
+      font-weight: 1000;
+    }
+
+    .calendar-mode {
+      display: inline-flex;
+      gap: 8px;
+    }
+
+    .calendar-mode span {
+      padding: 6px 9px;
+      border: 2px solid var(--ink);
+      background: var(--card);
+      box-shadow: 2px 2px 0 var(--ink);
+      font-size: 12px;
+      font-weight: 1000;
+      text-transform: uppercase;
+    }
+
+    .calendar-mode span:last-child {
+      background: var(--acid);
+    }
+
+    .month-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(82px, 1fr));
+      gap: 3px;
+      background: var(--ink);
+      border-top: 0;
+    }
+
+    .weekday,
+    .day-cell {
+      background: var(--card);
+    }
+
+    .weekday {
+      min-height: 38px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 1000;
+      text-transform: uppercase;
+    }
+
+    .day-cell {
+      min-height: 112px;
+      padding: 8px;
+      text-align: left;
+      border: 0;
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    .day-cell:hover,
+    .day-cell.is-selected {
+      background: #fff8d9;
+    }
+
+    .day-cell.is-selected {
+      outline: 4px solid var(--acid);
+      outline-offset: -6px;
+    }
+
+    .day-cell.is-muted {
+      background: #dbd8d0;
+      color: #77796f;
+      cursor: default;
+    }
+
+    .day-number {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 13px;
+      font-weight: 1000;
+      text-align: right;
+    }
+
+    .calendar-post {
+      display: grid;
+      gap: 5px;
+      padding: 6px;
+      border: 2px solid var(--ink);
+      border-radius: 7px;
+      background: var(--acid);
+      box-shadow: 2px 2px 0 var(--ink);
+      font-size: 11px;
+      font-weight: 950;
+      line-height: 1.15;
+    }
+
+    .calendar-post img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border: 2px solid var(--ink);
+      border-radius: 5px;
+    }
+
+    .post-detail {
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: #fff8d9;
+      box-shadow: var(--shadow-soft);
+      overflow: hidden;
+    }
+
+    .post-detail img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border-bottom: 3px solid var(--ink);
+      background: var(--stone);
+    }
+
+    .post-detail-body {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+    }
+
+    .post-detail-body h3 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1;
+      font-weight: 1000;
+    }
+
+    .post-detail-body p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+      font-weight: 800;
+    }
+
+    .post-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .card {
+      padding: 16px;
+      min-height: 170px;
+    }
+
+    .card p {
+      margin: 10px 0 0;
+      color: var(--muted);
+      line-height: 1.4;
+      font-weight: 750;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 40;
+      max-width: min(380px, calc(100vw - 40px));
+      padding: 13px 15px;
+      border: 3px solid var(--ink);
+      border-radius: var(--radius);
+      background: var(--acid);
+      box-shadow: var(--shadow);
+      font-weight: 950;
+      transform: translateY(160%);
+      transition: transform .2s ease;
+    }
+
+    .toast.is-visible { transform: translateY(0); }
+    .hidden { display: none !important; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+      }
+    }
+
+    @media (max-width: 1100px) {
+      .landing,
+      .demo-shell,
+      .style-preview {
+        grid-template-columns: 1fr;
+      }
+
+      .voice-panel {
+        position: static;
+      }
+
+      .style-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .choice-preview,
+      .proposal-board,
+      .calendar-workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .topbar {
+        align-items: center;
+        padding: 14px 16px;
+      }
+
+      .top-actions {
+        justify-content: flex-end;
+      }
+
+      .progress-pill {
+        max-width: 142px;
+        min-height: 34px;
+        padding: 6px 8px;
+        font-size: 10px;
+        white-space: normal;
+      }
+
+      #saveBtn {
+        display: none;
+      }
+
+      .stage {
+        padding: 16px;
+      }
+
+      .main-panel {
+        min-height: auto;
+      }
+
+      .voice-panel {
+        gap: 10px;
+        padding: 12px;
+      }
+
+      .voice-panel .mini-mic {
+        width: 92px;
+      }
+
+      .voice-panel .mic-button {
+        width: 46px;
+        height: 46px;
+      }
+
+      .voice-panel .wave {
+        height: 28px;
+      }
+
+      .voice-panel .memory-list {
+        max-height: 54px;
+      }
+
+      .option-grid,
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .voice-focus {
+        grid-template-columns: 1fr;
+      }
+
+      .voice-orb-small {
+        width: 88px;
+      }
+
+      .actions .btn {
+        flex: 1 1 160px;
+      }
+
+      .style-preview {
+        margin-top: 14px;
+      }
+
+      .style-preview .preview-frame {
+        display: none;
+      }
+
+      .hero-title {
+        font-size: clamp(48px, 17vw, 76px);
+      }
+
+      .big-mic {
+        box-shadow: 9px 9px 0 var(--ink);
+      }
+
+      .month-grid {
+        grid-template-columns: repeat(7, minmax(42px, 1fr));
+      }
+
+      .weekday {
+        min-height: 30px;
+        font-size: 10px;
+      }
+
+      .day-cell {
+        min-height: 76px;
+        padding: 5px;
+      }
+
+      .calendar-post {
+        padding: 4px;
+        font-size: 9px;
+      }
+
+      .calendar-post img {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Saltar al contenido</a>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">/</div>
+        <div>
+          <p class="brand-title">Polyedro /abs</p>
+          <p class="brand-subtitle">AI marketing engine</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span class="progress-pill" id="progressPill">Demo lista</span>
+      </div>
+    </header>
+
+    <main id="main" class="stage">
+      <section class="screen is-active" data-screen="0">
+        <div class="landing">
+          <div>
+            <span class="eyebrow">Demo por voz</span>
+            <h1 class="hero-title">Tu campaña empieza cuando <span class="marker">hablas</span>.</h1>
+            <p class="copy">Una guía de voz te ayuda a definir brief, audiencia, objetivos y estilo visual. Si algo no encaja, le das una instrucción y se guarda como memoria de campaña.</p>
+            <div class="actions">
+              <button class="btn primary" id="startVoiceBtn" type="button">Presionar micrófono</button>
+            </div>
+          </div>
+          <aside aria-label="Micrófono principal de la demo">
+            <div class="big-mic">
+              <button class="mic-button" id="landingMicBtn" type="button">MIC</button>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="1">
+        <div class="demo-shell">
+          <article class="main-panel">
+            <span class="eyebrow">Brief inicial</span>
+            <h2 class="screen-title">Dime qué estás construyendo.</h2>
+            <div class="voice-focus">
+              <div>
+                <h3 id="briefVoiceSummary">Escuchando brief...</h3>
+                <p>La voz rellena el brief. Pausa el micrófono si quieres escribir.</p>
+              </div>
+              <div class="voice-orb-small">VOICE</div>
+            </div>
+            <div class="manual-entry">
+              <label class="field">
+                <span class="label">Nombre de marca</span>
+                <input class="input" data-bind="brandName" placeholder="Ej. Polyedro Labs">
+              </label>
+              <label class="field">
+                <span class="label">Brief de campaña</span>
+                <textarea class="textarea" data-bind="brief" placeholder="Qué vendes, por qué importa, a quién quieres llegar y qué debe pasar después."></textarea>
+              </label>
+            </div>
+            <div class="pill-row">
+              <button class="btn coral" id="sampleBriefBtn" type="button">Simular voz</button>
+              <span class="pill">Manual al pausar</span>
+            </div>
+            <div class="actions">
+              <button class="btn ghost" data-prev type="button">Volver</button>
+              <button class="btn primary" data-next type="button">Definir audiencia</button>
+            </div>
+          </article>
+          <aside class="voice-panel" data-assistant></aside>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="2">
+        <div class="demo-shell">
+          <article class="main-panel">
+            <span class="eyebrow">Cliente ideal</span>
+            <h2 class="screen-title">¿A quién quieres atraer?</h2>
+            <p class="copy">Elige la opción más parecida. Si no existe, pausa la voz y descríbelo con tus palabras.</p>
+            <div class="option-grid">
+              <label class="option with-image">
+                <input type="radio" name="audience" value="creativos">
+                <img src="assets/style-neobrutal.png" alt="Clientes que responden a marcas visuales y frescas">
+                <span class="option-kicker">Ideal si quieres</span>
+                <strong class="option-title">Que tu marca se vea fresca</strong>
+                <span class="option-copy">Para personas que compran por estilo, novedad y energía visual.</span>
+              </label>
+              <label class="option with-image">
+                <input type="radio" name="audience" value="founders">
+                <img src="assets/style-tech.png" alt="Clientes que necesitan claridad y resultados medibles">
+                <span class="option-kicker">Ideal si vendes a</span>
+                <strong class="option-title">Negocios o equipos</strong>
+                <span class="option-copy">Para clientes que necesitan entender rápido el valor y medir resultados.</span>
+              </label>
+              <label class="option with-image">
+                <input type="radio" name="audience" value="compradores">
+                <img src="assets/facebook-leads.png" alt="Clientes listos para comprar una oferta clara">
+                <span class="option-kicker">Ideal si buscas</span>
+                <strong class="option-title">Ventas más directas</strong>
+                <span class="option-copy">Para personas que ya tienen interés y necesitan confianza para decidir.</span>
+              </label>
+              <label class="option with-image">
+                <input type="radio" name="audience" value="comunidad">
+                <img src="assets/facebook-launch.png" alt="Clientes que participan y recomiendan una marca">
+                <span class="option-kicker">Ideal si quieres</span>
+                <strong class="option-title">Crear comunidad</strong>
+                <span class="option-copy">Para atraer personas que comentan, comparten y recomiendan.</span>
+              </label>
+            </div>
+            <div class="choice-preview" id="audiencePreview"></div>
+            <div class="manual-entry">
+              <label class="field">
+                <span class="label">Describe tu cliente si no aparece aquí</span>
+                <textarea class="textarea" data-bind="audienceNotes" placeholder="Ej. Dueños de restaurantes premium que quieren llenar reservas los fines de semana."></textarea>
+              </label>
+            </div>
+            <div class="actions">
+              <button class="btn ghost" data-prev type="button">Atras</button>
+              <button class="btn primary" data-next type="button">Elegir objetivos</button>
+            </div>
+          </article>
+          <aside class="voice-panel" data-assistant></aside>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="3">
+        <div class="demo-shell">
+          <article class="main-panel">
+            <span class="eyebrow">Objetivos</span>
+            <h2 class="screen-title">Define el resultado esperado.</h2>
+            <div class="option-grid">
+              <label class="option with-image">
+                <input type="radio" name="goal" value="awareness">
+                <img src="assets/goal-awareness.png" alt="Personas tomando fotos a una marca para darla a conocer">
+                <span class="option-kicker">Visibilidad</span>
+                <strong class="option-title">Que nos conozcan</strong>
+              </label>
+              <label class="option with-image">
+                <input type="radio" name="goal" value="leads">
+                <img src="assets/goal-leads.png" alt="Persona dejando sus datos en una tablet para pedir información">
+                <span class="option-kicker">Interesados</span>
+                <strong class="option-title">Conseguir contactos</strong>
+              </label>
+              <label class="option with-image">
+                <input type="radio" name="goal" value="sales">
+                <img src="assets/goal-sales.png" alt="Persona presentando un producto en un estudio fotográfico">
+                <span class="option-kicker">Ventas</span>
+                <strong class="option-title">Vender una oferta</strong>
+              </label>
+              <label class="option with-image">
+                <input type="radio" name="goal" value="community">
+                <img src="assets/goal-community.png" alt="Varias personas reunidas participando en una comunidad de marca">
+                <span class="option-kicker">Participación</span>
+                <strong class="option-title">Activar comunidad</strong>
+              </label>
+            </div>
+            <div class="choice-preview" id="goalPreview"></div>
+            <div class="manual-entry">
+              <label class="field">
+                <span class="label">Referencia o contexto extra</span>
+                <input class="input" data-bind="socialLink" placeholder="Instagram, sitio web, perfil o campaña de referencia">
+              </label>
+            </div>
+            <div class="actions">
+              <button class="btn ghost" data-prev type="button">Atras</button>
+              <button class="btn primary" data-next type="button">Ver estilos</button>
+            </div>
+          </article>
+          <aside class="voice-panel" data-assistant></aside>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="4">
+        <div class="demo-shell">
+          <article class="main-panel">
+            <span class="eyebrow">Estilo visual</span>
+            <h2 class="screen-title">Escoge cómo se sentirá la campaña.</h2>
+            <p class="copy">Cada dirección muestra una imagen generada para que el cliente pueda decidir con criterio visual.</p>
+            <div class="style-grid">
+              <label class="style-card">
+                <input type="radio" name="style" value="neobrutal">
+                <img src="assets/style-neobrutal.png" alt="Moodboard neobrutalista con micrófono, piezas de campaña y colores ácidos">
+                <span class="style-body">
+                  <span class="option-kicker">Bold</span>
+                  <strong class="option-title">Neobrutal limpio</strong>
+                  <span class="option-copy">Directo, joven, memorable y muy demo-friendly.</span>
+                </span>
+              </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="editorial">
+                <img src="assets/style-editorial.png" alt="Moodboard editorial sobrio con micrófono, papeles premium y acentos amarillos">
+                <span class="style-body">
+                  <span class="option-kicker">Premium</span>
+                  <strong class="option-title">Editorial preciso</strong>
+                  <span class="option-copy">Más sofisticado, sobrio y confiable.</span>
+                </span>
+              </label>
+              <label class="style-card">
+                <input type="radio" name="style" value="tech">
+                <img src="assets/style-tech.png" alt="Sistema tecnológico modular con micrófono, paneles de datos y módulos de campaña">
+                <span class="style-body">
+                  <span class="option-kicker">SaaS</span>
+                  <strong class="option-title">Tech modular</strong>
+                  <span class="option-copy">Ideal para producto, automatización y performance.</span>
+                </span>
+              </label>
+            </div>
+
+            <div class="style-preview">
+              <div class="preview-frame">
+                <img id="selectedStyleImg" src="assets/style-neobrutal.png" alt="Previsualización del estilo seleccionado">
+              </div>
+              <aside class="campaign-bg">
+                <h3>Background de campaña</h3>
+                <p class="assistant-copy" id="campaignBackground">La campaña se ajustará con tus respuestas y con las instrucciones que agregues a la memoria.</p>
+                <div class="pill-row" id="backgroundPills"></div>
+              </aside>
+            </div>
+            <div class="actions">
+              <button class="btn ghost" data-prev type="button">Atras</button>
+              <button class="btn primary" data-next type="button">Generar propuesta</button>
+            </div>
+          </article>
+          <aside class="voice-panel" data-assistant></aside>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="5">
+        <div class="demo-shell">
+          <article class="main-panel">
+            <span class="eyebrow">Propuesta</span>
+            <h2 class="screen-title">Edita y genera propuestas finales.</h2>
+            <div class="summary-grid" id="summaryGrid"></div>
+            <div class="manual-entry">
+              <label class="field" style="margin-top:18px;">
+                <span class="label">Ajustes a la propuesta</span>
+                <textarea class="textarea" data-bind="proposalNotes" placeholder="Tono, restricciones, oferta, objeciones o ideas para el prompt final."></textarea>
+              </label>
+            </div>
+            <div class="proposal-board" id="proposalBoard"></div>
+            <div class="actions">
+              <button class="btn ghost" data-prev type="button">Atras</button>
+              <button class="btn coral" id="refineBtn" type="button">Agregar contexto</button>
+              <button class="btn primary" id="generateFinalsBtn" type="button">Generar propuestas finales</button>
+              <button class="btn blue" id="approveBtn" type="button">Aprobar y calendarizar</button>
+            </div>
+          </article>
+          <aside class="voice-panel" data-assistant></aside>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="6">
+        <div class="demo-shell">
+          <article class="main-panel">
+            <span class="eyebrow">Calendario Facebook</span>
+            <h2 class="screen-title">Elige un día para ver la publicación.</h2>
+            <div class="calendar-workspace">
+              <div class="calendar-board" id="calendarBoard"></div>
+              <aside class="post-detail" id="postDetail"></aside>
+            </div>
+            <div class="actions">
+              <button class="btn ghost" data-prev type="button">Editar propuesta</button>
+              <button class="btn blue" id="finishBtn" type="button">Cerrar demo</button>
+            </div>
+          </article>
+          <aside class="voice-panel" data-assistant></aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="transition-layer" id="transitionLayer" aria-hidden="true">
+    <div class="transition-card">
+      <strong>Estoy escuchando</strong>
+      <span>Preparando el brief inicial con una voz guía tipo ElevenLabs.</span>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const STORAGE_KEY = "polyedro_voice_demo_v2";
+
+    const styleAssets = {
+      neobrutal: "assets/style-neobrutal.png",
+      editorial: "assets/style-editorial.png",
+      tech: "assets/style-tech.png"
+    };
+
+    const finalCreatives = [
+      {
+        id: "launch",
+        img: "assets/facebook-launch.png",
+        title: "Manifiesto de marca",
+        channel: "Facebook",
+        day: 7,
+        time: "09:00",
+        format: "Post",
+        copy: "Presenta la promesa de marca y abre conversación con la audiencia principal."
+      },
+      {
+        id: "leads",
+        img: "assets/facebook-leads.png",
+        title: "Oferta para contactos",
+        channel: "Facebook Ads",
+        day: 16,
+        time: "11:30",
+        format: "Anuncio",
+        copy: "Invita a pedir información con una oferta clara y una razón simple para dejar datos."
+      },
+      {
+        id: "proof",
+        img: "assets/facebook-tech.png",
+        title: "Prueba visual",
+        channel: "Facebook",
+        day: 25,
+        time: "16:00",
+        format: "Carrusel",
+        copy: "Muestra cómo se ve la solución en acción y refuerza confianza antes de vender."
+      }
+    ];
+
+    const choiceAssets = {
+      audience: {
+        creativos: ["assets/style-neobrutal.png", "Usaremos piezas con mucha personalidad visual para que la marca se sienta actual y fácil de recordar."],
+        founders: ["assets/style-tech.png", "La campaña explicará el valor con claridad y mostrará resultados de forma directa."],
+        compradores: ["assets/facebook-leads.png", "La campaña dará razones para confiar y tomar acción sin demasiada fricción."],
+        comunidad: ["assets/facebook-launch.png", "La campaña buscará conversación, participación y contenido que la gente quiera compartir."]
+      },
+      goal: {
+        awareness: ["assets/goal-awareness.png", "La campaña hará que más personas vean, recuerden y hablen de la marca."],
+        leads: ["assets/goal-leads.png", "La campaña invitará a dejar datos, pedir información o agendar una conversación."],
+        sales: ["assets/goal-sales.png", "La campaña mostrará una oferta clara con producto, beneficio y llamado a comprar."],
+        community: ["assets/goal-community.png", "La campaña buscará comentarios, participación y personas compartiendo la marca."]
+      }
+    };
+
+    const labels = {
+      audience: {
+        creativos: "Personas que compran por estilo",
+        founders: "Negocios o equipos",
+        compradores: "Personas listas para comprar",
+        comunidad: "Personas que participan y recomiendan"
+      },
+      goal: {
+        awareness: "Que nos conozcan",
+        leads: "Conseguir contactos",
+        sales: "Vender una oferta",
+        community: "Activar comunidad"
+      },
+      style: {
+        neobrutal: "Neobrutal limpio",
+        editorial: "Editorial preciso",
+        tech: "Tech modular"
+      }
+    };
+
+    const initialState = {
+      currentStep: 0,
+      completedStep: 0,
+      brandName: "",
+      brief: "",
+      audience: "founders",
+      audienceNotes: "",
+      goal: "leads",
+      socialLink: "",
+      style: "neobrutal",
+      proposalNotes: "",
+      finalGenerated: false,
+      approved: false,
+      selectedCalendarDay: 7,
+      voiceListening: true,
+      memory: [
+        "La voz debe sonar cálida, premium y segura.",
+        "Si una opción no encaja, agregarla como contexto de campaña."
+      ],
+      lastSavedAt: ""
+    };
+
+    let state = loadState();
+    let saveTimer;
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return structuredClone(initialState);
+        const saved = JSON.parse(raw);
+      return { ...structuredClone(initialState), ...saved, memory: Array.isArray(saved.memory) ? saved.memory : initialState.memory };
+      } catch {
+        return structuredClone(initialState);
+      }
+    }
+
+    function saveState(showToastMessage = false) {
+      state.lastSavedAt = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      if (showToastMessage) showToast("Guardado en este navegador.");
+      renderProgress();
+    }
+
+    function scheduleSave() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => saveState(false), 180);
+    }
+
+    function goToStep(step) {
+      state.currentStep = Math.max(0, Math.min(6, step));
+      state.completedStep = Math.max(state.completedStep, state.currentStep);
+      saveState(false);
+      render();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function startDemo() {
+      const layer = document.getElementById("transitionLayer");
+      layer.classList.add("is-active");
+      window.setTimeout(() => {
+        goToStep(1);
+        layer.classList.remove("is-active");
+      }, 900);
+    }
+
+    function render() {
+      renderScreens();
+      renderProgress();
+      renderBoundFields();
+      renderChoices();
+      renderAssistants();
+      renderVoiceState();
+      renderChoicePreviews();
+      renderStylePreview();
+      renderSummary();
+      renderProposalBoard();
+      renderCalendar();
+    }
+
+    function renderScreens() {
+      document.querySelectorAll(".screen").forEach((screen) => {
+        screen.classList.toggle("is-active", Number(screen.dataset.screen) === state.currentStep);
+      });
+    }
+
+    function renderProgress() {
+      const pill = document.getElementById("progressPill");
+      if (state.currentStep === 0) {
+        pill.textContent = state.lastSavedAt ? "Guardado " + state.lastSavedAt : "Demo lista";
+        return;
+      }
+      const names = ["Landing", "Brief", "Cliente", "Objetivos", "Estilo", "Propuesta", "Calendario"];
+      pill.textContent = `${state.currentStep}/6 · ${names[state.currentStep]}${state.lastSavedAt ? " · " + state.lastSavedAt : ""}`;
+    }
+
+    function renderBoundFields() {
+      document.querySelectorAll("[data-bind]").forEach((field) => {
+        const key = field.dataset.bind;
+        if (document.activeElement !== field) field.value = state[key] || "";
+      });
+    }
+
+    function renderChoices() {
+      ["audience", "goal", "style"].forEach((group) => {
+        document.querySelectorAll(`input[name="${group}"]`).forEach((input) => {
+          input.checked = input.value === state[group];
+          const wrapper = input.closest(".option, .style-card");
+          if (wrapper) wrapper.classList.toggle("is-selected", input.checked);
+        });
+      });
+    }
+
+    function renderVoiceState() {
+      document.body.classList.toggle("is-manual", !state.voiceListening);
+      const briefSummary = document.getElementById("briefVoiceSummary");
+      if (briefSummary) {
+        briefSummary.textContent = state.brandName
+          ? `${state.brandName}: brief capturado`
+          : "Escuchando brief...";
+      }
+    }
+
+    function renderChoicePreviews() {
+      const audience = document.getElementById("audiencePreview");
+      if (audience) {
+        const [img, copy] = choiceAssets.audience[state.audience] || choiceAssets.audience.founders;
+        audience.innerHTML = `
+          <img src="${img}" alt="Previsualización de influencia seleccionada">
+          <div>
+            <span class="option-kicker">Cliente elegido</span>
+            <h3 class="option-title">${escapeHtml(labels.audience[state.audience])}</h3>
+            <p class="option-copy">${escapeHtml(copy)}</p>
+          </div>
+        `;
+      }
+
+      const goal = document.getElementById("goalPreview");
+      if (goal) {
+        const [img, copy] = choiceAssets.goal[state.goal] || choiceAssets.goal.leads;
+        goal.innerHTML = `
+          <img src="${img}" alt="Previsualización del objetivo seleccionado">
+          <div>
+            <span class="option-kicker">Objetivo seleccionado</span>
+            <h3 class="option-title">${escapeHtml(labels.goal[state.goal])}</h3>
+            <p class="option-copy">${escapeHtml(copy)}</p>
+          </div>
+        `;
+      }
+    }
+
+    function renderAssistants() {
+      document.querySelectorAll("[data-assistant]").forEach((panel) => {
+        panel.innerHTML = `
+          <div class="voice-header">
+            <h3>Guía de voz</h3>
+            <span class="voice-state">${state.voiceListening ? "Escuchando" : "Pausada"}</span>
+          </div>
+          <div class="voice-core">
+            <div class="mini-mic">
+              <button class="mic-button" type="button" data-toggle-voice>${state.voiceListening ? "ON" : "OFF"}</button>
+            </div>
+            <div>
+              <p class="voice-question">${assistantQuestion()}</p>
+              <p class="assistant-copy">${assistantPrompt()}</p>
+            </div>
+            <div class="wave" aria-hidden="true">
+              ${Array.from({ length: 11 }, () => "<span></span>").join("")}
+            </div>
+          </div>
+          <button class="btn coral" type="button" data-capture-context>Capturar contexto de voz</button>
+          <div class="manual-entry">
+            <label class="field">
+              <span class="label">Instrucción para la campaña</span>
+              <textarea class="textarea" data-instruction placeholder="Ej. Mi audiencia real son dueños de restaurantes premium."></textarea>
+            </label>
+            <button class="btn primary" type="button" data-add-instruction>Agregar al background</button>
+          </div>
+          <div class="memory-wrap">
+            <span class="label">Memoria activa</span>
+            <ul class="memory-list">
+              ${recentMemory().length ? recentMemory().map((item) => `<li title="${escapeHtml(item)}">${escapeHtml(item)}</li>`).join("") : `<li class="empty">Sin instrucciones adicionales.</li>`}
+            </ul>
+          </div>
+        `;
+      });
+    }
+
+    function recentMemory() {
+      return [...new Set(state.memory)].slice(-4);
+    }
+
+    function assistantQuestion() {
+      const questions = {
+        1: "Cuéntame tu idea en una frase.",
+        2: "¿Quién debería ver esta campaña?",
+        3: "¿Qué resultado quieres lograr?",
+        4: "¿Qué estilo se siente más correcto?",
+        5: "¿Qué cambiarías antes de aprobar?",
+        6: "¿Quieres mover alguna publicación?"
+      };
+      return questions[state.currentStep] || "Estoy lista para guiarte.";
+    }
+
+    function assistantPrompt() {
+      const prompts = {
+        1: "Te voy a hacer preguntas simples para convertir tu idea en un brief accionable. También puedo leer este texto con una voz hermosa vía ElevenLabs cuando conectemos la API.",
+        2: "Elige el tipo de cliente más cercano. Si no aparece, pausa el micrófono y descríbelo con tus palabras.",
+        3: "Elige si quieres visibilidad, contactos, ventas o participación. Si necesitas otro resultado, lo guardo como contexto.",
+        4: "Mira las imágenes y elige la dirección que mejor se sienta para tu marca. Puedo ajustar el estilo con tus instrucciones.",
+        5: "Revisa la propuesta, edítala si hace falta y genera piezas finales para Facebook.",
+        6: "Las piezas aprobadas quedan colocadas en el calendario de publicación."
+      };
+      return prompts[state.currentStep] || "Presiona el micrófono para iniciar la experiencia guiada.";
+    }
+
+    function renderStylePreview() {
+      const img = document.getElementById("selectedStyleImg");
+      if (img) img.src = styleAssets[state.style] || styleAssets.neobrutal;
+
+      const background = document.getElementById("campaignBackground");
+      if (background) {
+        background.textContent = `${state.brandName || "La marca"} hablará a ${labels.audience[state.audience]} con el objetivo de ${labels.goal[state.goal].toLowerCase()}, usando una dirección ${labels.style[state.style].toLowerCase()}.`;
+      }
+
+      const pills = document.getElementById("backgroundPills");
+      if (pills) {
+        const values = [
+          labels.audience[state.audience],
+          labels.goal[state.goal],
+          labels.style[state.style],
+          ...state.memory.slice(-3)
+        ];
+        pills.innerHTML = values.map((value) => `<span class="pill">${escapeHtml(value)}</span>`).join("");
+      }
+    }
+
+    function renderSummary() {
+      const grid = document.getElementById("summaryGrid");
+      if (!grid) return;
+      const summary = [
+        ["Marca", state.brandName || "Marca por definir", state.brief || "El brief se completará con voz o texto durante la demo."],
+        ["Cliente ideal", labels.audience[state.audience], state.audienceNotes || "Tipo de cliente elegido durante la guía de voz."],
+        ["Objetivo", labels.goal[state.goal], state.socialLink || "Sin referencia externa conectada todavía."],
+        ["Estilo", labels.style[state.style], "La imagen seleccionada alimenta el look de las piezas generadas."],
+        ["Memoria", `${state.memory.length} instrucciones activas`, state.memory.slice(-3).join(" ")],
+        ["Ajustes", state.proposalNotes || "Sin ajustes manuales", "Se agregan al prompt final cuando generas propuestas."]
+      ];
+      grid.innerHTML = summary.map(([title, value, detail]) => `
+        <article class="card">
+          <h3>${escapeHtml(title)}</h3>
+          <p><strong>${escapeHtml(value)}</strong></p>
+          <p>${escapeHtml(detail)}</p>
+        </article>
+      `).join("");
+    }
+
+    function renderProposalBoard() {
+      const board = document.getElementById("proposalBoard");
+      if (!board) return;
+      if (!state.finalGenerated) {
+        board.innerHTML = "";
+        return;
+      }
+      board.innerHTML = finalCreatives.map((creative) => `
+        <article class="proposal-card">
+          <img src="${creative.img}" alt="Creatividad demo ${escapeHtml(creative.title)}">
+          <div>
+            <h3>${escapeHtml(creative.title)}</h3>
+            <p>${escapeHtml(creative.channel)} · ${escapeHtml(labels.goal[state.goal])}</p>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function renderCalendar() {
+      const board = document.getElementById("calendarBoard");
+      const detail = document.getElementById("postDetail");
+      if (!board || !detail) return;
+      if (!state.approved) {
+        board.innerHTML = `<article class="card"><h3>Sin publicaciones aprobadas</h3><p>Aprueba las propuestas finales para colocarlas en Facebook.</p></article>`;
+        detail.innerHTML = `<div class="post-detail-body"><h3>Sin selección</h3><p>Cuando apruebes propuestas, podrás abrir cada día y revisar la publicación.</p></div>`;
+        return;
+      }
+
+      const weekdays = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+      const daysInMonth = 31;
+      const offset = 2;
+      const cells = [];
+
+      weekdays.forEach((day) => {
+        cells.push(`<div class="weekday">${day}</div>`);
+      });
+
+      for (let i = 0; i < offset; i++) {
+        cells.push(`<button class="day-cell is-muted" type="button" disabled><span class="day-number"></span></button>`);
+      }
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const post = finalCreatives.find((creative) => creative.day === day);
+        cells.push(`
+          <button class="day-cell ${day === state.selectedCalendarDay ? "is-selected" : ""}" type="button" data-calendar-day="${day}" ${post ? "" : 'aria-label="Sin publicación"'}>
+            <span class="day-number">${day}</span>
+            ${post ? `
+              <span class="calendar-post">
+                <img src="${post.img}" alt="">
+                <span>${escapeHtml(post.title)}</span>
+                <small>${escapeHtml(post.time)} · ${escapeHtml(post.channel)}</small>
+              </span>
+            ` : ""}
+          </button>
+        `);
+      }
+
+      board.innerHTML = `
+        <div class="calendar-top">
+          <h3>Octubre</h3>
+          <div class="calendar-mode"><span>Semana</span><span>Mes</span></div>
+        </div>
+        <div class="month-grid">${cells.join("")}</div>
+      `;
+
+      const selectedPost = finalCreatives.find((creative) => creative.day === state.selectedCalendarDay);
+      if (!selectedPost) {
+        detail.innerHTML = `
+          <div class="post-detail-body">
+            <h3>Día ${state.selectedCalendarDay}</h3>
+            <p>No hay publicación programada para este día.</p>
+            <div class="post-meta"><span class="pill">Disponible</span></div>
+          </div>
+        `;
+        return;
+      }
+
+      detail.innerHTML = `
+        <img src="${selectedPost.img}" alt="Vista previa de ${escapeHtml(selectedPost.title)}">
+        <div class="post-detail-body">
+          <div class="post-meta">
+            <span class="pill">Día ${selectedPost.day}</span>
+            <span class="pill">${escapeHtml(selectedPost.time)}</span>
+            <span class="pill">${escapeHtml(selectedPost.channel)}</span>
+          </div>
+          <h3>${escapeHtml(selectedPost.title)}</h3>
+          <p>${escapeHtml(selectedPost.copy)}</p>
+          <p><strong>Audiencia:</strong> ${escapeHtml(labels.audience[state.audience])}</p>
+          <p><strong>Estilo:</strong> ${escapeHtml(labels.style[state.style])}</p>
+        </div>
+      `;
+    }
+
+    function addInstruction(fromQuickAction = false) {
+      const activePanel = document.querySelector(".screen.is-active [data-assistant]");
+      const field = activePanel?.querySelector("[data-instruction]");
+      const value = fromQuickAction
+        ? "Ajustar la propuesta para que se sienta más premium y menos genérica."
+        : field?.value.trim();
+
+      if (!value) {
+        showToast("Escribe una instrucción para agregarla al background.");
+        return;
+      }
+
+      state.memory.push(value);
+      if (field) field.value = "";
+      saveState(true);
+      render();
+    }
+
+    function captureContext() {
+      const contextByStep = {
+        1: `Brief detectado: ${state.brandName || "marca en exploración"} necesita una campaña clara, visual y accionable.`,
+        2: `Cliente ideal: ${labels.audience[state.audience]}. Ajustar mensajes, ejemplos e imágenes para que esa persona entienda rápido la oferta.`,
+        3: `Objetivo principal: ${labels.goal[state.goal]}. El prompt debe optimizar piezas para ese resultado.`,
+        4: `Estilo elegido: ${labels.style[state.style]}. Mantener coherencia visual en cada pieza.`,
+        5: "La propuesta debe poder editarse antes de aprobar y calendarizar."
+      };
+      state.memory.push(contextByStep[state.currentStep] || "Contexto de voz capturado para la campaña.");
+      saveState(true);
+      render();
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("is-visible");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove("is-visible"), 2200);
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    document.addEventListener("input", (event) => {
+      const bind = event.target.dataset.bind;
+      if (!bind) return;
+      state[bind] = event.target.value;
+      scheduleSave();
+    });
+
+    document.addEventListener("change", (event) => {
+      if (!event.target.matches('input[type="radio"]')) return;
+      state[event.target.name] = event.target.value;
+      saveState(false);
+      render();
+    });
+
+    document.addEventListener("click", (event) => {
+      if (event.target.closest("[data-next]")) goToStep(state.currentStep + 1);
+      if (event.target.closest("[data-prev]")) goToStep(state.currentStep - 1);
+      if (event.target.closest("[data-add-instruction]")) addInstruction(false);
+      if (event.target.closest("[data-capture-context]")) captureContext();
+      const calendarDay = event.target.closest("[data-calendar-day]");
+      if (calendarDay) {
+        state.selectedCalendarDay = Number(calendarDay.dataset.calendarDay);
+        saveState(false);
+        renderCalendar();
+      }
+      if (event.target.closest("[data-toggle-voice]")) {
+        state.voiceListening = !state.voiceListening;
+        saveState(false);
+        render();
+      }
+    });
+
+    function onReadyClick(id, handler) {
+      const element = document.getElementById(id);
+      if (element) element.addEventListener("click", handler);
+    }
+
+    onReadyClick("startVoiceBtn", startDemo);
+    onReadyClick("landingMicBtn", startDemo);
+    onReadyClick("resumeBtn", () => goToStep(Math.max(1, state.completedStep || 1)));
+    onReadyClick("saveBtn", () => saveState(true));
+
+    onReadyClick("sampleBriefBtn", () => {
+      state.brandName = "Polyedro Labs";
+      state.brief = "Una plataforma que guía a marcas y equipos growth por voz para convertir una idea inicial en campaña: brief, audiencia, objetivo, estilo visual, propuesta y background persistente.";
+      saveState(true);
+      render();
+    });
+
+    onReadyClick("refineBtn", () => addInstruction(true));
+    onReadyClick("generateFinalsBtn", () => {
+      state.finalGenerated = true;
+      state.memory.push("Propuestas finales generadas con imagen demo, copy editable y canal Facebook.");
+      saveState(true);
+      render();
+    });
+    onReadyClick("approveBtn", () => {
+      if (!state.finalGenerated) state.finalGenerated = true;
+      state.approved = true;
+      state.memory.push("Propuestas aprobadas y colocadas en calendario Facebook.");
+      saveState(true);
+      goToStep(6);
+    });
+    document.querySelectorAll("#finishBtn").forEach((button) => {
+      button.addEventListener("click", () => {
+        saveState(true);
+        showToast("Demo cerrada. El background y el calendario quedaron persistidos.");
+      });
+    });
+
+    render();
+  </script>
+</body>
+</html>

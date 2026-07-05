@@ -7,9 +7,10 @@
   # Fall back to placeholder values when the site has no env vars set in
   # the Netlify UI — a UI-set value always wins. Placeholders only satisfy
   # env validation at build time; login requires the real Supabase values,
-  # so set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in
+  # so set NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and
+  # NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in
   # Site settings → Environment variables.
-  command = "NEXT_PUBLIC_SERVER_URL=\"${NEXT_PUBLIC_SERVER_URL:-http://localhost:3000}\" NEXT_PUBLIC_SUPABASE_URL=\"${NEXT_PUBLIC_SUPABASE_URL:-https://placeholder.supabase.co}\" NEXT_PUBLIC_SUPABASE_ANON_KEY=\"${NEXT_PUBLIC_SUPABASE_ANON_KEY:-placeholder}\" pnpm build"
+  command = "NEXT_PUBLIC_SERVER_URL=\"${NEXT_PUBLIC_SERVER_URL:-http://localhost:3000}\" NEXT_PUBLIC_SUPABASE_URL=\"${NEXT_PUBLIC_SUPABASE_URL:-https://placeholder.supabase.co}\" NEXT_PUBLIC_SUPABASE_ANON_KEY=\"${NEXT_PUBLIC_SUPABASE_ANON_KEY:-placeholder}\" NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=\"${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-placeholder}\" pnpm build"
   publish = ".next"
 
 [build.environment]
