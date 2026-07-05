@@ -38,6 +38,9 @@ export function OnboardingView({
   markets,
   toggleMarket,
   initWorkspace,
+  loadDemo,
+  demoLoading,
+  demoError,
 }: {
   brandInput: string;
   onBrandInput: (v: string) => void;
@@ -46,6 +49,9 @@ export function OnboardingView({
   markets: Record<string, boolean>;
   toggleMarket: (m: string) => void;
   initWorkspace: () => void;
+  loadDemo: () => void;
+  demoLoading: boolean;
+  demoError: string | null;
 }) {
   return (
     <div
@@ -244,6 +250,38 @@ export function OnboardingView({
                 <span style={{ display: "inline-block", width: 11, height: 11, background: INK, transform: "rotate(45deg)" }} />
                 Initialize workspace
               </button>
+
+              <button
+                onClick={loadDemo}
+                disabled={demoLoading}
+                className="nb-press"
+                style={
+                  {
+                    fontFamily: FONT_SANS,
+                    fontSize: 12.5,
+                    fontWeight: 800,
+                    textTransform: "uppercase",
+                    background: CARD,
+                    border: `3px solid ${INK}`,
+                    padding: 12,
+                    cursor: demoLoading ? "wait" : "pointer",
+                    opacity: demoLoading ? 0.6 : 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 8,
+                    "--sx": "4px",
+                  } as CSSProperties
+                }
+              >
+                {demoLoading ? "Loading demo…" : "▶ Load demo campaign"}
+              </button>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 10.5, color: "rgba(10,10,10,0.5)", textAlign: "center" }}>
+                Skip setup — a fully generated NovaGear campaign.
+              </div>
+              {demoError && (
+                <div style={{ fontFamily: FONT_MONO, fontSize: 11, color: CORAL, textAlign: "center" }}>{demoError}</div>
+              )}
             </div>
           </div>
         </div>

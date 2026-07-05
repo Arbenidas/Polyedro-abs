@@ -10,8 +10,10 @@ import {
   createCampaignBrief,
   exportCampaignToMetaAds,
   getCampaignDashboard,
+  regenerateBrandKit,
   regenerateCampaignAsset,
   runCampaignAgent,
+  seedDemo,
   type AssetStatus as ApiAssetStatus,
   type Brand,
   type BrandKit,
@@ -25,6 +27,7 @@ import { CampaignView } from "./campaign-view";
 import { BrandWordmarkLink } from "./brand-wordmark-link";
 import {
   ACID,
+  AGENT_DEFS,
   CARD,
   type AssetId,
   CMD,
@@ -219,6 +222,8 @@ export default function LabsApp() {
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [dashboard, setDashboard] = useState<CampaignDashboard | null>(null);
   const [campaignError, setCampaignError] = useState<string | null>(null);
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [demoError, setDemoError] = useState<string | null>(null);
 
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -283,6 +288,47 @@ export default function LabsApp() {
       })
       .finally(() => setKitLoading(false));
   }, [brandInput, descInput, markets]);
+
+  /* ---------- load demo (safety net: full campaign in one click) ---------- */
+  const loadDemo = useCallback(() => {
+    setDemoLoading(true);
+    setDemoError(null);
+
+    seedDemo()
+      .then(({ brand: seededBrand, brandKit: seededKit, campaign, dashboard: seededDashboard }) => {
+        setBrand(seededBrand);
+        setBrandKit(seededKit);
+        setBrandName(seededBrand.name);
+        setCampaignId(campaign.id);
+        setDashboard(seededDashboard);
+        setCampaignError(null);
+        setView("campaign");
+      })
+      .catch((err: unknown) => {
+        setDemoError(err instanceof Error ? err.message : "Could not load the demo campaign.");
+      })
+      .finally(() => setDemoLoading(false));
+  }, []);
+
+  /* ---------- regenerate brand kit (Brand Kit view button) ---------- */
+  const regenKit = useCallback(() => {
+    if (!brand) return;
+    setKitLoading(true);
+    setKitError(null);
+
+    regenerateBrandKit(brand.id, {
+      markets: Object.entries(markets)
+        .filter(([, selected]) => selected)
+        .map(([market]) => market),
+    })
+      .then(({ brandKit: nextKit }) => {
+        setBrandKit(nextKit);
+      })
+      .catch((err: unknown) => {
+        setKitError(err instanceof Error ? err.message : "Could not regenerate the brand kit.");
+      })
+      .finally(() => setKitLoading(false));
+  }, [brand, markets]);
 
   /* ---------- new campaign ---------- */
   const goalOrbClick = useCallback(() => {
@@ -639,6 +685,9 @@ export default function LabsApp() {
           markets={markets}
           toggleMarket={(m) => setMarkets((s) => ({ ...s, [m]: !s[m] }))}
           initWorkspace={initWorkspace}
+          loadDemo={loadDemo}
+          demoLoading={demoLoading}
+          demoError={demoError}
         />
       </div>
     );
@@ -785,7 +834,7 @@ export default function LabsApp() {
                   animation: "pv-pulse 1.6s ease-in-out infinite",
                 }}
               />
-              8 AGENTS ONLINE
+              {AGENT_DEFS.length} AGENTS ONLINE
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div
@@ -960,9 +1009,17 @@ export default function LabsApp() {
               voiceCmdClick={voiceCmdClick}
             />
           )}
-          {view === "brandkit" && <BrandkitView brand={brand} brandKit={brandKit} />}
-          {view === "agents" && <AgentsView />}
-          {view === "automation" && <AutomationView />}
+          {view === "brandkit" && (
+            <BrandkitView
+              brand={brand}
+              brandKit={brandKit}
+              onRegenerate={brand ? regenKit : undefined}
+              regenerating={kitLoading}
+              error={kitError}
+            />
+          )}
+          {view === "agents" && <AgentsView dashboard={dashboard} />}
+          {view === "automation" && <AutomationView dashboard={dashboard} />}
         </main>
       </div>
     </div>
