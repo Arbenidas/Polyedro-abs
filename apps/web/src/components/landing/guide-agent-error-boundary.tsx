@@ -19,8 +19,16 @@ export class GuideAgentErrorBoundary extends Component<
 > {
   state: GuideAgentErrorBoundaryState = { error: null };
 
-  static getDerivedStateFromError(error: Error): GuideAgentErrorBoundaryState {
-    return { error: error.message };
+  static getDerivedStateFromError(error: unknown): GuideAgentErrorBoundaryState {
+    if (error instanceof Error && error.message.trim()) {
+      return { error: error.message };
+    }
+
+    if (typeof error === "string" && error.trim()) {
+      return { error: error.trim() };
+    }
+
+    return { error: "Unexpected guide agent error" };
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {

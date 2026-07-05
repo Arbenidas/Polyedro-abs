@@ -22,6 +22,7 @@ import {
 import { landingSignal } from "./landing-colors";
 import {
   formatGuideError,
+  normalizeGuideErrorMessage,
   getGuideSessionOptions,
   GUIDE_DEMO_MODE,
   isGuideSessionActive,
@@ -139,7 +140,9 @@ export default function GuideAgentInner({
   const playing = connected && speaking;
   const tourActive = connected || connecting || isGuideSessionActive();
   const rawError = localError ?? (hasError ? statusMessage : null);
-  const error = rawError ? formatGuideError(rawError, language) : null;
+  const error = rawError
+    ? formatGuideError(normalizeGuideErrorMessage(rawError), language)
+    : null;
 
   statusRef.current = status;
 
@@ -289,9 +292,7 @@ export default function GuideAgentInner({
         onError: (message) => {
           finishSession();
           setLastMessage(guideIdlePrompt(sessionLanguage, GUIDE_DEMO_MODE));
-          setLocalError(
-            formatGuideError(typeof message === "string" ? message : "Guide session failed.", sessionLanguage),
-          );
+          setLocalError(formatGuideError(normalizeGuideErrorMessage(message), sessionLanguage));
         },
       });
     },
@@ -325,7 +326,12 @@ export default function GuideAgentInner({
   }, [beginSession]);
 
   const handleEndTour = useCallback(async () => {
-    endSession();
+    try {
+      endSession();
+    } catch (error) {
+      console.warn("[Guide Agent] endSession failed", error);
+    }
+
     finishSession();
     clearTourHighlights();
     clearTourSectionActive();

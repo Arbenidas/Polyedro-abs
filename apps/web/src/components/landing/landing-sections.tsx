@@ -250,7 +250,7 @@ export function LandingHeader() {
         borderBottom: `3px solid ${INK}`,
       }}
     >
-      <Link href="/landing" style={{ textDecoration: "none", color: INK }}>
+      <Link href="/" style={{ textDecoration: "none", color: INK }}>
         <div style={{ display: "flex", alignItems: "baseline" }}>
           <span style={{ fontFamily: FONT_BLACK, fontSize: 18, letterSpacing: "-0.02em" }}>POLYEDRO</span>
           <span
@@ -295,7 +295,7 @@ export function LandingHeader() {
             {link.label}
           </a>
         ))}
-        <PrimaryCta href="/" style={{ padding: "10px 16px", fontSize: 11 }}>
+        <PrimaryCta href="/dashboard" style={{ padding: "10px 16px", fontSize: 11 }}>
           Crear workspace →
         </PrimaryCta>
       </nav>
@@ -410,7 +410,7 @@ export function HeroSection() {
             marginTop: 32,
           }}
         >
-          <PrimaryCta href="/" tourId="hero-cta-create">
+          <PrimaryCta href="/dashboard" tourId="hero-cta-create">
             Crear workspace →
           </PrimaryCta>
           <StartTourCta />
@@ -972,7 +972,7 @@ export function GuideSection() {
           </SectionLead>
           <div style={{ marginTop: 24, display: "flex", flexWrap: "wrap", gap: 12 }}>
             <StartTourCta />
-            <PrimaryCta href="/">Empezar con workspace →</PrimaryCta>
+            <PrimaryCta href="/dashboard">Empezar con workspace →</PrimaryCta>
           </div>
         </div>
 
@@ -1072,7 +1072,7 @@ export function CtaFooterSection() {
           Crea un workspace por marca. Los agentes hacen el resto — tú mantienes el control.
         </p>
         <div style={{ marginTop: 28 }}>
-          <PrimaryCta href="/" tourId="cta-button">
+          <PrimaryCta href="/dashboard" tourId="cta-button">
             Crear workspace →
           </PrimaryCta>
         </div>

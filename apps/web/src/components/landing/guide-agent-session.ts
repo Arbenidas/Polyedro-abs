@@ -82,8 +82,43 @@ export function tourKickoffMessage(language: GuideLanguage): string {
     : "Start the guided tour section by section. First use scrollToSection, wait until the section is visible, narrate that section briefly, and only after the voice finishes move to the next one.";
 }
 
+function isBrowserEvent(value: unknown): value is Event {
+  return typeof Event !== "undefined" && value instanceof Event;
+}
+
+/** Normalize SDK / LiveKit failures that may arrive as Event instead of Error. */
+export function normalizeGuideErrorMessage(value: unknown): string {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+
+  if (value instanceof Error && value.message.trim()) {
+    return value.message.trim();
+  }
+
+  if (isBrowserEvent(value)) {
+    return "Voice connection interrupted";
+  }
+
+  if (typeof value === "object" && value !== null && "isTrusted" in value) {
+    return "Voice connection interrupted";
+  }
+
+  return "Guide session failed";
+}
+
 export function formatGuideError(message: string, language: GuideLanguage): string {
   const normalized = message.toLowerCase();
+
+  if (
+    normalized.includes("voice connection interrupted") ||
+    normalized.includes("websocket") ||
+    normalized.includes("connection state mismatch")
+  ) {
+    return language === "es"
+      ? "La conexión de voz se interrumpió. Pulsa ▶ para reintentar."
+      : "Voice connection was interrupted. Press ▶ to retry.";
+  }
 
   if (normalized.includes("unknown error") || normalized.includes("server error")) {
     return language === "es"

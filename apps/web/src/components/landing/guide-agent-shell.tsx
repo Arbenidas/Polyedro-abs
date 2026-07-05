@@ -36,6 +36,30 @@ export default function GuideAgentShell() {
     return () => window.removeEventListener(GUIDE_TOUR_START_EVENT, expandForTour);
   }, []);
 
+  // LiveKit/ElevenLabs may reject with a raw Event on abrupt WebSocket close (code 1006).
+  // Next.js dev overlay surfaces that as "[object Event]" unless we mark it handled.
+  useEffect(() => {
+    const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const reason = event.reason;
+      const isTransportEvent =
+        (typeof Event !== "undefined" && reason instanceof Event) ||
+        (typeof reason === "object" &&
+          reason !== null &&
+          "isTrusted" in reason &&
+          !("message" in reason));
+
+      if (!isTransportEvent) {
+        return;
+      }
+
+      event.preventDefault();
+      console.warn("[Guide Agent] Suppressed LiveKit transport rejection", reason);
+    };
+
+    window.addEventListener("unhandledrejection", onUnhandledRejection);
+    return () => window.removeEventListener("unhandledrejection", onUnhandledRejection);
+  }, []);
+
   return (
     <div
       aria-label="Agente guía — recorrido de la landing Polyedro"
