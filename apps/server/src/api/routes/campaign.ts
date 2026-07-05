@@ -5,6 +5,7 @@ import {
   getCampaignDashboard,
   listCampaigns,
   regenerateAsset,
+  requireCampaignOwnership,
   seedDemoCampaign,
 } from "@/api/services/campaign";
 import { runCreativeAgent } from "@/api/services/creative";
@@ -13,6 +14,8 @@ import { runStrategyAgent } from "@/api/services/strategy-agent";
 import { parseBody, parseUuidParam } from "@/api/shared";
 import { Hono } from "hono";
 import { z } from "zod";
+
+import type { AuthEnv } from "@/middleware/auth";
 
 const campaignInputSchema = z.object({
   brandId: z.uuid(),
@@ -25,22 +28,34 @@ const assetActionSchema = z.object({
   id: z.uuid(),
 });
 
-const campaignRoutes = new Hono();
+const campaignRoutes = new Hono<AuthEnv>();
+
+/** Ownership (campaign → brand.userId) se verifica acá, en el borde, antes de
+ *  delegar en servicios/agentes; los servicios asumen campaignId ya autorizado. */
+const requireOwnedCampaignId = async (c: {
+  req: { param: (name: "campaignId") => string };
+  get: (key: "user") => { id: string };
+}) => {
+  const campaignId = parseUuidParam(c.req.param("campaignId"), "campaignId");
+  await requireCampaignOwnership(campaignId, c.get("user").id);
+
+  return campaignId;
+};
 
 campaignRoutes.post("/demo/seed", async (c) => {
-  const result = await seedDemoCampaign();
+  const result = await seedDemoCampaign(c.get("user").id);
 
   return c.json(result, 201);
 });
 
 campaignRoutes.get("/campaigns", async (c) => {
-  const result = await listCampaigns();
+  const result = await listCampaigns(c.get("user").id);
 
   return c.json({ campaigns: result });
 });
 
 campaignRoutes.get("/campaigns/:campaignId/dashboard", async (c) => {
-  const campaignId = parseUuidParam(c.req.param("campaignId"), "campaignId");
+  const campaignId = await requireOwnedCampaignId(c);
   const result = await getCampaignDashboard(campaignId);
 
   return c.json(result);
@@ -48,34 +63,34 @@ campaignRoutes.get("/campaigns/:campaignId/dashboard", async (c) => {
 
 campaignRoutes.post("/campaigns", async (c) => {
   const input = await parseBody(c.req.raw, campaignInputSchema);
-  const result = await createCampaign(input);
+  const result = await createCampaign({ ...input, userId: c.get("user").id });
 
   return c.json(result, 201);
 });
 
 campaignRoutes.post("/campaigns/:campaignId/agents/strategy", async (c) => {
-  const campaignId = parseUuidParam(c.req.param("campaignId"), "campaignId");
+  const campaignId = await requireOwnedCampaignId(c);
   const result = await runStrategyAgent(campaignId);
 
   return c.json(result, 201);
 });
 
 campaignRoutes.post("/campaigns/:campaignId/agents/creative", async (c) => {
-  const campaignId = parseUuidParam(c.req.param("campaignId"), "campaignId");
+  const campaignId = await requireOwnedCampaignId(c);
   const result = await runCreativeAgent(campaignId);
 
   return c.json(result, 201);
 });
 
 campaignRoutes.post("/campaigns/:campaignId/agents/meta-ads", async (c) => {
-  const campaignId = parseUuidParam(c.req.param("campaignId"), "campaignId");
+  const campaignId = await requireOwnedCampaignId(c);
   const result = await runMetaAdsAgent(campaignId);
 
   return c.json(result, 201);
 });
 
 campaignRoutes.post("/campaigns/:campaignId/approve", async (c) => {
-  const campaignId = parseUuidParam(c.req.param("campaignId"), "campaignId");
+  const campaignId = await requireOwnedCampaignId(c);
   const input = await parseBody(c.req.raw, assetActionSchema);
   const result = await approveAsset(campaignId, input);
 
@@ -83,7 +98,7 @@ campaignRoutes.post("/campaigns/:campaignId/approve", async (c) => {
 });
 
 campaignRoutes.post("/campaigns/:campaignId/regenerate", async (c) => {
-  const campaignId = parseUuidParam(c.req.param("campaignId"), "campaignId");
+  const campaignId = await requireOwnedCampaignId(c);
   const input = await parseBody(c.req.raw, assetActionSchema);
   const result = await regenerateAsset(campaignId, input);
 
@@ -91,7 +106,7 @@ campaignRoutes.post("/campaigns/:campaignId/regenerate", async (c) => {
 });
 
 campaignRoutes.post("/campaigns/:campaignId/meta-ads/export", async (c) => {
-  const campaignId = parseUuidParam(c.req.param("campaignId"), "campaignId");
+  const campaignId = await requireOwnedCampaignId(c);
   const result = await exportCampaignToMetaAds(campaignId);
 
   return c.json(result, 201);
