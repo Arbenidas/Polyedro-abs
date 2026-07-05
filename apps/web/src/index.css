@@ -77,6 +77,51 @@ body {
   }
 }
 
+@keyframes mic-bounce {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(-3deg);
+  }
+}
+
+@keyframes ring-pulse {
+  from {
+    transform: scale(0.78);
+    opacity: 0.72;
+  }
+  to {
+    transform: scale(1.18);
+    opacity: 0;
+  }
+}
+
+.mic-bounce {
+  animation: mic-bounce 1.15s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+}
+
+.mic-ring {
+  position: relative;
+}
+
+.mic-ring::before,
+.mic-ring::after {
+  content: "";
+  position: absolute;
+  inset: 14%;
+  border: 3px solid var(--ring-color, #0a0a0a);
+  border-radius: 50%;
+  opacity: 0.45;
+  pointer-events: none;
+  animation: ring-pulse 1.6s ease-out infinite;
+}
+
+.mic-ring::after {
+  animation-delay: 0.55s;
+}
+
 .lab-root input:focus,
 .lab-root textarea:focus {
   outline: 3px solid #0a0a0a;
