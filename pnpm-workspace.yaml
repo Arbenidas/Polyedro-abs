@@ -17,3 +17,5 @@ catalog:
   "@types/react": ^19.2.17
   "@types/react-dom": ^19.2.3
   tailwindcss: ^4.3.1
+patchedDependencies:
+  '@elevenlabs/client@1.14.0': patches/@elevenlabs__client@1.14.0.patch

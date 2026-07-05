@@ -3,7 +3,8 @@
 import type { CSSProperties } from "react";
 
 import {
-  ACCENT,
+  ACID,
+  CARD,
   AGENT_DEFS,
   cardShell,
   CYAN,
@@ -13,6 +14,7 @@ import {
   INK,
   PAPER,
   PIPE_STEPS,
+  textOnSignal,
   VOLT,
 } from "./defs";
 
@@ -53,7 +55,7 @@ export function BrandkitView({ brandName }: { brandName: string }) {
               fontSize: 12.5,
               fontWeight: 800,
               textTransform: "uppercase",
-              background: "#FFFFFF",
+              background: CARD,
               border: `3px solid ${INK}`,
               padding: "9px 16px",
               cursor: "pointer",
@@ -78,13 +80,13 @@ export function BrandkitView({ brandName }: { brandName: string }) {
             gap: 18,
           }}
         >
-          <div style={{ ...kitTag, marginBottom: 0, color: ACCENT }}>LOGO CONCEPT</div>
+          <div style={{ ...kitTag, marginBottom: 0, color: ACID }}>LOGO CONCEPT</div>
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div
               style={{
                 width: 64,
                 height: 64,
-                background: ACCENT,
+                background: ACID,
                 border: `3px solid ${PAPER}`,
                 display: "flex",
                 alignItems: "center",
@@ -109,7 +111,7 @@ export function BrandkitView({ brandName }: { brandName: string }) {
           <div style={{ ...kitTag, marginBottom: 16 }}>PALETTE</div>
           <div style={{ display: "flex", gap: 0, border: `2px solid ${INK}`, height: 74 }}>
             <div style={{ flex: 1, background: INK }} />
-            <div style={{ flex: 1, background: ACCENT, borderLeft: `2px solid ${INK}` }} />
+            <div style={{ flex: 1, background: ACID, borderLeft: `2px solid ${INK}` }} />
             <div style={{ flex: 1, background: VOLT, borderLeft: `2px solid ${INK}` }} />
             <div style={{ flex: 1, background: CYAN, borderLeft: `2px solid ${INK}` }} />
             <div style={{ flex: 1, background: PAPER, borderLeft: `2px solid ${INK}` }} />
@@ -194,7 +196,7 @@ export function BrandkitView({ brandName }: { brandName: string }) {
           </div>
         </div>
 
-        <div style={{ ...cardShell, background: ACCENT, padding: 22 }}>
+        <div style={{ ...cardShell, background: ACID, padding: 22 }}>
           <div style={kitTag}>VALUE PROP</div>
           <div style={{ fontFamily: FONT_BLACK, fontSize: 20, lineHeight: 1.15 }}>
             Flagship-level audio tech at a mid-range LatAm price.
@@ -238,6 +240,7 @@ export function AgentsView() {
                   width: 34,
                   height: 34,
                   background: ag.color,
+                  color: textOnSignal(ag.color),
                   border: `2px solid ${INK}`,
                   display: "flex",
                   alignItems: "center",
@@ -302,7 +305,7 @@ export function AutomationView() {
               fontFamily: FONT_MONO,
               fontSize: 11.5,
               background: VOLT,
-              color: "#FFFFFF",
+              color: CARD,
               padding: "1px 6px",
               border: `1.5px solid ${INK}`,
             }}
@@ -321,6 +324,7 @@ export function AutomationView() {
                   height: 30,
                   border: `3px solid ${INK}`,
                   background: ps.nodeBg,
+                  color: textOnSignal(ps.nodeBg),
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -336,7 +340,7 @@ export function AutomationView() {
             </div>
             <div
               style={{
-                background: "#FFFFFF",
+                background: CARD,
                 border: `3px solid ${INK}`,
                 boxShadow: `4px 4px 0 ${INK}`,
                 padding: "14px 18px",
@@ -360,6 +364,7 @@ export function AutomationView() {
                   border: `2px solid ${INK}`,
                   padding: "3px 8px",
                   background: ps.tagBg,
+                  color: textOnSignal(ps.tagBg),
                   flex: "none",
                 }}
               >

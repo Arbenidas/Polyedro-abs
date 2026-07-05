@@ -1,0 +1,35 @@
+diff --git a/dist/BaseConversation.js b/dist/BaseConversation.js
+index 13c58150e2856ee04d34d85fb4228b8536ee1c2a..7851b5bc6be5a0071f34795d999427c478969c2e 100644
+--- a/dist/BaseConversation.js
++++ b/dist/BaseConversation.js
+@@ -266,8 +266,15 @@ export class BaseConversation {
+         }
+     }
+     handleErrorEvent(event) {
+-        const errorType = event.error_event.error_type;
+-        const message = event.error_event.message || event.error_event.reason || "Unknown error";
++        const errorEvent = event?.error_event;
++        if (!errorEvent) {
++            this.onError("Server error: Unknown error", {
++                errorType: "unknown",
++            });
++            return;
++        }
++        const errorType = errorEvent.error_type;
++        const message = errorEvent.message || errorEvent.reason || "Unknown error";
+         if (errorType === "max_duration_exceeded") {
+             void this.endSessionWithDetails({
+                 reason: "error",
+@@ -280,9 +287,9 @@ export class BaseConversation {
+         }
+         this.onError(`Server error: ${message}`, {
+             errorType,
+-            code: event.error_event.code,
+-            debugMessage: event.error_event.debug_message,
+-            details: event.error_event.details,
++            code: errorEvent.code,
++            debugMessage: errorEvent.debug_message,
++            details: errorEvent.details,
+         });
+     }
+     onMessage = async (parsedEvent) => {

@@ -3,8 +3,10 @@
 import type { CSSProperties } from "react";
 
 import {
-  ACCENT,
+  ACID,
+  CARD,
   CORAL,
+  CYAN,
   FONT_BLACK,
   FONT_MONO,
   FONT_SANS,
@@ -17,6 +19,7 @@ import {
   RUN_DEFS,
   STONE,
   SUN,
+  textOnSignal,
 } from "./defs";
 
 /* ═══════════ ONBOARDING ═══════════ */
@@ -58,7 +61,7 @@ export function OnboardingView({
               fontFamily: FONT_MONO,
               fontSize: 18,
               fontWeight: 700,
-              background: ACCENT,
+              background: ACID,
               padding: "0 5px",
               border: `2px solid ${INK}`,
               marginLeft: 6,
@@ -85,12 +88,12 @@ export function OnboardingView({
               letterSpacing: "0.06em",
             }}
           >
-            <span style={{ border: `2px solid ${INK}`, background: ACCENT, padding: "5px 12px" }}>01 · BRAND</span>
+            <span style={{ border: `2px solid ${INK}`, background: ACID, padding: "5px 12px" }}>01 · BRAND</span>
             <span
               style={{
                 border: `2px solid ${INK}`,
                 borderLeft: "none",
-                background: "#FFFFFF",
+                background: CARD,
                 color: "rgba(10,10,10,0.4)",
                 padding: "5px 12px",
               }}
@@ -101,7 +104,7 @@ export function OnboardingView({
               style={{
                 border: `2px solid ${INK}`,
                 borderLeft: "none",
-                background: "#FFFFFF",
+                background: CARD,
                 color: "rgba(10,10,10,0.4)",
                 padding: "5px 12px",
               }}
@@ -110,7 +113,7 @@ export function OnboardingView({
             </span>
           </div>
 
-          <div style={{ background: "#FFFFFF", border: `3px solid ${INK}`, boxShadow: `8px 8px 0 ${INK}` }}>
+          <div style={{ background: CARD, border: `3px solid ${INK}`, boxShadow: `8px 8px 0 ${INK}` }}>
             <div
               style={{
                 display: "flex",
@@ -144,7 +147,7 @@ export function OnboardingView({
                   width: 9,
                   height: 9,
                   borderRadius: "50%",
-                  background: ACCENT,
+                  background: ACID,
                   border: "1.5px solid rgba(244,242,236,0.4)",
                 }}
               />
@@ -214,7 +217,7 @@ export function OnboardingView({
                         border: `2px solid ${INK}`,
                         padding: "7px 13px",
                         cursor: "pointer",
-                        background: markets[m] ? ACCENT : "#FFFFFF",
+                        background: markets[m] ? ACID : CARD,
                       }}
                     >
                       {m}
@@ -232,7 +235,7 @@ export function OnboardingView({
                     fontSize: 15,
                     fontWeight: 800,
                     textTransform: "uppercase",
-                    background: ACCENT,
+                    background: ACID,
                     border: `3px solid ${INK}`,
                     padding: 16,
                     cursor: "pointer",
@@ -357,12 +360,12 @@ export function KitgenView({
           style={{
             background: INK,
             border: `3px solid ${INK}`,
-            boxShadow: `5px 5px 0 ${ACCENT}`,
+            boxShadow: `5px 5px 0 ${ACID}`,
             padding: "16px 18px",
             fontFamily: FONT_MONO,
             fontSize: 11,
             lineHeight: 1.9,
-            color: ACCENT,
+            color: ACID,
             minHeight: 280,
             position: "sticky",
             top: 86,
@@ -388,7 +391,7 @@ export function KitgenView({
               display: "inline-block",
               width: 8,
               height: 13,
-              background: ACCENT,
+              background: ACID,
               animation: "pv-blink 1s step-end infinite",
               verticalAlign: -2,
             }}
@@ -407,7 +410,7 @@ export function KitgenView({
                 fontSize: 15,
                 fontWeight: 800,
                 textTransform: "uppercase",
-                background: ACCENT,
+                background: ACID,
                 border: `3px solid ${INK}`,
                 padding: "16px 34px",
                 cursor: "pointer",
@@ -454,28 +457,28 @@ export function NewCampaignView({
           letterSpacing: "0.06em",
         }}
       >
-        <span style={{ border: `2px solid ${INK}`, background: "#FFFFFF", color: "rgba(10,10,10,0.4)", padding: "5px 12px" }}>
+        <span style={{ border: `2px solid ${INK}`, background: CARD, color: "rgba(10,10,10,0.4)", padding: "5px 12px" }}>
           01 · BRAND ✓
         </span>
         <span
           style={{
             border: `2px solid ${INK}`,
             borderLeft: "none",
-            background: "#FFFFFF",
+            background: CARD,
             color: "rgba(10,10,10,0.4)",
             padding: "5px 12px",
           }}
         >
           02 · BRAND KIT ✓
         </span>
-        <span style={{ border: `2px solid ${INK}`, borderLeft: "none", background: ACCENT, padding: "5px 12px" }}>
+        <span style={{ border: `2px solid ${INK}`, borderLeft: "none", background: ACID, padding: "5px 12px" }}>
           03 · CAMPAIGN
         </span>
       </div>
 
       <div
         style={{
-          background: "#FFFFFF",
+          background: CARD,
           border: `3px solid ${INK}`,
           boxShadow: `8px 8px 0 ${INK}`,
           padding: "30px 32px",
@@ -522,7 +525,7 @@ export function NewCampaignView({
                 width: 72,
                 border: `3px solid ${INK}`,
                 cursor: "pointer",
-                background: listening ? CORAL : ACCENT,
+                background: listening ? CORAL : ACID,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -571,7 +574,7 @@ export function NewCampaignView({
           <span style={monoLabel}>DELIVERABLES</span>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
             {DELIVERABLES.map((d) => (
-              <span key={d} style={{ fontSize: 11.5, fontWeight: 700, border: `2px solid ${INK}`, background: ACCENT, padding: "5px 10px" }}>
+              <span key={d} style={{ fontSize: 11.5, fontWeight: 700, border: `2px solid ${INK}`, background: ACID, padding: "5px 10px" }}>
                 {d}
               </span>
             ))}
@@ -588,7 +591,7 @@ export function NewCampaignView({
               fontWeight: 800,
               textTransform: "uppercase",
               background: INK,
-              color: ACCENT,
+              color: ACID,
               border: `3px solid ${INK}`,
               padding: 17,
               cursor: "pointer",
@@ -597,11 +600,11 @@ export function NewCampaignView({
               justifyContent: "center",
               gap: 10,
               "--sx": "5px",
-              "--sc": ACCENT,
+              "--sc": ACID,
             } as CSSProperties
           }
         >
-          <span style={{ display: "inline-block", width: 11, height: 11, background: ACCENT, transform: "rotate(45deg)" }} />
+          <span style={{ display: "inline-block", width: 11, height: 11, background: ACID, transform: "rotate(45deg)" }} />
           Deploy agents
         </button>
       </div>
@@ -639,7 +642,7 @@ export function GenliveView({ runIdx, goalEcho }: { runIdx: number; goalEcho: st
           GENERATING · CMP-004
         </span>
       </div>
-      <div style={{ background: "#FFFFFF", border: `3px solid ${INK}`, boxShadow: `6px 6px 0 ${INK}` }}>
+      <div style={{ background: CARD, border: `3px solid ${INK}`, boxShadow: `6px 6px 0 ${INK}` }}>
         {RUN_DEFS.map((rr, i) => {
           const state = i < runIdx ? "done" : i === runIdx ? "running" : "queued";
           return (
@@ -651,7 +654,7 @@ export function GenliveView({ runIdx, goalEcho }: { runIdx: number; goalEcho: st
                 gap: 14,
                 padding: "13px 20px",
                 borderBottom: `2px solid ${INK}`,
-                background: state === "running" ? "#FFF9E0" : state === "done" ? "#FFFFFF" : PAPER,
+                background: state === "running" ? "#FFF9E0" : state === "done" ? CARD : PAPER,
               }}
             >
               <div
@@ -661,6 +664,7 @@ export function GenliveView({ runIdx, goalEcho }: { runIdx: number; goalEcho: st
                   flex: "none",
                   border: `2.5px solid ${INK}`,
                   background: rr.color,
+                  color: textOnSignal(rr.color),
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -705,7 +709,7 @@ export function GenliveView({ runIdx, goalEcho }: { runIdx: number; goalEcho: st
                   fontWeight: 700,
                   border: `2px solid ${INK}`,
                   padding: "3px 8px",
-                  background: state === "done" ? ACCENT : state === "running" ? SUN : STONE,
+                  background: state === "done" ? ACID : state === "running" ? CYAN : STONE,
                   flex: "none",
                 }}
               >
