@@ -13,11 +13,15 @@ type N8nExportResponse = {
   status?: string;
   executionId?: string;
   receivedAt?: string;
+  /** Presente cuando el workflow publica en Meta (campaign/adset creados). */
+  meta?: { adAccountId?: string; campaignId?: string; adSetId?: string };
 };
 
 export type CampaignExportResult = {
   executionId: string | null;
   status: string | null;
+  /** id de la campaña de Meta creada por el workflow (null si aún no publica). */
+  metaCampaignId: string | null;
   raw: N8nExportResponse;
 };
 
@@ -66,6 +70,7 @@ export const dispatchCampaignExport = async (input: {
   return {
     executionId: data.executionId ?? null,
     status: data.status ?? null,
+    metaCampaignId: data.meta?.campaignId ?? null,
     raw: data,
   };
 };
