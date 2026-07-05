@@ -84,7 +84,7 @@ Archivo de rutas: [`apps/server/src/api/routes/campaign.ts`](../apps/server/src/
 
 ### `POST /api/demo/seed`
 
-Sin body. Crea (o actualiza, es idempotente) un set completo de datos demo: usuario, marca "NovaGear Tech", brand kit, campaña, estrategia, copies, creativos, guion de video, voiceover y un export pendiente.
+Sin body. Crea (o actualiza, es idempotente) un set completo de datos demo **colgado del usuario de la sesión**: marca "NovaGear Tech", brand kit, campaña, estrategia, copies, creativos, guion de video, voiceover y un export pendiente. Todas las rutas `/campaigns*` verifican ownership (campaña → marca → usuario de sesión) y devuelven `404` sobre campañas ajenas.
 
 **Respuesta `201`**: `{ user, brand, brandKit, campaign, strategy, copies, assets, script, voiceover, dashboard }` — `dashboard` tiene la misma forma que `GET /campaigns/:campaignId/dashboard` (ver abajo).
 
