@@ -2,7 +2,9 @@
 
 ## Scope
 
-Per-campaign progress stream from the Hono server: `GET /api/campaigns/:campaignId/progress/stream` (SSE) emitting `agent_started` / `agent_log` / `agent_completed` / `asset_updated` events while the campaign's agents run, plus `GET /api/campaigns/:campaignId/progress` as a polling fallback. Server-side only — the apps/web hook/UI ships in a later PR.
+Per-campaign progress stream from the Hono server: `GET /api/campaigns/:campaignId/progress/stream` (SSE) emitting `agent_started` / `agent_log` / `agent_completed` / `asset_updated` events while the campaign's agents run, plus `GET /api/campaigns/:campaignId/progress` as a polling fallback.
+
+Scope amendment (post-shaping, user request): also ship the client consumption primitive — `useCampaignProgress` in `apps/web/src/lib/use-campaign-progress.ts`, built on `event-source-plus` (fetch-based SSE that can send the Bearer header, auto `Last-Event-ID` replay on reconnect) with automatic fallback to polling after 3 consecutive stream failures. Wiring it into the labs campaign UI (today fully timer-simulated) stays out of scope for a later PR.
 
 ## Decisions
 
