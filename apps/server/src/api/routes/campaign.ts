@@ -17,6 +17,7 @@ import {
   subscribeToProgress,
 } from "@/api/services/progress";
 import { runStrategyAgent } from "@/api/services/strategy-agent";
+import { runVideoAgent } from "@/api/services/video-agent";
 import { parseBody, parseUuidParam } from "@/api/shared";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
@@ -191,6 +192,13 @@ campaignRoutes.post("/campaigns/:campaignId/agents/creative", async (c) => {
 campaignRoutes.post("/campaigns/:campaignId/agents/meta-ads", async (c) => {
   const campaignId = await requireOwnedCampaignId(c);
   const result = await runMetaAdsAgent(campaignId);
+
+  return c.json(result, 201);
+});
+
+campaignRoutes.post("/campaigns/:campaignId/agents/video", async (c) => {
+  const campaignId = await requireOwnedCampaignId(c);
+  const result = await runVideoAgent(campaignId);
 
   return c.json(result, 201);
 });
