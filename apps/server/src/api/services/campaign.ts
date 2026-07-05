@@ -2,6 +2,7 @@ import { regenerateCreativeAsset } from "@/api/services/creative";
 import { regenerateAdCopy } from "@/api/services/meta-ads-agent";
 import { emitAssetUpdated } from "@/api/services/progress";
 import { regenerateStrategy, runStrategyAgent } from "@/api/services/strategy-agent";
+import { regenerateVideoScript } from "@/api/services/video-agent";
 import { ApiError, requireOne } from "@/api/shared";
 import { db } from "@/db";
 import {
@@ -432,39 +433,7 @@ export const regenerateAsset = async (
       break;
     }
     case "video_script": {
-      const script = await findVideoScriptForCampaign(campaignId, input.id);
-      if (!script) {
-        throw new ApiError(404, "Video script not found for this campaign");
-      }
-      await db
-        .update(videoScripts)
-        .set({
-          status: "review",
-          title: "36 hours of quiet focus",
-          scenes: [
-            {
-              sceneNumber: 1,
-              description: "Commuter opens the NovaGear case before entering a noisy bus.",
-              dialogue: "Tu dia suena mejor cuando el ruido se apaga.",
-              durationSeconds: 4,
-            },
-            {
-              sceneNumber: 2,
-              description: "Close-up of earbuds with battery and ANC callouts.",
-              dialogue: "36 horas de bateria, cancelacion activa y precio de lanzamiento.",
-              durationSeconds: 5,
-            },
-            {
-              sceneNumber: 3,
-              description: "End card with product, discount and preorder CTA.",
-              dialogue: "Preordena hoy y ahorra 20%.",
-              durationSeconds: 3,
-            },
-          ],
-          durationSeconds: 12,
-        })
-        .where(eq(videoScripts.id, input.id));
-      emitAssetUpdated(campaignId, { target: "video_script", id: input.id, status: "review" });
+      await regenerateVideoScript(campaignId, input.id);
       break;
     }
     case "voiceover": {

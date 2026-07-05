@@ -10,7 +10,7 @@ export type ProgressEventType =
   | "agent_completed"
   | "asset_updated";
 
-export type ProgressAgent = "strategy" | "creative" | "meta_ads";
+export type ProgressAgent = "strategy" | "creative" | "meta_ads" | "video";
 
 /** Espejo de AssetTarget (services/campaign) — duplicado a propósito para no
  *  crear un ciclo de imports: campaign.ts importa este módulo. */
