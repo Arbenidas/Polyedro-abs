@@ -14,6 +14,11 @@ export const env = createEnv({
     FAL_KEY: z.string().min(1).optional(),
     /** Endpoint de modelo en Fal.ai usado para creativos (texto → imagen). */
     FAL_IMAGE_MODEL: z.string().min(1).default("fal-ai/flux-2"),
+    /** OpenAI API key para el Brand Agent (vía Vercel AI SDK); sin ella el
+     *  brand kit usa contenido template. */
+    OPENAI_API_KEY: z.string().min(1).optional(),
+    /** Modelo de OpenAI usado para generar el contenido del brand kit. */
+    OPENAI_MODEL: z.string().min(1).default("gpt-5-mini"),
   },
   runtimeEnv: process.env,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

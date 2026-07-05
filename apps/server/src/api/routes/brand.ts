@@ -1,5 +1,6 @@
+import { runBrandAgent } from "@/api/services/brand-agent";
 import { createBrand, listBrands } from "@/api/services/brand";
-import { parseBody } from "@/api/shared";
+import { parseBody, parseUuidParam } from "@/api/shared";
 import { Hono } from "hono";
 import { z } from "zod";
 
@@ -46,6 +47,8 @@ const brandInputSchema = z
     };
   });
 
+const brandAgentInputSchema = z.object({ markets: marketsSchema });
+
 const brandRoutes = new Hono<AuthEnv>();
 
 /** Marcas del usuario autenticado — toda query filtra por brands.userId. */
@@ -59,6 +62,16 @@ brandRoutes.post("/", async (c) => {
   const input = await parseBody(c.req.raw, brandInputSchema);
   // El owner siempre es el usuario de la sesión; nunca se acepta userId del body.
   const result = await createBrand({ ...input, userId: c.get("user").id });
+
+  return c.json(result, 201);
+});
+
+/** Re-ejecuta el Brand Agent sobre una marca existente (body opcional:
+ *  { markets } — la marca no persiste mercados, default LATAM). */
+brandRoutes.post("/:brandId/agents/brand-kit", async (c) => {
+  const brandId = parseUuidParam(c.req.param("brandId"), "brandId");
+  const input = await parseBody(c.req.raw, brandAgentInputSchema).catch(() => undefined);
+  const result = await runBrandAgent(brandId, c.get("user").id, input?.markets);
 
   return c.json(result, 201);
 });
