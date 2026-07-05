@@ -1,5 +1,9 @@
 import { generateStructuredObject, isLlmConfigured } from "@/api/services/ai";
-import { generateFalImage, isFalConfigured } from "@/api/services/fal";
+import {
+  type ImageRequest,
+  generateImage,
+  generatePlaceholderImage,
+} from "@/api/services/images";
 import { ApiError, requireOne } from "@/api/shared";
 import { db } from "@/db";
 import { brandKits, brands } from "@/db/schema";
@@ -202,27 +206,26 @@ const buildLogoPrompt = (context: BrandContext, primaryColor: string) =>
   `Brand brief: ${context.description} Target markets: ${context.marketLabel}. ` +
   `Centered composition, plain solid background, no photorealism, no gradients, no watermarks.`;
 
-/** Genera el logo con Flux vía Fal.ai. La creación de la marca nunca debe
- *  fallar por el logo: sin FAL_KEY o ante un error de fal, cae a placeholder. */
+/** Genera el logo con el provider de imágenes configurado (IMAGE_PROVIDER).
+ *  La creación de la marca nunca debe fallar por el logo: ante cualquier
+ *  error del provider cae a placeholder. */
 const generateLogoImage = async (
   brandName: string,
   prompt: string,
   primaryColor: string,
 ) => {
-  const background = primaryColor.replace("#", "");
-  const placeholder = {
-    url: `https://placehold.co/${LOGO_SIZE}x${LOGO_SIZE}/${background}/111111/png?text=${encodeURIComponent(brandName)}`,
+  const request: ImageRequest = {
+    prompt,
+    width: LOGO_SIZE,
+    height: LOGO_SIZE,
+    placeholder: { label: brandName, background: primaryColor },
   };
 
-  if (!isFalConfigured()) {
-    return placeholder;
-  }
-
   try {
-    return await generateFalImage({ prompt, width: LOGO_SIZE, height: LOGO_SIZE });
+    return await generateImage(request);
   } catch (error) {
     console.error(`Logo generation failed for "${brandName}", using placeholder:`, error);
-    return placeholder;
+    return generatePlaceholderImage(request);
   }
 };
 

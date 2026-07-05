@@ -38,7 +38,7 @@ Archivo de rutas: [`apps/server/src/api/routes/brand.ts`](../apps/server/src/api
 
 ### `POST /api/brands`
 
-Crea la marca en estado `draft` y dispara sincrónicamente la generación del brand kit. El **logo conceptual es generación real**: se crea con Flux vía Fal.ai (1024×1024, mismo helper e integración que el Creative Agent — ver notas en `POST /agents/creative`) y se guardan `logoUrl` y `logoPrompt` en `brand_kits`; el prompt se construye con nombre, industria, mercados, brief y la paleta del kit. Sin `FAL_KEY` (o si fal falla) el logo cae a placeholder y la creación de la marca no se interrumpe. El resto del kit sigue siendo un stub determinístico (ver F2 en `features.md` para la versión con LLM real).
+Crea la marca en estado `draft` y dispara sincrónicamente la generación del brand kit. El **logo conceptual es generación real**: se crea a 1024×1024 con el provider de imágenes configurado (ver "Providers de imágenes" en `POST /agents/creative`) y se guardan `logoUrl` y `logoPrompt` en `brand_kits`; el prompt se construye con nombre, industria, mercados, brief y la paleta del kit. Ante cualquier error del provider (o sin keys) el logo cae a placeholder y la creación de la marca no se interrumpe.
 
 **Body** (`brandInputSchema`, acepta alias para compatibilidad con el formulario de onboarding existente):
 
@@ -149,11 +149,18 @@ Crea una campaña en estado `draft` para una marca existente.
 
 ### `POST /api/campaigns/:campaignId/agents/creative`
 
-Corre el Creative Agent: genera los creativos estáticos 1080×1080 de la campaña (variantes `a` y `b` en paralelo) con Flux vía Fal.ai y los guarda en `creative_assets` (`imageUrl`, `prompt`, `altText`, `metadata`) con estado `review`. Si ya existen creativos para una variante, los regenera en la misma fila. El prompt se construye con el brand kit (paleta, estilo visual, mensajes clave), el objetivo de la campaña y el ángulo comercial de la estrategia; cada variante usa una dirección visual distinta (A: hero de producto, B: layout tipográfico de beneficio).
+Corre el Creative Agent: genera los creativos estáticos ~1080×1080 de la campaña (variantes `a` y `b` en paralelo) con el provider de imágenes configurado y los guarda en `creative_assets` (`imageUrl`, `prompt`, `altText`, `metadata`) con estado `review`. Si ya existen creativos para una variante, los regenera en la misma fila. El prompt se construye con el brand kit (paleta, estilo visual, mensajes clave), el objetivo de la campaña y el ángulo comercial de la estrategia; cada variante usa una dirección visual distinta (A: hero de producto, B: layout tipográfico de beneficio).
 
-**Variables de entorno**: `FAL_KEY` (API key de [fal.ai](https://fal.ai)) y `FAL_IMAGE_MODEL` (default `fal-ai/flux-2`). Sin `FAL_KEY`, el agente genera imágenes placeholder (`placehold.co` con el color primario de la marca) y lo marca en `metadata.provider = "placeholder"` para que la demo no se rompa.
+**Providers de imágenes** (patrón adapter en [`services/images/`](../apps/server/src/api/services/images/index.ts) — cambiar de proveedor es configuración, no código):
 
-**Notas de integración**: se usa el endpoint síncrono `fal.run` (suficiente para 2 imágenes por campaña; migrar a la queue de fal cuando llegue el pipeline SSE de F4). Las requests envían `X-Fal-Object-Lifecycle-Preference: {"expiration_duration_seconds": null}` para que las URLs del CDN de fal no expiren (sin esto los archivos pueden borrarse y las `imageUrl` guardadas quedarían rotas), tienen timeout de 120s y un retry ante errores transitorios (408/502/503/504).
+| Env | Default | Notas |
+|---|---|---|
+| `IMAGE_PROVIDER` | `auto` | `auto` usa el primero configurado (fal → openai); también acepta `fal`, `openai`, `placeholder`. Sin keys cae a placeholder y la demo no se rompe. |
+| `IMAGE_QUALITY` | `low` | Para gpt-image: `low` (~$0.006/img, dev) / `medium` / `high`. Subir para la demo. |
+| `OPENAI_IMAGE_MODEL` | `gpt-image-2` | Requiere `OPENAI_API_KEY` y organización verificada en OpenAI. Devuelve base64 → se sube al bucket público `generated-assets` de Supabase Storage y se guarda nuestra URL (permanente). gpt-image exige lados múltiplos de 16, por eso 1080→1088. |
+| `FAL_IMAGE_MODEL` | `fal-ai/flux-2` | Provider dormante hasta tener `FAL_KEY`. Endpoint síncrono `fal.run` con header de no-expiración del CDN, timeout 120s y retry ante 408/502/503/504. |
+
+`metadata.provider` en cada asset registra qué provider lo generó (`openai`, `fal.ai` o `placeholder`).
 
 **Respuesta `201`**: `{ "assets": [ { "...": "filas de creative_assets actualizadas" } ], "failures": ["mensajes de error de variantes fallidas"] }`
 
@@ -171,7 +178,7 @@ Aprueba un asset puntual de la campaña. Si al aprobar quedan todos los bloques 
 
 ### `POST /api/campaigns/:campaignId/regenerate`
 
-Regenera un asset puntual. Para `target: "creative_asset"` hace una generación real con Flux vía Fal.ai (misma lógica que el Creative Agent, conservando la variante de la fila); el resto de targets sigue con contenido demo fijo (ver F4 en `features.md`). Deja ese asset en `review` y la campaña en `review`.
+Regenera un asset puntual. Para `target: "creative_asset"` hace una generación real con el provider de imágenes configurado (misma lógica que el Creative Agent, conservando la variante de la fila); el resto de targets sigue con contenido demo fijo (ver F4 en `features.md`). Deja ese asset en `review` y la campaña en `review`.
 
 **Body**: igual que `approve` (`assetActionSchema`).
 
