@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export class ApiError extends Error {
   constructor(
-    public readonly status: 400 | 404 | 409 | 500,
+    public readonly status: 400 | 404 | 409 | 500 | 502,
     message: string,
     public readonly details?: unknown,
   ) {

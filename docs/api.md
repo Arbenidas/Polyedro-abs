@@ -188,8 +188,12 @@ Regenera un asset puntual. Para `target: "creative_asset"` hace una generación 
 
 ### `POST /api/campaigns/:campaignId/meta-ads/export`
 
-Exporta la campaña a Meta Ads (hoy simulado: crea el registro de export con `exportStatus: "sent"` directamente, sin llamar a n8n; ver F7 en `features.md`). Requiere que la campaña esté `readyToPublish` (todos los bloques de progreso aprobados).
+Exporta la campaña a Meta Ads llamando al **webhook real de n8n** (`N8N_EXPORT_WEBHOOK_URL`, default el de producción; `N8N_EXPORT_WORKFLOW_ID` para trazabilidad). Requiere que la campaña esté `readyToPublish`. Flujo: inserta una fila en `automation_exports` con `exportStatus: "processing"`, hace `POST { brandId, campaignId, target: "meta_ads" }` al webhook, y según el resultado:
+- **éxito** → la fila pasa a `sent` con `n8nExecutionId` (el id real que devuelve n8n) y `completedAt`, y la campaña queda `ready_to_publish`.
+- **fallo** (timeout, red o respuesta no-2xx) → la fila pasa a `failed` con `errorMessage`, y responde `502`. La campaña sigue `ready_to_publish`, así que el export se puede reintentar.
 
-**Respuesta `201`**: `{ "export": { "...": "fila de automation_exports creada" }, "dashboard": { "...": "dashboard actualizado" } }`
+**Variables de entorno**: `N8N_EXPORT_WEBHOOK_URL` (default `https://ferodrigop.app.n8n.cloud/webhook/polyedro/export`), `N8N_EXPORT_WORKFLOW_ID`.
 
-**Errores**: `404` si la campaña no existe; `409` (`"Campaign is not ready to publish"`, con `details.pending` = lista de bloques faltantes) si aún no está lista.
+**Respuesta `201`**: `{ "export": { "...": "fila de automation_exports (exportStatus sent, n8nExecutionId real)" }, "dashboard": { "...": "dashboard actualizado" } }`
+
+**Errores**: `404` si la campaña no existe; `409` (`"Campaign is not ready to publish"`, con `details.pending`) si aún no está lista; `502` (`"n8n export webhook ..."`) si el webhook falla — la fila queda `failed` con el error.
