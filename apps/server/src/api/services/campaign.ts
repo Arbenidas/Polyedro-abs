@@ -1,9 +1,11 @@
 import { regenerateCreativeAsset } from "@/api/services/creative";
 import { regenerateAdCopy } from "@/api/services/meta-ads-agent";
+import { dispatchCampaignExport } from "@/api/services/n8n";
 import { emitAssetUpdated } from "@/api/services/progress";
 import { regenerateStrategy, runStrategyAgent } from "@/api/services/strategy-agent";
 import { regenerateVideoScript } from "@/api/services/video-agent";
 import { ApiError, requireOne } from "@/api/shared";
+import { env } from "@Polyedro-abs/env/server";
 import { db } from "@/db";
 import {
   adCopies,
@@ -479,7 +481,7 @@ export const regenerateAsset = async (
 };
 
 export const exportCampaignToMetaAds = async (campaignId: string) => {
-  await requireCampaign(campaignId);
+  const campaign = await requireCampaign(campaignId);
   const dashboard = await getCampaignDashboard(campaignId);
 
   if (!dashboard.progress.readyToPublish) {
@@ -489,28 +491,56 @@ export const exportCampaignToMetaAds = async (campaignId: string) => {
   }
 
   const metaAdsPayload = await buildMetaAdsPayload(campaignId);
-  const [row] = await db
+
+  // Fila en "processing" antes de llamar a n8n: queda registro aunque el
+  // webhook cuelgue o falle, y el estado refleja el ciclo real del export.
+  const [pending] = await db
     .insert(automationExports)
     .values({
       campaignId,
-      exportStatus: "sent",
-      n8nWorkflowId: "demo-polyedro-meta-ads",
-      n8nExecutionId: `demo-${Date.now()}`,
+      exportStatus: "processing",
+      n8nWorkflowId: env.N8N_EXPORT_WORKFLOW_ID,
       metaAdsPayload,
-      metaCampaignId: `meta_demo_${campaignId.slice(0, 8)}`,
-      completedAt: new Date(),
     })
     .returning();
+  const exportRow = requireOne(pending, "Export could not be created");
 
-  await db
-    .update(campaigns)
-    .set({ status: "ready_to_publish" })
-    .where(eq(campaigns.id, campaignId));
+  try {
+    const result = await dispatchCampaignExport({
+      brandId: campaign.brand.id,
+      campaignId,
+      target: "meta_ads",
+    });
 
-  return {
-    export: requireOne(row, "Export could not be created"),
-    dashboard: await getCampaignDashboard(campaignId),
-  };
+    const [sent] = await db
+      .update(automationExports)
+      .set({
+        exportStatus: "sent",
+        n8nExecutionId: result.executionId,
+        completedAt: new Date(),
+      })
+      .where(eq(automationExports.id, exportRow.id))
+      .returning();
+
+    await db
+      .update(campaigns)
+      .set({ status: "ready_to_publish" })
+      .where(eq(campaigns.id, campaignId));
+
+    return {
+      export: requireOne(sent, "Export could not be updated"),
+      dashboard: await getCampaignDashboard(campaignId),
+    };
+  } catch (error) {
+    const message =
+      error instanceof ApiError ? error.message : "n8n export failed unexpectedly";
+    await db
+      .update(automationExports)
+      .set({ exportStatus: "failed", errorMessage: message, completedAt: new Date() })
+      .where(eq(automationExports.id, exportRow.id));
+
+    throw error instanceof ApiError ? error : new ApiError(502, message);
+  }
 };
 
 /** El seed cuelga la data demo del usuario de la sesión — con el scoping por

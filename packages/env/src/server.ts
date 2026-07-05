@@ -51,6 +51,15 @@ export const env = createEnv({
     OPENAI_API_KEY: z.string().min(1).optional(),
     /** Modelo de OpenAI usado para generar el contenido del brand kit. */
     OPENAI_MODEL: z.string().min(1).default("gpt-5-mini"),
+    /** Webhook de n8n para el export de campañas a Meta Ads. Trae el default
+     *  de producción para que el export real funcione sin config; se puede
+     *  sobreescribir por entorno. Si queda vacío, el export cae a simulado. */
+    N8N_EXPORT_WEBHOOK_URL: z
+      .url()
+      .optional()
+      .default("https://ferodrigop.app.n8n.cloud/webhook/polyedro/export"),
+    /** ID del workflow de export en n8n (solo para trazabilidad en la fila). */
+    N8N_EXPORT_WORKFLOW_ID: z.string().min(1).default("jFDaLIM6iW32SykP"),
   },
   runtimeEnv: process.env,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
