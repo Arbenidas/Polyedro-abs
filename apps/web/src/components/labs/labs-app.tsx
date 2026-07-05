@@ -7,7 +7,8 @@ import { createBrand, createCampaignBrief, type Brand, type BrandKit, type Trans
 import { useAuth } from "../auth-provider";
 import { CampaignView } from "./campaign-view";
 import {
-  ACCENT,
+  ACID,
+  CARD,
   type AssetId,
   CMD,
   FONT_BLACK,
@@ -342,7 +343,7 @@ export default function LabsApp() {
         <aside
           style={{
             gridArea: "side",
-            background: "#FFFFFF",
+            background: CARD,
             borderRight: `3px solid ${INK}`,
             display: "flex",
             flexDirection: "column",
@@ -359,7 +360,7 @@ export default function LabsApp() {
                   fontFamily: FONT_MONO,
                   fontSize: 17,
                   fontWeight: 700,
-                  background: ACCENT,
+                  background: ACID,
                   padding: "0 5px",
                   border: `2px solid ${INK}`,
                   marginLeft: 5,
@@ -379,7 +380,7 @@ export default function LabsApp() {
                 width: 36,
                 height: 36,
                 background: INK,
-                color: ACCENT,
+                color: ACID,
                 fontFamily: FONT_BLACK,
                 fontSize: 14,
                 display: "flex",
@@ -409,7 +410,7 @@ export default function LabsApp() {
                   fontSize: 12.5,
                   fontWeight: 800,
                   textTransform: "uppercase",
-                  background: ACCENT,
+                  background: ACID,
                   border: `3px solid ${INK}`,
                   padding: 11,
                   cursor: "pointer",
@@ -439,7 +440,7 @@ export default function LabsApp() {
                     fontSize: 13.5,
                     fontWeight: active ? 800 : 600,
                     background: active ? PAPER : "transparent",
-                    borderLeft: `5px solid ${active ? ACCENT : "transparent"}`,
+                    borderLeft: `5px solid ${active ? ACID : "transparent"}`,
                   }}
                 >
                   <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -450,7 +451,7 @@ export default function LabsApp() {
                     style={{
                       fontFamily: FONT_MONO,
                       fontSize: 10,
-                      background: active ? ACCENT : "#FFFFFF",
+                      background: active ? ACID : CARD,
                       border: `1.5px solid ${INK}`,
                       padding: "1px 6px",
                     }}
@@ -478,7 +479,7 @@ export default function LabsApp() {
                   width: 8,
                   height: 8,
                   borderRadius: "50%",
-                  background: ACCENT,
+                  background: ACID,
                   border: `1.5px solid ${INK}`,
                   animation: "pv-pulse 1.6s ease-in-out infinite",
                 }}
@@ -540,7 +541,7 @@ export default function LabsApp() {
         <header
           style={{
             gridArea: "top",
-            background: "#FFFFFF",
+            background: CARD,
             borderBottom: `3px solid ${INK}`,
             padding: "12px 26px",
             display: "flex",
@@ -554,7 +555,7 @@ export default function LabsApp() {
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0, fontFamily: FONT_MONO, fontSize: 12, fontWeight: 600 }}>
-            <span style={{ background: INK, color: ACCENT, padding: "4px 9px" }}>~</span>
+            <span style={{ background: INK, color: ACID, padding: "4px 9px" }}>~</span>
             <span style={{ color: "rgba(10,10,10,0.75)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
               {paths[view] ?? slug}
             </span>
@@ -563,7 +564,7 @@ export default function LabsApp() {
                 display: "inline-block",
                 width: 8,
                 height: 15,
-                background: ACCENT,
+                background: ACID,
                 border: `1.5px solid ${INK}`,
                 animation: "pv-blink 1.1s step-end infinite",
               }}
@@ -578,8 +579,8 @@ export default function LabsApp() {
                     style={{
                       padding: "4px 8px",
                       border: `2px solid ${INK}`,
-                      background: i < currentStage ? STONE : i === currentStage ? (i === 4 ? VOLT : ACCENT) : "#FFFFFF",
-                      color: i === currentStage && i === 4 ? "#FFFFFF" : i <= currentStage ? INK : "rgba(10,10,10,0.35)",
+                      background: i < currentStage ? STONE : i === currentStage ? (i === 4 ? VOLT : ACID) : CARD,
+                      color: i === currentStage && i === 4 ? CARD : i <= currentStage ? INK : "rgba(10,10,10,0.35)",
                       marginLeft: -2,
                       animation: i === currentStage && i === 1 ? "pv-pulse 1s ease-in-out infinite" : "none",
                     }}
@@ -600,8 +601,8 @@ export default function LabsApp() {
                     fontSize: 13,
                     fontWeight: 800,
                     textTransform: "uppercase",
-                    background: pushed ? VOLT : allApproved ? ACCENT : STONE,
-                    color: pushed ? "#FFFFFF" : allApproved ? INK : "rgba(10,10,10,0.4)",
+                    background: pushed ? VOLT : allApproved ? ACID : STONE,
+                    color: pushed ? CARD : allApproved ? INK : "rgba(10,10,10,0.4)",
                     border: `3px solid ${INK}`,
                     padding: "10px 18px",
                     cursor: pushable ? "pointer" : "default",

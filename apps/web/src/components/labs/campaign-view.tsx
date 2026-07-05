@@ -3,9 +3,10 @@
 import type { CSSProperties, ReactNode } from "react";
 
 import {
-  ACCENT,
+  ACID,
   type AssetId,
   type AssetStatus,
+  CARD,
   cardShell,
   CORAL,
   CYAN,
@@ -14,24 +15,23 @@ import {
   FONT_SANS,
   INK,
   PAPER,
+  STATUS_STYLE,
   type Statuses,
   STONE,
   SUN,
+  textOnSignal,
   VOLT,
   wave,
 } from "./defs";
 
 function chipFor(st: AssetStatus) {
-  switch (st) {
-    case "generating":
-      return { bg: SUN, label: "GENERATING", anim: "pv-pulse 1s ease-in-out infinite" };
-    case "review":
-      return { bg: CORAL, label: "REVIEW", anim: "none" };
-    case "approved":
-      return { bg: ACCENT, label: "APPROVED ✓", anim: "none" };
-    default:
-      return { bg: STONE, label: "DRAFT", anim: "none" };
-  }
+  const style = STATUS_STYLE[st];
+  return {
+    bg: style.bg,
+    label: style.label,
+    anim: style.anim ?? "none",
+    color: textOnSignal(style.bg),
+  };
 }
 
 function AssetCard({
@@ -77,6 +77,7 @@ function AssetCard({
             border: `2px solid ${INK}`,
             padding: "3px 8px",
             background: chip.bg,
+            color: chip.color,
             animation: chip.anim,
           }}
         >
@@ -98,7 +99,7 @@ function AssetCard({
             padding: 11,
             border: "none",
             borderRight: `2px solid ${INK}`,
-            background: status === "approved" ? ACCENT : "#FFFFFF",
+            background: status === "approved" ? ACID : CARD,
             cursor: canApprove ? "pointer" : "default",
           }}
         >
@@ -112,7 +113,7 @@ function AssetCard({
         </button>
         <button
           onClick={onRegen}
-          className="hov-sun"
+          className="hov-coral"
           style={{
             flex: 1,
             fontFamily: FONT_SANS,
@@ -121,7 +122,7 @@ function AssetCard({
             textTransform: "uppercase",
             padding: 11,
             border: "none",
-            background: "#FFFFFF",
+            background: CARD,
             cursor: "pointer",
           }}
         >
@@ -172,7 +173,7 @@ function WaveRow({
           height: 34,
           flex: "none",
           border: `2px solid ${INK}`,
-          background: playing ? ACCENT : "#FFFFFF",
+          background: playing ? ACID : CARD,
           cursor: "pointer",
           fontSize: 13,
           display: "flex",
@@ -265,7 +266,7 @@ export function CampaignView({
             alignItems: "center",
             gap: 14,
             background: VOLT,
-            color: "#FFFFFF",
+            color: textOnSignal(VOLT),
             border: `3px solid ${INK}`,
             boxShadow: `5px 5px 0 ${INK}`,
             padding: "14px 18px",
@@ -273,7 +274,7 @@ export function CampaignView({
             animation: "pv-rise 0.4s ease both",
           }}
         >
-          <div style={{ width: 14, height: 14, background: ACCENT, border: `2px solid ${INK}`, animation: "pv-spin 1.2s linear infinite" }} />
+          <div style={{ width: 14, height: 14, background: ACID, border: `2px solid ${INK}`, animation: "pv-spin 1.2s linear infinite" }} />
           <div style={{ fontFamily: FONT_MONO, fontSize: 12.5, fontWeight: 600 }}>
             READY_TO_PUBLISH → n8n pipeline queued · packaging assets → Supabase → Meta Ads draft upload
           </div>
@@ -298,11 +299,11 @@ export function CampaignView({
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={{ fontFamily: FONT_MONO, fontSize: 11.5, fontWeight: 600 }}>{approvedCount}/6 APPROVED</div>
-          <div style={{ width: 150, height: 14, border: `2px solid ${INK}`, background: "#FFFFFF" }}>
+          <div style={{ width: 150, height: 14, border: `2px solid ${INK}`, background: CARD }}>
             <div
               style={{
                 height: "100%",
-                background: ACCENT,
+                background: ACID,
                 width: `${Math.round((approvedCount / 6) * 100)}%`,
                 transition: "width 0.4s",
               }}
@@ -338,7 +339,7 @@ export function CampaignView({
 
         {/* AUDIENCES */}
         <AssetCard
-          dotColor={CYAN}
+          dotColor={VOLT}
           agentLabel="META ADS AGENT"
           status={statuses.audiences}
           onApprove={() => approve("audiences")}
@@ -365,7 +366,7 @@ export function CampaignView({
 
         {/* COPY */}
         <AssetCard
-          dotColor={CORAL}
+          dotColor={VOLT}
           agentLabel="META ADS AGENT · COPY"
           status={statuses.copy}
           onApprove={() => approve("copy")}
@@ -384,7 +385,7 @@ export function CampaignView({
                     border: `2px solid ${INK}`,
                     padding: "3px 10px",
                     cursor: "pointer",
-                    background: copyVar === "A" ? ACCENT : "#FFFFFF",
+                    background: copyVar === "A" ? ACID : CARD,
                   }}
                 >
                   VAR A
@@ -399,7 +400,7 @@ export function CampaignView({
                     borderLeft: "none",
                     padding: "3px 10px",
                     cursor: "pointer",
-                    background: copyVar === "B" ? ACCENT : "#FFFFFF",
+                    background: copyVar === "B" ? ACID : CARD,
                   }}
                 >
                   VAR B
@@ -421,7 +422,7 @@ export function CampaignView({
 
         {/* CREATIVES */}
         <AssetCard
-          dotColor={CORAL}
+          dotColor={VOLT}
           agentLabel="CREATIVE AGENT · STATICS"
           status={statuses.creatives}
           onApprove={() => approve("creatives")}
@@ -434,7 +435,7 @@ export function CampaignView({
                 style={{
                   aspectRatio: "1 / 1",
                   background: INK,
-                  color: ACCENT,
+                  color: ACID,
                   border: `2px solid ${INK}`,
                   padding: 14,
                   display: "flex",
@@ -459,7 +460,7 @@ export function CampaignView({
                   style={{
                     flex: 1,
                     margin: "10px 0",
-                    border: `1.5px dashed ${ACCENT}`,
+                    border: `1.5px dashed ${ACID}`,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -477,7 +478,7 @@ export function CampaignView({
               <div
                 style={{
                   aspectRatio: "1 / 1",
-                  background: ACCENT,
+                  background: ACID,
                   color: INK,
                   border: `2px solid ${INK}`,
                   padding: 14,
@@ -511,7 +512,7 @@ export function CampaignView({
 
         {/* VIDEO SCRIPT */}
         <AssetCard
-          dotColor={SUN}
+          dotColor={VOLT}
           agentLabel="VIDEO AGENT"
           status={statuses.video}
           onApprove={() => approve("video")}
@@ -536,7 +537,7 @@ export function CampaignView({
 
         {/* VOICEOVER */}
         <AssetCard
-          dotColor={ACCENT}
+          dotColor={VOLT}
           agentLabel="VOICE AGENT · ELEVENLABS"
           status={statuses.voice}
           onApprove={() => approve("voice")}
@@ -583,7 +584,7 @@ export function CampaignView({
           color: PAPER,
           border: `3px solid ${INK}`,
           padding: "11px 13px",
-          boxShadow: `6px 6px 0 ${ACCENT}`,
+          boxShadow: `6px 6px 0 ${ACID}`,
         }}
       >
         <button

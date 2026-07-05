@@ -20,3 +20,5 @@ catalog:
 minimumReleaseAgeExclude:
   - '@ai-sdk/gateway@4.0.12'
   - ai@7.0.15
+patchedDependencies:
+  '@elevenlabs/client@1.14.0': patches/@elevenlabs__client@1.14.0.patch

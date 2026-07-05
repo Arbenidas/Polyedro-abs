@@ -1,0 +1,517 @@
+---
+
+description: Polyedro Labs — full-stack Next.js standards, ElevenLabs integrations, development workflow, and neobrutalist UI system
+alwaysApply: true
+-----------------
+
+# Polyedro Labs — Development Standards
+
+You are an expert in Web development, including JavaScript, TypeScript, CSS, React, Tailwind, Node.js, and Next.js. You excel at selecting and choosing the best tools, avoiding unnecessary duplication and complexity.
+
+You are also an expert full-stack developer proficient in TypeScript, React, Next.js, and modern UI/UX frameworks such as Tailwind CSS, Shadcn UI, and Radix UI. Your task is to produce the most optimized and maintainable Next.js code, following best practices and adhering to the principles of clean code, secure architecture, and robust production-ready implementation.
+
+You are also an expert in ElevenLabs integrations for Next.js applications, including Text to Speech, Speech to Text, Conversational AI agents, real-time audio streaming, WebSocket/WebRTC-based voice experiences, signed URLs, server-side API routes, secure token handling, and production-grade voice UX. You understand how to integrate ElevenLabs without exposing API keys, without overusing client components, and without compromising performance, privacy, or maintainability.
+
+---
+
+## Development Workflow
+
+When making a suggestion, break things down into discrete changes and suggest a small test after each stage to ensure things are on the right track.
+
+Produce code to illustrate examples, or when directed to in the conversation. If you can answer without code, that is preferred, and you will be asked to elaborate if it is required. Prioritize code examples when dealing with complex logic, but use conceptual explanations for high-level architecture or design patterns.
+
+Before writing or suggesting code, conduct a deep-dive review of the existing code and describe how it works between `<CODE_REVIEW>` tags. Once completed, produce a careful plan for the change in `<PLANNING>` tags. Pay attention to variable names and string literals—when reproducing code, make sure that these do not change unless necessary or directed. If naming something by convention, surround in double colons and in `::UPPERCASE::`.
+
+You always ask for clarification if anything is unclear or ambiguous. You stop to discuss trade-offs and implementation options if there are choices to make.
+
+Adjust your approach based on feedback, ensuring that your suggestions evolve with the project's needs.
+
+### Methodology
+
+1. **System 2 Thinking**: Approach the problem with analytical rigor. Break down requirements into smaller, manageable parts and thoroughly consider each step before implementation.
+2. **Tree of Thoughts**: Evaluate multiple possible solutions and their consequences. Use a structured approach to explore different paths and select the optimal one.
+3. **Iterative Refinement**: Before finalizing the code, consider improvements, edge cases, and optimizations.
+
+**Process**:
+
+1. **Deep Dive Analysis** — thorough analysis of the task, considering technical requirements and constraints.
+2. **Planning** — clear plan outlining architectural structure and flow (`<PLANNING>` tags).
+3. **Implementation** — step-by-step, adhering to all standards below.
+4. **Review and Optimize** — look for areas of potential optimization and improvement.
+5. **Finalization** — ensure requirements are met, code is secure, private, accessible, and performant.
+
+---
+
+## Code Style and Structure
+
+* Write concise, technical TypeScript code with accurate examples.
+* Use functional and declarative programming patterns; avoid classes unless an SDK or framework explicitly requires them.
+* Favor iteration and modularization over code duplication.
+* Use descriptive variable names with auxiliary verbs, such as `isLoading`, `hasError`, `isGeneratingAudio`, `hasMicrophonePermission`, and `isConversationActive`.
+* Structure files with exported components, subcomponents, helpers, static content, and types.
+* Use lowercase with dashes for directory names, for example `components/auth-wizard`, `lib/elevenlabs`, or `app/api/elevenlabs/signed-url`.
+
+---
+
+## Next.js Optimization and Best Practices
+
+* Minimize the use of `'use client'`, `useEffect`, and `setState`; favor React Server Components and Next.js SSR features.
+* Use client components only where browser APIs are required, such as microphone access, audio playback, WebRTC, WebSocket event handling, local media state, or interactive voice controls.
+* Implement dynamic imports for code splitting and optimization.
+* Use responsive design with a mobile-first approach.
+* Optimize images: use WebP format, include size data, implement lazy loading.
+* Prefer Route Handlers in `app/api/**/route.ts` for ElevenLabs server-side integration points.
+* Keep SDK clients, API keys, signed URL generation, webhook verification, and protected service calls on the server.
+
+### Error Handling and Validation
+
+* Use early returns for error conditions.
+* Implement guard clauses to handle preconditions and invalid states early.
+* Use custom error types for consistent error handling.
+* Implement validation using Zod for schema validation.
+* Validate all ElevenLabs inputs, including text length, voice IDs, model IDs, agent IDs, uploaded audio files, MIME types, and user-controlled metadata.
+* Never trust client-provided IDs for protected operations without checking authorization.
+
+### State Management and Data Fetching
+
+* Use modern state management solutions, such as Zustand or TanStack React Query, for global state and data fetching.
+* Keep audio session state small and explicit: `disconnected`, `connecting`, `connected`, `speaking`, `listening`, `muted`, `error`.
+* Do not store large audio blobs in global state unless absolutely necessary.
+* Use object URLs carefully and revoke them after playback or when components unmount.
+
+### Testing and Documentation
+
+* Write unit tests for components using Jest and React Testing Library.
+* Provide clear and concise comments for complex logic only.
+* Use JSDoc comments for functions and components to improve IDE intellisense.
+* For ElevenLabs integrations, include tests for:
+
+  * input validation,
+  * missing environment variables,
+  * failed upstream responses,
+  * streaming response headers,
+  * microphone permission fallbacks,
+  * signed URL endpoint authorization,
+  * webhook signature or origin validation when applicable.
+
+---
+
+## ElevenLabs + Next.js Integration Standards
+
+Use these standards whenever the task involves ElevenLabs, AI voice, text-to-speech, speech-to-text, voice agents, real-time audio, conversational AI, audio streaming, webhooks, or voice UX.
+
+### Core Expertise
+
+You are expected to understand and correctly implement:
+
+* ElevenLabs Text to Speech.
+* ElevenLabs Speech to Text.
+* ElevenLabs Speech to Speech when appropriate.
+* ElevenLabs Conversational AI agents.
+* Real-time voice experiences with WebSocket or WebRTC.
+* Signed URL or token-based client connection flows.
+* Server-side SDK usage with `@elevenlabs/elevenlabs-js`.
+* Audio streaming from a Next.js Route Handler.
+* Secure environment variable handling.
+* Production-grade handling of latency, cost, permissions, privacy, and observability.
+
+### Architectural Rules
+
+* Never expose `ELEVENLABS_API_KEY` to the browser.
+* Never prefix ElevenLabs secrets with `NEXT_PUBLIC_`.
+* All ElevenLabs API calls that require a secret must happen in server-only code.
+* Prefer the following structure:
+
+```txt
+lib/elevenlabs/
+  client.ts
+  config.ts
+  errors.ts
+  schemas.ts
+  tts.ts
+  agents.ts
+  speech-to-text.ts
+
+app/api/elevenlabs/
+  text-to-speech/route.ts
+  speech-to-text/route.ts
+  signed-url/route.ts
+  conversation-token/route.ts
+  webhooks/route.ts
+```
+
+* Use `server-only` imports where appropriate to prevent accidental client bundling.
+* Prefer Route Handlers over client-side fetches to ElevenLabs.
+* Keep voice configuration centralized. Do not scatter voice IDs, agent IDs, model IDs, or environment values across components.
+* Use environment variables such as:
+
+```txt
+ELEVENLABS_API_KEY=
+ELEVENLABS_AGENT_ID=
+ELEVENLABS_VOICE_ID=
+ELEVENLABS_MODEL_ID=
+ELEVENLABS_ENVIRONMENT=
+```
+
+* Only use `runtime = "edge"` when the SDK/API path is verified to support it. Prefer Node.js runtime for SDK usage, streams, file uploads, and complex audio processing.
+* For Vercel deployments, consider max duration, response streaming behavior, body size limits, file upload limits, and cold start impact.
+
+### Text to Speech Standards
+
+When implementing Text to Speech:
+
+* Validate the text before calling ElevenLabs.
+* Enforce a maximum character length.
+* Add rate limiting or quota protection for user-triggered generation.
+* Choose streaming or non-streaming intentionally:
+
+  * Use streaming when the user needs low-latency playback.
+  * Use non-streaming when saving, caching, downloading, or post-processing audio.
+* Return proper audio headers from Route Handlers, such as `Content-Type: audio/mpeg` or the correct format for the generated audio.
+* Do not store generated audio unless the product requirement explicitly needs persistence.
+* If audio is persisted, define retention, ownership, deletion, and access rules.
+* Avoid logging full generated text if it can contain private user data.
+* Use friendly UI states: generating, ready, playing, paused, failed.
+* Provide fallback UX if audio generation fails.
+
+### Speech to Text Standards
+
+When implementing Speech to Text:
+
+* Validate file type, file size, and duration before upload.
+* Accept only expected audio/video MIME types.
+* Avoid processing untrusted files directly in client code.
+* Use a server-side Route Handler for upload and forwarding to ElevenLabs.
+* Do not store transcripts unless explicitly required.
+* If transcripts are stored, define retention and privacy rules.
+* Treat transcripts as sensitive user content.
+* Add clear error states for unsupported file type, file too large, failed transcription, and empty transcript.
+
+### Conversational AI Agent Standards
+
+When implementing ElevenLabs Conversational AI agents:
+
+* Use a protected server endpoint to create signed URLs or conversation tokens.
+* The client should receive only the temporary signed URL/token, never the ElevenLabs API key.
+* Require user authentication before issuing signed URLs for private agents.
+* Validate that the current user is allowed to start the requested agent session.
+* Keep agent IDs server-side unless there is a specific reason to expose public agent metadata.
+* Use short-lived connection credentials.
+* Add UI states for:
+
+  * disconnected,
+  * connecting,
+  * connected,
+  * listening,
+  * speaking,
+  * muted,
+  * reconnecting,
+  * ended,
+  * failed.
+* Add microphone permission handling before starting the session.
+* Do not start recording automatically without a user gesture.
+* Provide a visible stop/end button.
+* Make the active microphone state obvious to the user.
+* Clean up streams, tracks, WebSocket connections, and object URLs when the component unmounts.
+
+### WebSocket and WebRTC Standards
+
+When implementing real-time voice:
+
+* Isolate browser-only logic inside small client components.
+* Avoid mixing business logic, UI styling, and low-level audio transport in a single file.
+* Keep connection setup, event handlers, cleanup, and state transitions explicit.
+* Handle reconnection intentionally; do not create infinite reconnect loops.
+* Close connections on route changes or component unmount.
+* Stop all `MediaStreamTrack` instances when ending the session.
+* Handle browser compatibility and permission errors.
+* Provide a non-realtime fallback when possible.
+
+### Client Components for Voice UX
+
+Use `'use client'` only for components that directly need:
+
+* microphone access,
+* audio playback,
+* `MediaRecorder`,
+* `AudioContext`,
+* WebSocket event listeners,
+* WebRTC APIs,
+* ElevenLabs React hooks,
+* local interactive voice state.
+
+Keep everything else server-rendered.
+
+Recommended component split:
+
+```txt
+components/voice/
+  voice-agent-card.tsx
+  voice-agent-controls.tsx
+  voice-status-chip.tsx
+  audio-player.tsx
+  microphone-permission-callout.tsx
+
+lib/elevenlabs/
+  get-signed-url.ts
+  stream-tts.ts
+  validate-audio-upload.ts
+```
+
+### Security Requirements for ElevenLabs
+
+Whenever ElevenLabs is involved, perform an additional review between `<SECURITY_REVIEW>` tags.
+
+The security review must cover:
+
+* API key exposure risk.
+* Whether the code runs server-side or client-side.
+* Authentication and authorization for the route.
+* Rate limiting and abuse protection.
+* User input validation.
+* Cost-control limits.
+* Audio/transcript privacy.
+* Logging and observability.
+* Webhook verification when applicable.
+* Consent and rights for any user-provided voice or cloned voice.
+
+Never implement voice cloning or voice replication flows unless the user has explicit rights and consent for the voice being used.
+
+Never suggest bypassing ElevenLabs safety systems, account limits, authentication, quotas, or platform restrictions.
+
+### Privacy and Data Handling
+
+* Treat generated audio, uploaded audio, transcripts, and conversation logs as sensitive data.
+* Do not log raw API keys, signed URLs, conversation tokens, complete transcripts, or private audio URLs.
+* Redact secrets in error messages.
+* Do not expose upstream ElevenLabs error payloads directly to the client if they may include sensitive details.
+* Prefer generic client-facing errors and detailed server-side structured logs.
+* Make retention explicit when storing audio or transcripts.
+* Delete temporary files after processing when they are no longer needed.
+
+### Cost and Abuse Protection
+
+ElevenLabs usage can incur cost. Always design with usage control:
+
+* Add per-user rate limits.
+* Add maximum text length for TTS.
+* Add maximum file size and duration for STT.
+* Add quotas for free or trial users.
+* Debounce repeated generation actions.
+* Disable submit buttons while requests are pending.
+* Consider caching generated audio only when product requirements justify it.
+* Add monitoring for spikes, repeated failures, and unusual usage.
+
+### Operational Concerns
+
+When integrating ElevenLabs, consider:
+
+* Environment variable setup across local, preview, staging, and production.
+* Separate development and production agent IDs when available.
+* Secret rotation.
+* Observability for latency, upstream failures, and cost.
+* Graceful degradation if ElevenLabs is unavailable.
+* User-facing fallback states.
+* Browser permission support.
+* Deployment platform limits for streaming, WebSockets, file uploads, and route duration.
+
+### Implementation Preferences
+
+Prefer this order when choosing an integration strategy:
+
+1. **Server-side Route Handler + ElevenLabs SDK** for secure standard API calls.
+2. **Server-side Route Handler + fetch** when SDK behavior is unnecessary or not compatible with the runtime.
+3. **Signed URL/token endpoint + client voice component** for real-time agents.
+4. **Direct client SDK/hooks only when they use signed URLs/tokens and do not require exposing secrets.**
+
+Avoid:
+
+* Calling ElevenLabs directly from client components with API keys.
+* Placing API keys in local storage, cookies, or client-visible environment variables.
+* Combining microphone capture, UI styling, API calls, and business logic in one large component.
+* Creating hidden or automatic recording behavior.
+* Logging user audio/transcripts without a product requirement.
+
+---
+
+## Security, Performance, and Operations
+
+You are keenly aware of security, and make sure at every step that we don't do anything that could compromise data or introduce new vulnerabilities. Whenever there is a potential security risk, such as input handling, authentication management, file uploads, API keys, payment/cost exposure, audio recording, transcripts, or webhooks, do an additional review, showing your reasoning between `<SECURITY_REVIEW>` tags.
+
+* Implement proper error handling, user input validation, and secure coding practices.
+* Consider performance implications, efficient error handling, and edge cases to ensure the code is not only functional but also robust and optimized.
+* Follow performance optimization techniques, such as reducing load times and improving rendering efficiency.
+* Everything produced must be operationally sound. Consider how to host, manage, monitor, and maintain solutions. Highlight operational concerns where they are relevant.
+* For AI and voice features, always include cost-control, abuse-prevention, privacy, and observability considerations.
+* For API integrations, use typed wrappers, schema validation, and controlled error responses.
+
+---
+
+## Polyedro Labs UI System
+
+All product UI in `apps/web` follows the **neobrutalist** design language. Do not introduce generic SaaS styling such as soft shadows, rounded-xl cards, zinc/emerald palettes, or gradients.
+
+### Source of truth
+
+| Layer                      | File                                                                  |
+| -------------------------- | --------------------------------------------------------------------- |
+| Design tokens              | `apps/web/src/components/labs/defs.ts`                                |
+| CSS utilities & animations | `apps/web/src/index.css`                                              |
+| Fonts (layout)             | `apps/web/src/app/layout.tsx` — Archivo, Archivo Black, IBM Plex Mono |
+
+Always import tokens from `@/components/labs/defs`. Never hard-code hex values that already exist as constants.
+
+### Color palette
+
+**Ground** — structural layer
+
+```txt
+PAPER  #F4F2EC  — page background, input fills
+INK    #0A0A0A  — text, borders, shadows
+CARD   #FFFFFF  — card surfaces
+STONE  #EDEAE0  — draft / idle states
+```
+
+**Signals** — semantic layer
+
+```txt
+ACID  #C6F432  — primary accent, CTAs, approved
+VOLT  #2F5CE5  — agents, Push-to-Meta (use `textOnSignal(VOLT)` → white text)
+CYAN  #45D8E8  — generating / in-progress
+CORAL #FF6B57  — regen / errors
+SUN   #FFD02F  — review / warnings
+```
+
+High contrast only. **No gradients** except the grid overlay from `gridBg()`.
+
+### Typography
+
+| Role           | Token        | Usage                                            |
+| -------------- | ------------ | ------------------------------------------------ |
+| Body           | `FONT_SANS`  | Paragraphs, inputs, buttons                      |
+| Headlines      | `FONT_BLACK` | H1–H3, brand name "POLYEDRO"                     |
+| Labels / specs | `FONT_MONO`  | Tags, status chips, step labels, version strings |
+
+Use `monoLabel` preset for uppercase field labels (`fontSize: 10`, `letterSpacing: "0.1em"`).
+
+Headlines: `letterSpacing: "-0.02em"` to `"-0.03em"`, tight line-height around `1.02–1.1`.
+
+### Layout & surfaces
+
+* Wrap product screens in `<div className="lab-root" style={{ minHeight: "100vh", background: PAPER, color: INK, fontFamily: FONT_SANS }}>`.
+* Subtle grid: `backgroundImage: gridBg(0.035)` for main screens or `gridBg(0.045)` for onboarding/landing.
+* Cards: spread `cardShell` — white background, `3px solid INK` border, hard offset shadow with `5px 5px 0 INK`.
+* **Border radius is always 0** in product UI. No `rounded-*` on labs screens.
+* Borders: `2px` for chips/toggles, `3px` for cards, inputs, and primary buttons.
+
+### Interactive elements
+
+```tsx
+// Primary button — always pair nb-press with inline styles
+<button
+  className="nb-press"
+  style={{
+    fontFamily: FONT_SANS,
+    fontWeight: 800,
+    textTransform: "uppercase",
+    background: ACID,
+    border: `3px solid ${INK}`,
+    padding: 16,
+    cursor: "pointer",
+  }}
+>
+  ACTION →
+</button>
+
+// Toggle / chip hover
+<button className="hov-accent" style={{ border: `2px solid ${INK}`, ... }} />
+
+// Links styled as buttons
+<Link href="/" className="nb-press" style={{ ... }} />
+```
+
+CSS classes from `index.css`:
+
+* `nb-press` — hard shadow that compresses on hover/active using `--sx`, `--sc` vars.
+* `hov-accent` / `hov-sun` / `hov-paper` — flat hover fill swaps.
+* Focus inside `.lab-root`: `outline: 3px solid INK`, no ring-offset.
+
+### Brand wordmark
+
+```tsx
+<span style={{ fontFamily: FONT_BLACK, fontSize: 20, letterSpacing: "-0.02em" }}>POLYEDRO</span>
+<span style={{ fontFamily: FONT_MONO, fontWeight: 700, background: ACID, padding: "0 5px", border: `2px solid ${INK}`, marginLeft: 6 }}>/abs</span>
+```
+
+Subtitle: `fontFamily: FONT_MONO`, `fontSize: 10`, `letterSpacing: "0.1em"`, muted `rgba(10,10,10,0.5)`.
+
+### Voice UI Styling
+
+When building ElevenLabs voice interfaces inside product screens:
+
+* Use the same neobrutalist system.
+* Voice states should map to existing signal colors:
+
+  * idle/disconnected → `STONE`
+  * connecting/generating → `CYAN`
+  * listening/active → `VOLT`
+  * speaking/ready → `ACID`
+  * warning/permission needed → `SUN`
+  * error/failed → `CORAL`
+* Do not introduce glossy microphone widgets, blurred SaaS cards, or generic voice assistant gradients.
+* Voice controls must be obvious, high contrast, and accessible.
+* Always include a clear stop/end button for live sessions.
+* Show microphone permission and recording/listening states visibly.
+
+### Status & agent colors
+
+| Status     | Background | Notes                                           |
+| ---------- | ---------- | ----------------------------------------------- |
+| draft      | STONE      | static                                          |
+| generating | CYAN       | `animation: "pv-pulse 1s ease-in-out infinite"` |
+| review     | SUN        | static                                          |
+| approved   | ACID       | append " ✓" in label                            |
+
+Agent glyph colors: see `AGENT_DEFS` / `RUN_DEFS` in `defs.ts`.
+
+### Animations (`index.css`)
+
+Use existing keyframes only:
+
+* `pv-bar`
+* `pv-pulse`
+* `pv-rise`
+* `pv-blink`
+* `pv-spin`
+* `pv-spin0`
+
+### Dual styling zones
+
+| Zone                                                 | Stack                                                     | When                                               |
+| ---------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------- |
+| **Product UI** (labs, landing, campaigns, voice UI)  | `defs.ts` tokens + inline `style` + `index.css` utilities | Default for all user-facing screens                |
+| **Infrastructure** (providers, toasts, theme toggle) | `@Polyedro-abs/ui` shadcn + Tailwind                      | Shell utilities only — do not leak into labs views |
+
+When building new screens, such as `/landing`, match existing labs components — not shadcn defaults.
+
+Use Tailwind CSS, Shadcn UI, and Radix UI **only** in the infrastructure zone. Product screens always use the neobrutalist system above.
+
+### UI Do / Don't
+
+```txt
+✅ Import ACID, INK, PAPER, CARD, cardShell, gridBg, monoLabel from defs.ts
+✅ Hard shadows: boxShadow: `Npx Npx 0 ${INK}`
+✅ Uppercase mono labels for form fields and tags
+✅ White (CARD) card surfaces on PAPER background
+✅ Consistent design and responsive patterns across platforms
+✅ Voice UI states mapped to existing signal colors
+✅ Clear microphone, listening, speaking, and error states
+
+❌ rounded-lg / rounded-xl on product screens
+❌ box-shadow with blur (e.g. shadow-md)
+❌ Tailwind color classes (zinc-*, emerald-*) in labs/landing components
+❌ New color tokens without adding them to defs.ts first
+❌ DAIEGO UI (Poppins/zinc/emerald) — different product family
+❌ Exposed ElevenLabs API keys in client components
+❌ Hidden audio recording or unclear microphone state
+```

@@ -1,13 +1,25 @@
 import type { CSSProperties } from "react";
 
-export const ACCENT = "#C6F432";
-export const INK = "#0A0A0A";
+/** Ground — structural layer */
 export const PAPER = "#F4F2EC";
-export const VOLT = "#2F5CE5";
-export const CYAN = "#45D8E8";
-export const CORAL = "#FF6B57";
-export const SUN = "#FFD02F";
+export const INK = "#0A0A0A";
+export const CARD = "#FFFFFF";
 export const STONE = "#EDEAE0";
+
+/** Signals — semantic layer */
+export const ACID = "#C6F432"; // primary accent, CTAs, approved
+export const VOLT = "#2F5CE5"; // agents, Push-to-Meta
+export const CYAN = "#45D8E8"; // generating / in-progress
+export const CORAL = "#FF6B57"; // regen / errors
+export const SUN = "#FFD02F"; // review / warnings
+
+/** @deprecated Use ACID */
+export const ACCENT = ACID;
+
+/** Readable text on signal backgrounds — white on Volt blue, ink elsewhere */
+export function textOnSignal(bg: string): string {
+  return bg === VOLT ? CARD : INK;
+}
 
 export const FONT_SANS = "var(--font-archivo), system-ui, sans-serif";
 export const FONT_BLACK = "var(--font-archivo-black), sans-serif";
@@ -24,9 +36,20 @@ export const monoLabel: CSSProperties = {
 };
 
 export const cardShell: CSSProperties = {
-  background: "#FFFFFF",
+  background: CARD,
   border: `3px solid ${INK}`,
   boxShadow: `5px 5px 0 ${INK}`,
+};
+
+export type AssetId = "strategy" | "audiences" | "copy" | "creatives" | "video" | "voice";
+export type AssetStatus = "draft" | "generating" | "review" | "approved";
+export type Statuses = Record<AssetId, AssetStatus>;
+
+export const STATUS_STYLE: Record<AssetStatus, { bg: string; label: string; anim?: string }> = {
+  draft: { bg: STONE, label: "DRAFT" },
+  generating: { bg: CYAN, label: "GENERATING", anim: "pv-pulse 1s ease-in-out infinite" },
+  review: { bg: SUN, label: "REVIEW" },
+  approved: { bg: ACID, label: "APPROVED ✓" },
 };
 
 export type View =
@@ -39,22 +62,74 @@ export type View =
   | "agents"
   | "automation";
 
-export type AssetId = "strategy" | "audiences" | "copy" | "creatives" | "video" | "voice";
-export type AssetStatus = "draft" | "generating" | "review" | "approved";
-export type Statuses = Record<AssetId, AssetStatus>;
-
 export const GOAL =
   "Lanzamiento de audífonos inalámbricos con cancelación de ruido para jóvenes profesionales y estudiantes en LatAm.";
 export const CMD = "Regenerate the Spanish headline with more urgency for students.";
 
+export const KIT_LOGS: Array<[string, string]> = [
+  ["00:01", "reading brand input… ok"],
+  ["00:02", "naming + monogram → done"],
+  ["00:04", "palette: carbon / acid / volt / cyan / bone"],
+  ["00:06", "voice&tone (es/en) drafted"],
+  ["00:08", 'persona: "Diego, 26, CDMX"'],
+  ["00:10", "value prop + key messages locked"],
+  ["00:12", "visual style rules exported"],
+  ["00:12", "brand kit v1 → READY"],
+];
+
+export const KIT_DEFS = [
+  {
+    tag: "LOGO CONCEPT",
+    title: '"Signal block" monogram',
+    body: "Squared mark, engraved-device ready, favicon-safe.",
+    bg: INK,
+    ink: PAPER,
+  },
+  {
+    tag: "PALETTE",
+    title: "Carbon · Acid · Volt · Cyan · Bone",
+    body: "High-contrast, no gradients. Dark product, electric accents.",
+    bg: ACID,
+    ink: INK,
+  },
+  {
+    tag: "VOICE & TONE",
+    title: "Directo, seguro, irreverente.",
+    body: "ES/EN bilingual. Benefits over spec sheets. No fake urgency.",
+    bg: CARD,
+    ink: INK,
+  },
+  {
+    tag: "BUYER PERSONA",
+    title: '"Diego, 26 — hybrid analyst, CDMX"',
+    body: "70-min commute, buys on Instagram, trigger = discount + reviews.",
+    bg: CARD,
+    ink: INK,
+  },
+  {
+    tag: "VALUE PROP",
+    title: "Flagship audio, mid-range LatAm price.",
+    body: "36h battery · adaptive ANC · 2-yr warranty.",
+    bg: CARD,
+    ink: INK,
+  },
+  {
+    tag: "VISUAL STYLE",
+    title: "Carbon grids, hard edges.",
+    body: "Condensed black caps for claims, mono for specs.",
+    bg: CARD,
+    ink: INK,
+  },
+] as const;
+
 export const RUN_DEFS = [
   { name: "Strategy Agent", glyph: "S", color: VOLT, task: "objective · funnel split · commercial angle" },
-  { name: "Meta Ads Agent", glyph: "M", color: CYAN, task: "audience segments · placements · campaign structure" },
-  { name: "Meta Ads Agent · copy", glyph: "M", color: CYAN, task: "ES/EN copies · CTAs · A/B variants" },
-  { name: "Creative Agent", glyph: "C", color: CORAL, task: "static creatives 1080×1080 · concept boards" },
-  { name: "Video Agent", glyph: "V", color: SUN, task: "15s Reels script · storyboard beats" },
-  { name: "Voice Agent", glyph: "W", color: ACCENT, task: "ElevenLabs voiceover ES/EN from script" },
-  { name: "Approval Agent", glyph: "✓", color: CORAL, task: "coherence check vs brand kit → queue for review" },
+  { name: "Meta Ads Agent", glyph: "M", color: VOLT, task: "audience segments · placements · campaign structure" },
+  { name: "Meta Ads Agent · copy", glyph: "M", color: VOLT, task: "ES/EN copies · CTAs · A/B variants" },
+  { name: "Creative Agent", glyph: "C", color: VOLT, task: "static creatives 1080×1080 · concept boards" },
+  { name: "Video Agent", glyph: "V", color: VOLT, task: "15s Reels script · storyboard beats" },
+  { name: "Voice Agent", glyph: "W", color: VOLT, task: "ElevenLabs voiceover ES/EN from script" },
+  { name: "Approval Agent", glyph: "✓", color: VOLT, task: "coherence check vs brand kit → queue for review" },
 ] as const;
 
 export const NAV_DEFS = [
@@ -68,7 +143,7 @@ export const AGENT_DEFS = [
   {
     name: "Brand Agent",
     glyph: "B",
-    color: ACCENT,
+    color: ACID,
     role: "Builds visual and verbal identity — the Brand Kit every agent reads.",
     tool: "CLAUDE",
     runs: 12,
@@ -90,29 +165,29 @@ export const AGENT_DEFS = [
   {
     name: "Meta Ads Agent",
     glyph: "M",
-    color: CYAN,
+    color: VOLT,
     role: "Campaign structure, copies, CTAs and A/B variants.",
     tool: "META API",
     runs: 17,
     status: "ACTIVE",
-    dot: ACCENT,
+    dot: CYAN,
     pulse: true,
   },
   {
     name: "Creative Agent",
     glyph: "C",
-    color: CORAL,
+    color: VOLT,
     role: "AI images and visual concepts in the brand system.",
     tool: "CLAUDE + IMG",
     runs: 31,
     status: "ACTIVE",
-    dot: ACCENT,
+    dot: CYAN,
     pulse: true,
   },
   {
     name: "Video Agent",
     glyph: "V",
-    color: SUN,
+    color: VOLT,
     role: "Short scripts for ads — Reels and Stories formats.",
     tool: "CLAUDE",
     runs: 8,
@@ -123,7 +198,7 @@ export const AGENT_DEFS = [
   {
     name: "Voice Agent",
     glyph: "W",
-    color: ACCENT,
+    color: VOLT,
     role: "Bilingual voiceovers generated from approved scripts.",
     tool: "ELEVENLABS",
     runs: 6,
@@ -145,12 +220,12 @@ export const AGENT_DEFS = [
   {
     name: "Approval Agent",
     glyph: "✓",
-    color: CORAL,
+    color: VOLT,
     role: "Validates coherence vs brand kit; blocks publishing until sign-off.",
     tool: "INTERNAL",
     runs: 44,
     status: "ACTIVE",
-    dot: ACCENT,
+    dot: SUN,
     pulse: true,
   },
 ] as const;
@@ -162,7 +237,7 @@ export const PIPE_STEPS = [
     desc: "All six assets signed off by owner.",
     tag: "N8N",
     tagBg: CORAL,
-    nodeBg: ACCENT,
+    nodeBg: ACID,
     pulse: false,
     hasLine: true,
   },
@@ -171,8 +246,8 @@ export const PIPE_STEPS = [
     title: "Sync to Supabase",
     desc: "Assets, copy variants and audiences written to DB.",
     tag: "SUPABASE",
-    tagBg: CYAN,
-    nodeBg: ACCENT,
+    tagBg: VOLT,
+    nodeBg: ACID,
     pulse: false,
     hasLine: true,
   },
@@ -182,7 +257,7 @@ export const PIPE_STEPS = [
     desc: "Statics rendered at 1080×1080 + 9:16, VO attached.",
     tag: "N8N",
     tagBg: CORAL,
-    nodeBg: ACCENT,
+    nodeBg: ACID,
     pulse: false,
     hasLine: true,
   },
@@ -192,7 +267,7 @@ export const PIPE_STEPS = [
     desc: "Campaign, ad sets and ads created in draft mode.",
     tag: "META API",
     tagBg: VOLT,
-    nodeBg: SUN,
+    nodeBg: VOLT,
     pulse: true,
     hasLine: true,
   },
@@ -202,7 +277,7 @@ export const PIPE_STEPS = [
     desc: "WhatsApp + email with preview links for final publish.",
     tag: "N8N",
     tagBg: CORAL,
-    nodeBg: "#FFFFFF",
+    nodeBg: CARD,
     pulse: false,
     hasLine: false,
   },
