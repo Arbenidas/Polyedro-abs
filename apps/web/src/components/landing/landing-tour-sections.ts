@@ -103,15 +103,59 @@ const LANDING_TOUR_NARRATION: Record<LandingTourSectionId, Record<GuideLanguage,
   },
 };
 
-export function guideSectionNarrationPrompt(
+const FORBIDDEN_NARRATION_PATTERNS = [
+  /[¿?]/,
+  /\bseguimos\b/i,
+  /\bquieres continuar\b/i,
+  /\bsolo escucha\b/i,
+  /\blisten only\b/i,
+  /\bshall we continue\b/i,
+] as const;
+
+export function validateGuideNarrationText(message: string): string[] {
+  const issues: string[] = [];
+  const words = message.trim().split(/\s+/).filter(Boolean);
+
+  if (words.length > 28) {
+    issues.push(`too many words (${words.length}/28)`);
+  }
+
+  for (const pattern of FORBIDDEN_NARRATION_PATTERNS) {
+    if (pattern.test(message)) {
+      issues.push(`forbidden pattern: ${pattern.source}`);
+    }
+  }
+
+  if (/\n/.test(message)) {
+    issues.push("contains line breaks");
+  }
+
+  return issues;
+}
+
+export function getGuideSectionNarration(
   sectionId: LandingTourSectionId,
   language: GuideLanguage,
 ): string {
   const narration = LANDING_TOUR_NARRATION[sectionId][language];
+  const issues = validateGuideNarrationText(narration);
+
+  if (issues.length > 0) {
+    console.warn(`[Guide Agent] Invalid narration for ${sectionId}: ${issues.join(", ")}`);
+  }
+
+  return narration;
+}
+
+export function guideSectionNarrationPrompt(
+  sectionId: LandingTourSectionId,
+  language: GuideLanguage,
+): string {
+  const narration = getGuideSectionNarration(sectionId, language);
 
   return language === "es"
-    ? `[SECCION_VISIBLE:${sectionId}] La pagina ya esta posicionada. Narra en espanol latino, tono demo claro y energico, UNA frase de maximo 28 palabras. Explica que ve el usuario y por que importa usando esta idea: ${narration} No leas texto literal, no menciones IDs ni nombres tecnicos de seccion, no uses tools, y al terminar detente.`
-    : `[VISIBLE_SECTION:${sectionId}] The page is already positioned. Narrate in clear demo tone, ONE sentence, maximum 28 words. Explain what the user sees and why it matters using this idea: ${narration} Do not read UI text verbatim, do not mention section IDs, do not use tools, and stop after speaking.`;
+    ? `[SECCION_VISIBLE:${sectionId}] La pagina ya esta posicionada. SALIDA OBLIGATORIA: di exactamente esta frase una sola vez, sin agregar, resumir, reformular ni repetir: "${narration}" Eres un guia masculino. Prohibido: repetir la frase dos veces, hacer preguntas, usar signos ? o ¿, usar tools, pedir permiso, decir "seguimos", "quieres continuar" o cierres que ordenen escuchar, escribir analisis, razonamiento interno, conteo de palabras, markdown, etiquetas emocionales como [excited] o texto en ingles. Termina en punto y detente.`
+    : `[VISIBLE_SECTION:${sectionId}] The page is already positioned. REQUIRED OUTPUT: say exactly this sentence once, without adding, summarizing, rewriting, or repeating it: "${narration}" You are a male guide. Forbidden: repeating the sentence twice, asking questions, using question marks, using tools, asking permission, saying "shall we continue", using endings that tell the user they only need to listen, outputting analysis, hidden reasoning, word counts, markdown, emotion tags like [excited], or Spanish instruction text. End with a period, then stop.`;
 }
 
 export async function scrollToLandingSectionAsync(
@@ -130,7 +174,7 @@ export async function scrollToLandingSectionAsync(
   await smoothScrollToElement(target);
 
   const label = LANDING_TOUR_SECTIONS.find((section) => section.id === sectionId)?.labelEs ?? sectionId;
-  return `Sección "${sectionId}" (${label}) visible y estable. Ahora narra SOLO esta sección en una frase concreta de máximo 28 palabras. Cuando termines, llama scrollToSection con la próxima sección.`;
+  return `Sección "${sectionId}" (${label}) visible y estable. Ahora responde UNICAMENTE con la frase final de narracion, maximo 28 palabras, como guia masculino. No escribas razonamiento, instrucciones, etiquetas emocionales, texto en ingles ni cierres que ordenen escuchar. No repitas la frase, no hagas preguntas, no uses signos ? ni ¿, y no cierres con invitaciones a continuar. Cuando termines, llama scrollToSection con la proxima seccion.`;
 }
 
 export { clearTourHighlights, clearTourSectionActive } from "./landing-tour-highlights";

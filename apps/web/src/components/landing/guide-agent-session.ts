@@ -73,13 +73,13 @@ export function waitForGuideDisconnect(
 export function tourKickoffMessage(language: GuideLanguage): string {
   if (GUIDE_DEMO_MODE) {
     return language === "es"
-      ? "[MODO DEMO] Recorrido hero→cta. Contrato estricto: no narres una sección hasta que esté visible. Para cada sección: (1) llama scrollToSection, (2) espera el resultado, (3) narra SOLO esa sección en UNA frase clara de máximo 28 palabras, (4) detente; después llama scrollToSection de la SIGUIENTE. Ritmo ágil, cero relleno, no leas la UI literal y no mezcles narración con scroll."
-      : "[DEMO MODE] Tour hero→cta. Strict contract: never narrate a section until it is visible. For each section: (1) call scrollToSection, (2) wait for the result, (3) narrate ONLY that section in ONE clear sentence, maximum 28 words, (4) stop; then call scrollToSection for the NEXT. Brisk pace, no filler, do not read UI text verbatim, and do not mix narration with scrolling.";
+      ? "[MODO DEMO] Recorrido hero→cta. Identidad: eres un guia masculino, seguro y directo; nunca uses formas femeninas. Contrato estricto: no narres una seccion hasta que este visible. Para cada seccion: (1) llama scrollToSection, (2) espera el resultado, (3) responde UNICAMENTE con la frase final que vas a decir en voz alta, maximo 28 palabras, (4) termina en punto, sin preguntas, confirmaciones, signos ? o signos ¿; despues llama scrollToSection de la SIGUIENTE. Prohibido escribir razonamiento interno, analisis, conteo de palabras, instrucciones, texto en ingles, markdown, etiquetas emocionales como [excited] o cierres que ordenen al usuario escuchar."
+      : "[DEMO MODE] Tour hero→cta. Identity: you are a male guide, confident and direct; never use feminine self-references. Strict contract: never narrate a section until it is visible. For each section: (1) call scrollToSection, (2) wait for the result, (3) output ONLY the final sentence to speak aloud, maximum 28 words, (4) end with a period, no questions, confirmations, or question marks; then call scrollToSection for the NEXT. Never output hidden reasoning, analysis, word counts, instructions, markdown, emotion tags like [excited], or endings that tell the user they only need to listen.";
   }
 
   return language === "es"
-    ? "Inicia el recorrido guiado sección por sección. Usa scrollToSection, espera a que la sección esté visible y narra una sola frase clara de máximo 28 palabras antes de avanzar."
-    : "Start the guided tour section by section. Use scrollToSection, wait until the section is visible, and narrate one clear sentence of maximum 28 words before advancing.";
+    ? "Inicia el recorrido guiado seccion por seccion como guia masculino. Usa scrollToSection, espera a que la seccion este visible y responde unicamente con una frase clara de maximo 28 palabras antes de avanzar. No hagas preguntas, no uses signos ? ni ¿, no pidas confirmacion, no escribas razonamiento interno y no cierres ordenando al usuario escuchar."
+    : "Start the guided tour section by section as a male guide. Use scrollToSection, wait until the section is visible, and output only one clear sentence of maximum 28 words before advancing. Do not ask questions, use question marks, ask for confirmation, output hidden reasoning, or tell the user they only need to listen.";
 }
 
 function isBrowserEvent(value: unknown): value is Event {
@@ -136,6 +136,18 @@ export function formatGuideError(message: string, language: GuideLanguage): stri
     return language === "es"
       ? "Necesitamos acceso al micrófono para el tour con voz."
       : "Microphone access is required for the voice tour.";
+  }
+
+  if (normalized.includes("guide startup timeout")) {
+    return language === "es"
+      ? "El agente tardó demasiado en conectar. Pulsa ▶ para reintentar."
+      : "The guide took too long to connect. Press ▶ to retry.";
+  }
+
+  if (normalized.includes("guide response timeout")) {
+    return language === "es"
+      ? "El agente se quedó esperando una respuesta de voz. Pulsa ▶ para reintentar."
+      : "The guide got stuck waiting for a voice response. Press ▶ to retry.";
   }
 
   return message;
