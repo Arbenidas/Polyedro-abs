@@ -483,6 +483,7 @@ export const exportCampaignToMetaAds = async (campaignId: string) => {
       brandId: campaign.brand.id,
       campaignId,
       target: "meta_ads",
+      payload: metaAdsPayload,
     });
 
     const [sent] = await db
@@ -490,6 +491,7 @@ export const exportCampaignToMetaAds = async (campaignId: string) => {
       .set({
         exportStatus: "sent",
         n8nExecutionId: result.executionId,
+        metaCampaignId: result.metaCampaignId,
         completedAt: new Date(),
       })
       .where(eq(automationExports.id, exportRow.id))

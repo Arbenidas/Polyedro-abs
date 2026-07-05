@@ -1,0 +1,150 @@
+{
+ "name": "Polyedro /abs \u2014 Campaign Export",
+ "nodes": [
+  {
+   "parameters": {
+    "httpMethod": "POST",
+    "path": "polyedro/export",
+    "responseMode": "responseNode",
+    "options": {}
+   },
+   "id": "02e59568-4a0f-4b43-a5b0-0727c2b46a40",
+   "name": "Export Webhook",
+   "type": "n8n-nodes-base.webhook",
+   "typeVersion": 2.1,
+   "position": [
+    240,
+    304
+   ],
+   "webhookId": "5ad1414e-c0e0-4d6a-9476-25ad2020d7d4"
+  },
+  {
+   "parameters": {
+    "assignments": {
+     "assignments": [
+      {
+       "id": "brand-id",
+       "name": "brandId",
+       "value": "={{ $json.body?.brandId ?? $json.brandId ?? \"\" }}",
+       "type": "string"
+      },
+      {
+       "id": "campaign-id",
+       "name": "campaignId",
+       "value": "={{ $json.body?.campaignId ?? $json.campaignId ?? \"\" }}",
+       "type": "string"
+      },
+      {
+       "id": "export-target",
+       "name": "target",
+       "value": "={{ $json.body?.target ?? $json.target ?? \"meta_ads\" }}",
+       "type": "string"
+      },
+      {
+       "id": "received-at",
+       "name": "receivedAt",
+       "value": "={{ $now.toISO() }}",
+       "type": "string"
+      },
+      {
+       "id": "raw-payload",
+       "name": "payload",
+       "value": "={{ $json.body?.payload ?? $json.payload ?? {} }}",
+       "type": "object"
+      }
+     ]
+    },
+    "options": {}
+   },
+   "id": "da9dad1b-bd66-41a5-aced-b76a1baf9058",
+   "name": "Normalize Export Payload",
+   "type": "n8n-nodes-base.set",
+   "typeVersion": 3.4,
+   "position": [
+    544,
+    304
+   ]
+  },
+  {
+   "parameters": {
+    "respondWith": "json",
+    "responseBody": "={{ { \"status\": \"built\", \"brandId\": $json.brandId, \"campaignId\": $json.campaignId, \"target\": $json.target, \"receivedAt\": $json.receivedAt, \"executionId\": $execution.id, \"metaAds\": $json.metaAds } }}",
+    "options": {}
+   },
+   "id": "a120a5e8-7e12-471c-9ab4-a06ca5ed2c53",
+   "name": "Respond Received",
+   "type": "n8n-nodes-base.respondToWebhook",
+   "typeVersion": 1.5,
+   "position": [
+    1152,
+    304
+   ]
+  },
+  {
+   "parameters": {
+    "content": "## Polyedro /abs \u2014 Campaign Export\nWebhook receives { brandId, campaignId, target, payload } from apps/server.\nCode node transforms payload -> Meta Ads structure (campaign/adSet/creatives/ads), all PAUSED.\nPhase 2 TODO: add HTTP Request nodes to POST to graph.facebook.com/v25.0 sandbox.",
+    "height": 504,
+    "width": 1632
+   },
+   "id": "42208d6f-8880-40f8-a42c-8392d6ca2d34",
+   "name": "Sticky Note 64b3e665",
+   "type": "n8n-nodes-base.stickyNote",
+   "typeVersion": 1,
+   "position": [
+    -224,
+    64
+   ]
+  },
+  {
+   "id": "c11efafb-0d90-4d2a-8231-32de47177b62",
+   "name": "Build Meta Ads Structure",
+   "type": "n8n-nodes-base.code",
+   "typeVersion": 2,
+   "position": [
+    848,
+    304
+   ],
+   "parameters": {
+    "jsCode": "\n// Build the Meta Ads campaign structure from the exported payload.\n// Phase 1: transform only (no publish). page_id / adset_id / creative_id and\n// act_<AD_ACCOUNT_ID> are bound at publish time against a Meta Sandbox account.\nconst input = $input.first().json;\nconst p = input.payload || {};\nconst campaign = p.campaign || {};\nconst brand = p.brand || {};\nconst strategy = p.strategy || {};\nconst seg = strategy.segmentation || {};\nconst audience = strategy.audience || {};\nconst adCopies = Array.isArray(p.adCopies) ? p.adCopies : [];\nconst creatives = Array.isArray(p.creativeAssets) ? p.creativeAssets : [];\n\nfunction metaObjective(obj) {\n  const s = (obj || '').toLowerCase();\n  if (/(sell|sale|purchase|vend|compra)/.test(s)) return 'OUTCOME_SALES';\n  if (/lead/.test(s)) return 'OUTCOME_LEADS';\n  if (/(aware|reconoc|brand)/.test(s)) return 'OUTCOME_AWARENESS';\n  if (/app/.test(s)) return 'OUTCOME_APP_PROMOTION';\n  if (/(engag|interac)/.test(s)) return 'OUTCOME_ENGAGEMENT';\n  return 'OUTCOME_TRAFFIC';\n}\n\nconst COUNTRY = {\n  'mexico':'MX','m\u00e9xico':'MX','colombia':'CO','guatemala':'GT','el salvador':'SV',\n  'chile':'CL','peru':'PE','per\u00fa':'PE','argentina':'AR','brazil':'BR','brasil':'BR',\n  'ecuador':'EC','costa rica':'CR','panama':'PA','panam\u00e1':'PA','uruguay':'UY',\n  'paraguay':'PY','bolivia':'BO','honduras':'HN','nicaragua':'NI',\n  'dominican republic':'DO','venezuela':'VE'\n};\nfunction toCountryCodes(locations) {\n  const names = Array.isArray(locations) ? locations : [];\n  const codes = [];\n  for (const n of names) {\n    const key = String(n).trim().toLowerCase();\n    if (COUNTRY[key]) codes.push(COUNTRY[key]);\n  }\n  return codes.length ? [...new Set(codes)] : ['MX','CO','CL','PE','AR'];\n}\n\nfunction ctaType(cta) {\n  const s = (cta || '').toLowerCase();\n  if (/(pre-?order|preorden)/.test(s)) return 'ORDER_NOW';\n  if (/(shop|comprar|\\bbuy\\b)/.test(s)) return 'SHOP_NOW';\n  if (/sign/.test(s)) return 'SIGN_UP';\n  if (/(learn|saber|m\u00e1s|mas)/.test(s)) return 'LEARN_MORE';\n  return 'LEARN_MORE';\n}\n\nconst CAMPAIGN_NAME = campaign.name || (brand.name ? brand.name + ' Campaign' : 'Polyedro Campaign');\n\nconst metaCampaign = {\n  name: CAMPAIGN_NAME,\n  objective: metaObjective(campaign.objective),\n  status: 'PAUSED',\n  special_ad_categories: [],\n};\n\nconst adSet = {\n  name: CAMPAIGN_NAME + ' \u2014 Ad Set',\n  status: 'PAUSED',\n  billing_event: 'IMPRESSIONS',\n  optimization_goal: 'LINK_CLICKS',\n  daily_budget: 50000,\n  targeting: {\n    geo_locations: {\n      countries: toCountryCodes((seg.locations && seg.locations.length) ? seg.locations : audience.locations),\n    },\n    age_min: seg.ageMin || 18,\n    age_max: seg.ageMax || 65,\n    ...(Array.isArray(seg.genders) && seg.genders.length ? { genders: seg.genders } : {}),\n  },\n};\n\nconst creativeByVariant = {};\nfor (const c of creatives) creativeByVariant[c.variant] = c;\n\nconst ads = adCopies.map((copy) => {\n  const creative = creativeByVariant[copy.variant] || creatives[0] || {};\n  const label = [CAMPAIGN_NAME, String(copy.language || '').toUpperCase(), 'Var ' + String(copy.variant || '').toUpperCase()].filter(Boolean).join(' \u2014 ');\n  return {\n    language: copy.language,\n    variant: copy.variant,\n    adCreative: {\n      name: label + ' \u2014 Creative',\n      object_story_spec: {\n        link_data: {\n          message: copy.primaryText || '',\n          name: copy.headline || '',\n          description: copy.description || '',\n          link: brand.website || 'https://example.com',\n          picture: creative.imageUrl || null,\n          call_to_action: { type: ctaType(copy.callToAction) },\n        },\n      },\n    },\n    ad: { name: label, status: 'PAUSED' },\n  };\n});\n\nconst metaAds = {\n  apiVersion: 'v25.0',\n  graphBase: 'https://graph.facebook.com/v25.0',\n  note: 'Built by Polyedro /abs (Phase 1: transform only). Publish to a Meta Sandbox Ad Account with all objects PAUSED. Bind page_id, adset_id, creative_id and act_<AD_ACCOUNT_ID> at publish time.',\n  publishOrder: ['campaign', 'adSet', 'adCreatives', 'ads'],\n  campaign: metaCampaign,\n  adSet,\n  ads,\n  counts: { adCopies: adCopies.length, creatives: creatives.length, ads: ads.length },\n};\n\nreturn [{ json: {\n  brandId: input.brandId,\n  campaignId: input.campaignId,\n  target: input.target,\n  receivedAt: input.receivedAt,\n  metaAds,\n} }];\n"
+   }
+  }
+ ],
+ "connections": {
+  "Export Webhook": {
+   "main": [
+    [
+     {
+      "node": "Normalize Export Payload",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Normalize Export Payload": {
+   "main": [
+    [
+     {
+      "node": "Build Meta Ads Structure",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  },
+  "Build Meta Ads Structure": {
+   "main": [
+    [
+     {
+      "node": "Respond Received",
+      "type": "main",
+      "index": 0
+     }
+    ]
+   ]
+  }
+ },
+ "settings": {
+  "executionOrder": "v1"
+ }
+}
