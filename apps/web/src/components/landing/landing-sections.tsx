@@ -283,7 +283,7 @@ const PRICING_PLANS = [
     description: "Identidad, estrategia y copy base — sin creativos ni export a Meta.",
     accent: STONE,
     featured: false,
-    agents: ["Brand Agent", "Strategy Agent", "Meta Ads Agent", "Approval Agent"] as const,
+    agents: ["Agente de Marca", "Agente de Estrategia", "Agente de Meta Ads", "Agente de Aprobación"] as const,
     limits: [
       "1 marca · 2 campañas / mes",
       "Copy en un idioma (ES o EN)",
@@ -301,11 +301,11 @@ const PRICING_PLANS = [
     accent: ACID,
     featured: true,
     agents: [
-      "Brand Agent",
-      "Strategy Agent",
-      "Meta Ads Agent",
-      "Creative Agent",
-      "Approval Agent",
+      "Agente de Marca",
+      "Agente de Estrategia",
+      "Agente de Meta Ads",
+      "Agente Creativo",
+      "Agente de Aprobación",
     ] as const,
     limits: [
       "Hasta 3 marcas · 10 campañas / mes",
@@ -324,14 +324,14 @@ const PRICING_PLANS = [
     accent: VOLT,
     featured: false,
     agents: [
-      "Brand Agent",
-      "Strategy Agent",
-      "Meta Ads Agent",
-      "Creative Agent",
-      "Video Agent",
-      "Voice Agent",
-      "Automation Agent",
-      "Approval Agent",
+      "Agente de Marca",
+      "Agente de Estrategia",
+      "Agente de Meta Ads",
+      "Agente Creativo",
+      "Agente de Video",
+      "Agente de Voz",
+      "Agente de Automatización",
+      "Agente de Aprobación",
     ] as const,
     limits: [
       "Hasta 10 marcas · campañas con fair use",
@@ -350,14 +350,14 @@ const PRICING_PLANS = [
     accent: SUN,
     featured: false,
     agents: [
-      "Brand Agent",
-      "Strategy Agent",
-      "Meta Ads Agent",
-      "Creative Agent",
-      "Video Agent",
-      "Voice Agent",
-      "Automation Agent",
-      "Approval Agent",
+      "Agente de Marca",
+      "Agente de Estrategia",
+      "Agente de Meta Ads",
+      "Agente Creativo",
+      "Agente de Video",
+      "Agente de Voz",
+      "Agente de Automatización",
+      "Agente de Aprobación",
     ] as const,
     limits: [
       "Marcas ilimitadas · créditos negociables",
@@ -1571,7 +1571,7 @@ export function PricingSection() {
               <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                 {plan.agents.map((agentName) => {
                   const glyph = AGENT_GLYPH_BY_NAME[agentName];
-                  const isBrand = agentName === "Brand Agent";
+                  const isBrand = agentName === "Agente de Marca";
                   const chipBg = isBrand ? ACID : VOLT;
                   return (
                     <span
@@ -1592,7 +1592,7 @@ export function PricingSection() {
                       title={agentName}
                     >
                       <span style={{ fontFamily: FONT_BLACK, fontSize: 10 }}>{glyph}</span>
-                      {agentName.replace(" Agent", "")}
+                      {agentName.replace(/^Agente (de )?/, "")}
                     </span>
                   );
                 })}
