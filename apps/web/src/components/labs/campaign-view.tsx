@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { CampaignAdCopy, CampaignCreativeAsset, CampaignDashboard } from "@/lib/api";
 import {
@@ -47,6 +47,7 @@ function AssetCard({
   onRegen,
   canRegen = true,
   regenLabel = "↻ Regenerar",
+  bodyStyle,
   children,
 }: {
   dotColor: string;
@@ -56,12 +57,24 @@ function AssetCard({
   onRegen: () => void;
   canRegen?: boolean;
   regenLabel?: string;
+  bodyStyle?: CSSProperties;
   children: ReactNode;
 }) {
   const chip = chipFor(status);
   const canApprove = status === "review";
+  const approved = status === "approved";
   return (
-    <div style={{ ...cardShell, display: "flex", flexDirection: "column" }}>
+    <div
+      style={{
+        ...cardShell,
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+        borderWidth: approved ? 2 : 3,
+        boxShadow: approved ? `3px 3px 0 ${INK}` : cardShell.boxShadow,
+        background: approved ? "#FFFEFA" : CARD,
+      }}
+    >
       <div
         style={{
           display: "flex",
@@ -69,7 +82,7 @@ function AssetCard({
           justifyContent: "space-between",
           gap: 10,
           padding: "12px 16px",
-          borderBottom: `2px solid ${INK}`,
+          borderBottom: `${approved ? 1.5 : 2}px solid ${INK}`,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
@@ -91,8 +104,8 @@ function AssetCard({
           {chip.label}
         </span>
       </div>
-      {children}
-      <div style={{ display: "flex", borderTop: `2px solid ${INK}` }}>
+      <div style={{ ...bodyStyle, flex: 1, minHeight: 0 }}>{children}</div>
+      <div style={{ display: "flex", borderTop: `${approved ? 1.5 : 2}px solid ${INK}` }}>
         <button
           onClick={onApprove}
           disabled={!canApprove}
@@ -103,11 +116,12 @@ function AssetCard({
             fontSize: 12,
             fontWeight: 800,
             textTransform: "uppercase",
-            padding: 11,
+            padding: approved ? 9 : 11,
             border: "none",
             borderRight: `2px solid ${INK}`,
             background: status === "approved" ? ACID : CARD,
             cursor: canApprove ? "pointer" : "default",
+            color: canApprove || approved ? INK : "rgba(10,10,10,0.48)",
           }}
         >
           {status === "approved"
@@ -128,7 +142,7 @@ function AssetCard({
             fontSize: 12,
             fontWeight: 700,
             textTransform: "uppercase",
-            padding: 11,
+            padding: approved ? 9 : 11,
             border: "none",
             background: CARD,
             cursor: canRegen ? "pointer" : "default",
@@ -181,6 +195,12 @@ const getVariantCopy = (
 
 const getVariantAsset = (assets: CampaignCreativeAsset[], variant: "a" | "b") =>
   assets.find((asset) => asset.variant === variant);
+
+type CreativeVariant = {
+  label: "A" | "B";
+  accent: string;
+  asset?: CampaignCreativeAsset;
+};
 
 const hasRealAssets = (dashboard: CampaignDashboard | null | undefined, key: AssetId) => {
   if (!dashboard) return true;
@@ -289,6 +309,350 @@ function WaveRow({
   );
 }
 
+function CreativePreviewModal({
+  variants,
+  selected,
+  brandName,
+  status,
+  onSelect,
+  onClose,
+  onApprove,
+  onRegen,
+}: {
+  variants: CreativeVariant[];
+  selected: CreativeVariant;
+  brandName: string;
+  status: AssetStatus;
+  onSelect: (variant: CreativeVariant) => void;
+  onClose: () => void;
+  onApprove: () => void;
+  onRegen: () => void;
+}) {
+  const [zoomed, setZoomed] = useState(false);
+  const [imageReady, setImageReady] = useState(false);
+  const canApprove = status === "review";
+  const imageUrl = selected.asset?.imageUrl;
+  const metadata = selected.asset?.metadata ?? {};
+  const provider = typeof metadata.provider === "string" ? metadata.provider : null;
+  const dimensions =
+    typeof metadata.width === "number" && typeof metadata.height === "number"
+      ? `${metadata.width}×${metadata.height}`
+      : "1080×1080";
+
+  useEffect(() => {
+    setImageReady(!imageUrl);
+  }, [imageUrl]);
+
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+        return;
+      }
+
+      event.preventDefault();
+      const selectedIndex = variants.findIndex((variant) => variant.label === selected.label);
+      const direction = event.key === "ArrowRight" ? 1 : -1;
+      const nextIndex = (selectedIndex + direction + variants.length) % variants.length;
+      const nextVariant = variants[nextIndex];
+
+      if (nextVariant) {
+        setZoomed(false);
+        onSelect(nextVariant);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose, onSelect, selected.label, variants]);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Preview creatividad ${selected.label}`}
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 60,
+        background: "rgba(10,10,10,0.72)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 20,
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          width: "min(1240px, 100%)",
+          maxHeight: "calc(100vh - 40px)",
+          background: PAPER,
+          border: `3px solid ${INK}`,
+          boxShadow: `8px 8px 0 ${ACID}`,
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) 280px",
+          overflow: "hidden",
+        }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div
+          style={{
+            minHeight: 0,
+            padding: 16,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+            background: CARD,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div>
+              <div style={{ fontFamily: FONT_MONO, fontSize: 10, fontWeight: 800, letterSpacing: "0.1em" }}>
+                CREATIVIDAD ESTÁTICA · VAR {selected.label}
+              </div>
+              <div style={{ fontFamily: FONT_BLACK, fontSize: 24, marginTop: 4 }}>{brandName}</div>
+            </div>
+            <button
+              onClick={onClose}
+              aria-label="Cerrar preview"
+              style={{
+                width: 38,
+                height: 38,
+                border: `2px solid ${INK}`,
+                background: CARD,
+                fontFamily: FONT_BLACK,
+                fontSize: 18,
+                cursor: "pointer",
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <div
+            style={{
+              flex: "0 1 auto",
+              minHeight: 0,
+              width: "min(100%, calc(100vh - 245px), 840px)",
+              aspectRatio: "1 / 1",
+              alignSelf: "center",
+              border: `2px solid ${INK}`,
+              background: INK,
+              position: "relative",
+              display: "flex",
+              alignItems: zoomed ? "flex-start" : "center",
+              justifyContent: zoomed ? "flex-start" : "center",
+              overflow: "auto",
+              padding: zoomed ? 0 : 12,
+            }}
+          >
+            {imageUrl ? (
+              <>
+                {!imageReady ? (
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 12,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      background: CARD,
+                      color: "rgba(10,10,10,0.6)",
+                      fontFamily: FONT_MONO,
+                      fontSize: 11,
+                      fontWeight: 800,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Cargando preview…
+                  </div>
+                ) : null}
+                <img
+                  src={imageUrl}
+                  alt={selected.asset?.altText ?? `Creatividad ${selected.label}`}
+                  onLoad={() => setImageReady(true)}
+                  onError={() => setImageReady(true)}
+                  style={{
+                    width: zoomed ? 1080 : "100%",
+                    height: zoomed ? 1080 : "100%",
+                    maxWidth: zoomed ? "none" : "100%",
+                    maxHeight: zoomed ? "none" : "100%",
+                    objectFit: "contain",
+                    background: CARD,
+                    opacity: imageReady ? 1 : 0,
+                    transition: "opacity 0.16s ease",
+                  }}
+                />
+              </>
+            ) : (
+              <div
+                style={{
+                  aspectRatio: "1 / 1",
+                  width: "min(100%, 560px)",
+                  background: selected.accent,
+                  color: textOnSignal(selected.accent),
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontFamily: FONT_MONO,
+                  fontSize: 13,
+                  fontWeight: 800,
+                  textTransform: "uppercase",
+                }}
+              >
+                Imagen pendiente
+              </div>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button
+              onClick={() => setZoomed((value) => !value)}
+              style={{
+                border: `2px solid ${INK}`,
+                background: zoomed ? ACID : CARD,
+                padding: "8px 12px",
+                fontFamily: FONT_MONO,
+                fontSize: 10,
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              {zoomed ? "AJUSTAR A PANTALLA" : "VER 100%"}
+            </button>
+            {imageUrl ? (
+              <a
+                href={imageUrl}
+                target="_blank"
+                rel="noreferrer"
+                style={{
+                  border: `2px solid ${INK}`,
+                  background: CARD,
+                  padding: "8px 12px",
+                  fontFamily: FONT_MONO,
+                  fontSize: 10,
+                  fontWeight: 800,
+                  color: INK,
+                  textDecoration: "none",
+                }}
+              >
+                ABRIR ORIGINAL
+              </a>
+            ) : null}
+          </div>
+        </div>
+        <aside
+          style={{
+            borderLeft: `3px solid ${INK}`,
+            background: PAPER,
+            padding: 14,
+            overflow: "auto",
+            display: "flex",
+            flexDirection: "column",
+            minHeight: 0,
+          }}
+        >
+          <div style={{ fontFamily: FONT_MONO, fontSize: 10, fontWeight: 800, letterSpacing: "0.1em", marginBottom: 10 }}>
+            COMPARAR VARIANTES
+          </div>
+          <div style={{ display: "grid", gap: 9 }}>
+            {variants.map((variant) => (
+              <button
+                key={variant.label}
+                onClick={() => {
+                  setZoomed(false);
+                  onSelect(variant);
+                }}
+                style={{
+                  border: `2px solid ${selected.label === variant.label ? ACID : INK}`,
+                  background: selected.label === variant.label ? INK : CARD,
+                  color: selected.label === variant.label ? ACID : INK,
+                  padding: 8,
+                  textAlign: "left",
+                  cursor: "pointer",
+                }}
+              >
+                <div
+                  style={{
+                    aspectRatio: "1 / 1",
+                    maxHeight: 168,
+                    border: `1.5px solid ${selected.label === variant.label ? ACID : INK}`,
+                    background: variant.accent,
+                    marginBottom: 8,
+                    overflow: "hidden",
+                  }}
+                >
+                  {variant.asset?.imageUrl ? (
+                    <img
+                      src={variant.asset.imageUrl}
+                      alt={variant.asset.altText ?? `Creatividad ${variant.label}`}
+                      style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    />
+                  ) : null}
+                </div>
+                <div style={{ fontFamily: FONT_MONO, fontSize: 10, fontWeight: 800 }}>VAR {variant.label}</div>
+              </button>
+            ))}
+          </div>
+          <div style={{ marginTop: 14, display: "grid", gap: 7, fontSize: 12, fontWeight: 600 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+              <span style={{ color: "rgba(10,10,10,0.55)" }}>Formato</span>
+              <b>{dimensions}</b>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+              <span style={{ color: "rgba(10,10,10,0.55)" }}>Estado</span>
+              <b>{chipFor(status).label}</b>
+            </div>
+            {provider ? (
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                <span style={{ color: "rgba(10,10,10,0.55)" }}>Provider</span>
+                <b>{provider}</b>
+              </div>
+            ) : null}
+          </div>
+          <div style={{ marginTop: 14, display: "grid", gap: 8 }}>
+            <button
+              onClick={onApprove}
+              disabled={!canApprove}
+              style={{
+                border: `2px solid ${INK}`,
+                background: canApprove ? ACID : STONE,
+                color: canApprove ? INK : "rgba(10,10,10,0.45)",
+                padding: "10px 12px",
+                fontFamily: FONT_SANS,
+                fontSize: 12,
+                fontWeight: 800,
+                textTransform: "uppercase",
+                cursor: canApprove ? "pointer" : "default",
+              }}
+            >
+              ✓ Aprobar creatividades
+            </button>
+            <button
+              onClick={onRegen}
+              style={{
+                border: `2px solid ${INK}`,
+                background: CARD,
+                padding: "10px 12px",
+                fontFamily: FONT_SANS,
+                fontSize: 12,
+                fontWeight: 800,
+                textTransform: "uppercase",
+                cursor: "pointer",
+              }}
+            >
+              ↻ Regenerar lote
+            </button>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
 export function CampaignView({
   dashboard,
   statuses,
@@ -328,6 +692,8 @@ export function CampaignView({
 }) {
   const approvedCount = dashboard?.progress.approved ?? Object.values(statuses).filter((x) => x === "approved").length;
   const totalCount = dashboard?.progress.total ?? 6;
+  const pendingLabels = dashboard?.progress.pending ?? [];
+  const pendingCount = Math.max(totalCount - approvedCount, pendingLabels.length);
   const brandUpper = brandName.toUpperCase();
   const strategy = dashboard?.agents.strategy;
   const audience = asRecord(strategy?.audience);
@@ -338,6 +704,16 @@ export function CampaignView({
   const assetB = getVariantAsset(dashboard?.agents.visualAssets ?? [], "b");
   const videoScript = dashboard?.agents.videoScripts[0];
   const voiceovers = dashboard?.agents.voiceovers ?? [];
+  const creativeVariants = useMemo<CreativeVariant[]>(
+    () => [
+      { label: "A", accent: INK, asset: assetA },
+      { label: "B", accent: ACID, asset: assetB },
+    ],
+    [assetA, assetB],
+  );
+  const [previewVariant, setPreviewVariant] = useState<CreativeVariant | null>(null);
+  const [voiceDockOpen, setVoiceDockOpen] = useState(false);
+  const voiceDockExpanded = voiceDockOpen || cmdPhase !== "idle" || !!cmdText;
 
   const copyEsHeadline =
     esCopy?.headline ??
@@ -412,7 +788,7 @@ export function CampaignView({
       <div
         style={{
           display: "flex",
-          alignItems: "baseline",
+          alignItems: "flex-end",
           justifyContent: "space-between",
           gap: 16,
           marginBottom: 20,
@@ -426,7 +802,16 @@ export function CampaignView({
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ fontFamily: FONT_MONO, fontSize: 11.5, fontWeight: 600 }}>{approvedCount}/{totalCount} APPROVED</div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontFamily: FONT_MONO, fontSize: 11.5, fontWeight: 700 }}>
+              {approvedCount}/{totalCount} APROBADOS
+            </div>
+            <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: "rgba(10,10,10,0.55)", marginTop: 3 }}>
+              {pendingCount > 0
+                ? `Siguiente: ${(pendingLabels[0] ?? `${pendingCount} pendientes`).toString()}`
+                : "Listo para publicar"}
+            </div>
+          </div>
           <div style={{ width: 150, height: 14, border: `2px solid ${INK}`, background: CARD }}>
             <div
               style={{
@@ -440,7 +825,59 @@ export function CampaignView({
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(370px, 1fr))", gap: 20 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))",
+          gap: 8,
+          marginBottom: 18,
+        }}
+      >
+        {(
+          [
+            ["strategy", "Estrategia"],
+            ["audiences", "Audiencias"],
+            ["copy", "Copy"],
+            ["creatives", "Creativos"],
+            ["video", "Video"],
+            ["voice", "Voz"],
+          ] as Array<[AssetId, string]>
+        ).map(([key, label]) => {
+          const chip = chipFor(statuses[key]);
+          return (
+            <div
+              key={key}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 8,
+                border: `2px solid ${INK}`,
+                background: statuses[key] === "approved" ? "#FFFEFA" : CARD,
+                padding: "8px 10px",
+                boxShadow: statuses[key] === "review" ? `3px 3px 0 ${SUN}` : "none",
+              }}
+            >
+              <span style={{ fontSize: 12, fontWeight: 800 }}>{label}</span>
+              <span
+                style={{
+                  fontFamily: FONT_MONO,
+                  fontSize: 9,
+                  fontWeight: 800,
+                  background: chip.bg,
+                  color: chip.color,
+                  border: `1.5px solid ${INK}`,
+                  padding: "2px 6px",
+                }}
+              >
+                {chip.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 390px), 1fr))", gap: 18 }}>
         {/* STRATEGY */}
         <AssetCard
           dotColor={VOLT}
@@ -565,104 +1002,103 @@ export function CampaignView({
           onRegen={() => regen("creatives")}
           canRegen={hasRealAssets(dashboard, "creatives")}
         >
-          <div style={{ padding: 16, flex: 1 }}>
-            <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>Creatividades estáticas · 1080×1080</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <div
+          <div style={{ padding: 16 }}>
+            <div style={{ display: "flex", alignItems: "start", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
+              <div>
+                <div style={{ fontWeight: 800, fontSize: 15 }}>Creatividades estáticas · 1080×1080</div>
+                <div style={{ fontFamily: FONT_MONO, fontSize: 10, color: "rgba(10,10,10,0.58)", marginTop: 3 }}>
+                  Click en una variante para revisar a tamaño completo.
+                </div>
+              </div>
+              <button
+                onClick={() => setPreviewVariant(creativeVariants.find((variant) => variant.asset?.imageUrl) ?? creativeVariants[0])}
+                disabled={!assetA?.imageUrl && !assetB?.imageUrl}
                 style={{
-                  aspectRatio: "1 / 1",
-                  background: INK,
-                  color: ACID,
                   border: `2px solid ${INK}`,
-                  padding: 14,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  overflow: "hidden",
+                  background: assetA?.imageUrl || assetB?.imageUrl ? ACID : STONE,
+                  color: assetA?.imageUrl || assetB?.imageUrl ? INK : "rgba(10,10,10,0.45)",
+                  padding: "7px 10px",
+                  fontFamily: FONT_MONO,
+                  fontSize: 10,
+                  fontWeight: 800,
+                  cursor: assetA?.imageUrl || assetB?.imageUrl ? "pointer" : "default",
+                  flex: "none",
                 }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontFamily: FONT_MONO,
-                    fontSize: 8.5,
-                    letterSpacing: "0.14em",
-                    opacity: 0.8,
-                  }}
-                >
-                  <span>{brandUpper}</span>
-                  <span>A</span>
-                </div>
-                {assetA?.imageUrl ? (
-                  <img
-                    src={assetA.imageUrl}
-                    alt={assetA.altText ?? "Variante creativa A"}
-                    style={{ flex: 1, minHeight: 0, margin: "10px 0", width: "100%", objectFit: "cover", border: `1.5px solid ${ACID}` }}
-                  />
-                ) : (
-                  <div
+                VER PREVIEW
+              </button>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 12 }}>
+              {creativeVariants.map((variant) => {
+                const imageUrl = variant.asset?.imageUrl;
+                return (
+                  <button
+                    key={variant.label}
+                    onClick={() => setPreviewVariant(variant)}
+                    disabled={!imageUrl}
                     style={{
-                      flex: 1,
-                      margin: "10px 0",
-                      border: `1.5px dashed ${ACID}`,
+                      aspectRatio: "1 / 1",
+                      background: variant.label === "A" ? INK : ACID,
+                      color: variant.label === "A" ? ACID : INK,
+                      border: `2px solid ${INK}`,
+                      padding: 10,
                       display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      opacity: 0.9,
-                      background:
-                        "repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(198,244,50,0.08) 6px, rgba(198,244,50,0.08) 7px)",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      overflow: "hidden",
+                      cursor: imageUrl ? "zoom-in" : "default",
+                      textAlign: "left",
                     }}
                   >
-                    <span style={{ fontFamily: FONT_MONO, fontSize: 8.5 }}>[ esperando creatividad ]</span>
-                  </div>
-                )}
-                <div style={{ fontFamily: FONT_BLACK, fontSize: 15, lineHeight: 1.05, textTransform: "uppercase" }}>
-                  {assetA?.prompt?.slice(0, 48) ?? "Silencia tu trayecto."}
-                </div>
-              </div>
-              <div
-                style={{
-                  aspectRatio: "1 / 1",
-                  background: ACID,
-                  color: INK,
-                  border: `2px solid ${INK}`,
-                  padding: 14,
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "space-between",
-                  overflow: "hidden",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontFamily: FONT_MONO,
-                    fontSize: 8.5,
-                    letterSpacing: "0.14em",
-                  }}
-                >
-                  <span>{brandUpper}</span>
-                  <span>B</span>
-                </div>
-                {assetB?.imageUrl ? (
-                  <img
-                    src={assetB.imageUrl}
-                    alt={assetB.altText ?? "Variante creativa B"}
-                    style={{ flex: 1, minHeight: 0, margin: "10px 0", width: "100%", objectFit: "cover", border: `1.5px solid ${INK}` }}
-                  />
-                ) : (
-                  <div style={{ fontFamily: FONT_BLACK, fontSize: 26, lineHeight: 0.95 }}>
-                    36H
-                    <br />
-                    BATERÍA.
-                  </div>
-                )}
-                <div style={{ fontFamily: FONT_MONO, fontSize: 9, fontWeight: 600 }}>
-                  {assetB?.prompt?.slice(0, 54) ?? "AUDÍFONOS ANC — PREVENTA -20%"}
-                </div>
-              </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        fontFamily: FONT_MONO,
+                        fontSize: 8.5,
+                        letterSpacing: "0.14em",
+                        opacity: 0.9,
+                      }}
+                    >
+                      <span>{brandUpper}</span>
+                      <span>{variant.label}</span>
+                    </div>
+                    {imageUrl ? (
+                      <img
+                        src={imageUrl}
+                        alt={variant.asset?.altText ?? `Variante creativa ${variant.label}`}
+                        style={{
+                          flex: 1,
+                          minHeight: 0,
+                          margin: "8px 0",
+                          width: "100%",
+                          objectFit: "cover",
+                          border: `1.5px solid ${variant.label === "A" ? ACID : INK}`,
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          flex: 1,
+                          margin: "8px 0",
+                          border: `1.5px dashed ${variant.label === "A" ? ACID : INK}`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontFamily: FONT_MONO,
+                          fontSize: 8.5,
+                          fontWeight: 800,
+                        }}
+                      >
+                        PENDIENTE
+                      </div>
+                    )}
+                    <div style={{ fontFamily: FONT_MONO, fontSize: 9, fontWeight: 800 }}>
+                      {imageUrl ? "Ver 1080×1080" : variant.asset?.prompt?.slice(0, 54) ?? "Esperando creatividad"}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </AssetCard>
@@ -746,64 +1182,128 @@ export function CampaignView({
         </AssetCard>
       </div>
 
-      {/* Voice command bar */}
-      <div
-        style={{
-          position: "fixed",
-          left: "calc(250px + 26px)",
-          right: 26,
-          bottom: 22,
-          zIndex: 20,
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          background: INK,
-          color: PAPER,
-          border: `3px solid ${INK}`,
-          borderRadius: RADIUS_SM,
-          padding: "11px 13px",
-          boxShadow: `6px 6px 0 ${ACID}`,
-        }}
-      >
-        <MicOrb
-          size="mini"
-          phase={cmdPhase === "listening" ? "recording" : "idle"}
-          onClick={voiceCmdClick}
-          ariaLabel="Comando de voz"
-          ringColor={CORAL}
+      {previewVariant ? (
+        <CreativePreviewModal
+          variants={creativeVariants}
+          selected={previewVariant}
+          brandName={brandName}
+          status={statuses.creatives}
+          onSelect={setPreviewVariant}
+          onClose={() => setPreviewVariant(null)}
+          onApprove={() => approve("creatives")}
+          onRegen={() => regen("creatives")}
         />
+      ) : null}
+
+      {/* Voice command dock */}
+      {voiceDockExpanded ? (
         <div
           style={{
-            flex: 1,
-            minWidth: 0,
-            fontSize: 13.5,
-            fontWeight: 600,
-            color: cmdText || cmdPhase !== "idle" ? PAPER : "rgba(244,242,236,0.5)",
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
+            position: "fixed",
+            right: 26,
+            bottom: 22,
+            zIndex: 20,
+            width: "min(720px, calc(100vw - 302px))",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            background: INK,
+            color: PAPER,
+            border: `3px solid ${INK}`,
+            borderRadius: RADIUS_SM,
+            padding: "10px 12px",
+            boxShadow: `5px 5px 0 ${ACID}`,
           }}
         >
-          {cmdPhase === "listening"
-            ? "Escuchando…"
-            : cmdText || "Comando de voz — prueba “regenera el titular en español con más urgencia”"}
+          <MicOrb
+            size="mini"
+            phase={cmdPhase === "listening" ? "recording" : "idle"}
+            onClick={voiceCmdClick}
+            ariaLabel="Comando de voz"
+            ringColor={CORAL}
+          />
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              fontSize: 13,
+              fontWeight: 600,
+              color: cmdText || cmdPhase !== "idle" ? PAPER : "rgba(244,242,236,0.58)",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {cmdPhase === "listening"
+              ? "Escuchando…"
+              : cmdText || "Comando de voz — prueba “regenera el titular en español con más urgencia”"}
+          </div>
+          <VoiceStatePill listening={cmdPhase === "listening"} labelListening="Escuchando" labelIdle="Inactivo" />
+          <button
+            onClick={() => setVoiceDockOpen(false)}
+            aria-label="Contraer comandos de voz"
+            style={{
+              border: "2px solid rgba(244,242,236,0.35)",
+              borderRadius: RADIUS_PILL,
+              background: "transparent",
+              color: PAPER,
+              fontFamily: FONT_MONO,
+              fontSize: 10,
+              fontWeight: 800,
+              padding: "5px 10px",
+              cursor: "pointer",
+            }}
+          >
+            OCULTAR
+          </button>
         </div>
-        <VoiceStatePill listening={cmdPhase === "listening"} labelListening="Escuchando" labelIdle="Inactivo" />
+      ) : (
         <div
           style={{
+            position: "fixed",
+            right: 26,
+            bottom: 22,
+            zIndex: 20,
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            background: INK,
+            color: PAPER,
+            border: `3px solid ${INK}`,
+            borderRadius: RADIUS_PILL,
+            padding: "8px 12px 8px 8px",
+            boxShadow: `4px 4px 0 ${ACID}`,
             fontFamily: FONT_MONO,
             fontSize: 10,
-            fontWeight: 600,
+            fontWeight: 800,
             letterSpacing: "0.06em",
-            border: "2px solid rgba(244,242,236,0.35)",
-            borderRadius: RADIUS_PILL,
-            padding: "5px 10px",
-            flex: "none",
           }}
         >
-          COMANDOS DE VOZ · ES/EN
+          <MicOrb
+            size="mini"
+            phase="idle"
+            onClick={voiceCmdClick}
+            ariaLabel="Comando de voz"
+            ringColor={CORAL}
+          />
+          <button
+            onClick={() => setVoiceDockOpen(true)}
+            style={{
+              border: "none",
+              background: "transparent",
+              color: PAPER,
+              fontFamily: FONT_MONO,
+              fontSize: 10,
+              fontWeight: 800,
+              letterSpacing: "0.06em",
+              cursor: "pointer",
+              padding: "7px 2px",
+            }}
+          >
+            VOZ
+          </button>
         </div>
-      </div>
+      )}
     </div>
   );
 }
