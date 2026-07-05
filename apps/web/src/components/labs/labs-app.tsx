@@ -573,6 +573,7 @@ export default function LabsApp() {
   const anyGenerating = Object.values(visibleStatuses).includes("generating");
   const exported = pushed || dashboard?.latestExport?.exportStatus === "sent";
   const currentStage = exported ? 4 : allApproved ? 3 : anyGenerating ? 1 : dashboard ? 2 : 0;
+  const pendingPublishCount = dashboard?.progress.pending.length ?? Math.max(totalCount - approvedCount, 0);
 
   const liveSteps = useMemo<LiveGenerationStep[]>(() => {
     const strategyDone = !!dashboard?.agents.strategy && dashboard.agents.strategy.status !== "generating";
@@ -1004,6 +1005,7 @@ export default function LabsApp() {
               <button
                 onClick={() => void pushToMetaAds()}
                 disabled={!pushable}
+                title={!pushable && !exported ? `${pendingPublishCount} aprobaciones pendientes` : undefined}
                 className="nb-press"
                 style={
                   {
@@ -1021,7 +1023,11 @@ export default function LabsApp() {
                   } as CSSProperties
                 }
               >
-                {exported ? "⟶ En cola en n8n" : "Publicar en Meta Ads"}
+                {exported
+                  ? "⟶ En cola en n8n"
+                  : pushable
+                    ? "Publicar en Meta Ads"
+                    : `Faltan ${pendingPublishCount} aprobaciones`}
               </button>
             </div>
           )}
