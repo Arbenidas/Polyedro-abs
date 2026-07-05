@@ -2,16 +2,18 @@ import { env } from "@Polyedro-abs/env/server";
 import { ApiError } from "@/api/shared";
 import { db } from "@/db";
 import { brands, campaignBriefs } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
+
+import type { AuthEnv } from "@/middleware/auth";
 
 const MAX_AUDIO_BYTES = 25 * 1024 * 1024;
 const OPENAI_TRANSCRIPTIONS_URL = "https://api.openai.com/v1/audio/transcriptions";
 const OPENAI_TRANSCRIPTION_MODEL = "whisper-1";
 const TRANSCRIPTION_LANGUAGE = "es";
 
-const transcriptionRoutes = new Hono();
+const transcriptionRoutes = new Hono<AuthEnv>();
 
 transcriptionRoutes.post("/", async (c) => {
   const formData = await c.req.raw.formData().catch(() => null);
@@ -34,8 +36,10 @@ transcriptionRoutes.post("/", async (c) => {
     throw new ApiError(400, "Audio file must be 25 MB or smaller.");
   }
 
+  // Ownership en la query, ANTES de llamar a OpenAI (evita quemar créditos
+  // de transcripción contra marcas ajenas); 404 para no filtrar existencia.
   const brand = await db.query.brands.findFirst({
-    where: eq(brands.id, parsedBrandId.data),
+    where: and(eq(brands.id, parsedBrandId.data), eq(brands.userId, c.get("user").id)),
   });
 
   if (!brand) {
