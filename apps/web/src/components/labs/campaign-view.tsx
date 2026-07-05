@@ -2,6 +2,7 @@
 
 import type { CSSProperties, ReactNode } from "react";
 
+import type { CampaignAdCopy, CampaignCreativeAsset, CampaignDashboard } from "@/lib/api";
 import {
   ACID,
   type AssetId,
@@ -40,6 +41,7 @@ function AssetCard({
   status,
   onApprove,
   onRegen,
+  canRegen = true,
   regenLabel = "↻ Regenerate",
   children,
 }: {
@@ -48,6 +50,7 @@ function AssetCard({
   status: AssetStatus;
   onApprove: () => void;
   onRegen: () => void;
+  canRegen?: boolean;
   regenLabel?: string;
   children: ReactNode;
 }) {
@@ -113,6 +116,7 @@ function AssetCard({
         </button>
         <button
           onClick={onRegen}
+          disabled={!canRegen}
           className="hov-coral"
           style={{
             flex: 1,
@@ -123,7 +127,8 @@ function AssetCard({
             padding: 11,
             border: "none",
             background: CARD,
-            cursor: "pointer",
+            cursor: canRegen ? "pointer" : "default",
+            opacity: canRegen ? 1 : 0.45,
           }}
         >
           {regenLabel}
@@ -151,6 +156,43 @@ const langTag: CSSProperties = {
   display: "inline-block",
   padding: "1px 6px",
   marginBottom: 7,
+};
+
+const asRecord = (value: unknown): Record<string, unknown> =>
+  value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+
+const asStringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+
+const joinList = (value: unknown, fallback: string) => {
+  const items = asStringArray(value);
+  return items.length > 0 ? items.join(" · ") : fallback;
+};
+
+const getVariantCopy = (
+  copies: CampaignAdCopy[],
+  language: "es" | "en",
+  copyVar: "A" | "B",
+) => copies.find((copy) => copy.language === language && copy.variant === copyVar.toLowerCase());
+
+const getVariantAsset = (assets: CampaignCreativeAsset[], variant: "a" | "b") =>
+  assets.find((asset) => asset.variant === variant);
+
+const hasRealAssets = (dashboard: CampaignDashboard | null | undefined, key: AssetId) => {
+  if (!dashboard) return true;
+  switch (key) {
+    case "strategy":
+    case "audiences":
+      return !!dashboard.agents.strategy;
+    case "copy":
+      return dashboard.agents.adCopies.length > 0;
+    case "creatives":
+      return dashboard.agents.visualAssets.length > 0;
+    case "video":
+      return dashboard.agents.videoScripts.length > 0;
+    case "voice":
+      return dashboard.agents.voiceovers.length > 0;
+  }
 };
 
 function WaveRow({
@@ -204,6 +246,7 @@ function WaveRow({
 }
 
 export function CampaignView({
+  dashboard,
   statuses,
   approve,
   regen,
@@ -216,10 +259,12 @@ export function CampaignView({
   togglePlayEs,
   togglePlayEn,
   pushed,
+  actionMessage,
   cmdPhase,
   cmdText,
   voiceCmdClick,
 }: {
+  dashboard?: CampaignDashboard | null;
   statuses: Statuses;
   approve: (id: AssetId) => void;
   regen: (id: AssetId) => void;
@@ -232,33 +277,72 @@ export function CampaignView({
   togglePlayEs: () => void;
   togglePlayEn: () => void;
   pushed: boolean;
+  actionMessage?: string | null;
   cmdPhase: "idle" | "listening" | "typing";
   cmdText: string;
   voiceCmdClick: () => void;
 }) {
-  const approvedCount = Object.values(statuses).filter((x) => x === "approved").length;
+  const approvedCount = dashboard?.progress.approved ?? Object.values(statuses).filter((x) => x === "approved").length;
+  const totalCount = dashboard?.progress.total ?? 6;
   const brandUpper = brandName.toUpperCase();
+  const strategy = dashboard?.agents.strategy;
+  const audience = asRecord(strategy?.audience);
+  const segmentation = asRecord(strategy?.segmentation);
+  const esCopy = getVariantCopy(dashboard?.agents.adCopies ?? [], "es", copyVar);
+  const enCopy = getVariantCopy(dashboard?.agents.adCopies ?? [], "en", copyVar);
+  const assetA = getVariantAsset(dashboard?.agents.visualAssets ?? [], "a");
+  const assetB = getVariantAsset(dashboard?.agents.visualAssets ?? [], "b");
+  const videoScript = dashboard?.agents.videoScripts[0];
+  const voiceovers = dashboard?.agents.voiceovers ?? [];
 
   const copyEsHeadline =
-    copyVar === "B"
+    esCopy?.headline ??
+    (copyVar === "B"
       ? "36 horas de batería. Cero excusas."
       : copyUrgent
         ? "Últimos días: tu enfoque no puede esperar."
-        : "Tu tramo del metro, en silencio total.";
+        : "Tu tramo del metro, en silencio total.");
   const copyEsBody =
-    copyVar === "B"
+    esCopy?.primaryText ??
+    (copyVar === "B"
       ? "ANC adaptativo para estudiar, viajar y trabajar. Pre-ordena con 20% off."
       : copyUrgent
         ? `Audífonos ANC ${brandName} — 36h de batería. Pre-ordena antes del viernes y llévate 20% off.`
-        : `Audífonos ${brandName} con cancelación de ruido adaptativa y 36h de batería. Pre-ordena con 20% off.`;
-  const copyEnHeadline = copyVar === "B" ? "36 hours of battery. Zero excuses." : "Your commute just went quiet.";
+        : `Audífonos ${brandName} con cancelación de ruido adaptativa y 36h de batería. Pre-ordena con 20% off.`);
+  const copyEnHeadline =
+    enCopy?.headline ?? (copyVar === "B" ? "36 hours of battery. Zero excuses." : "Your commute just went quiet.");
   const copyEnBody =
-    copyVar === "B"
+    enCopy?.primaryText ??
+    (copyVar === "B"
       ? "Adaptive ANC for studying, commuting and deep work. Pre-order and save 20%."
-      : `${brandName} ANC earbuds — 36h battery, adaptive noise canceling. Pre-order and save 20%.`;
+      : `${brandName} ANC earbuds — 36h battery, adaptive noise canceling. Pre-order and save 20%.`);
+  const campaignTitle = dashboard
+    ? `${dashboard.campaign.id.slice(0, 8).toUpperCase()} · ${dashboard.campaign.name}`
+    : "CMP-004 · Earbuds Launch — LatAm";
+  const campaignSubtitle = dashboard
+    ? dashboard.campaign.objective
+    : "Noise-canceling earbuds · young professionals & students · MX / CO / CL · ES/EN";
 
   return (
     <div>
+      {actionMessage && (
+        <div
+          style={{
+            background: "#FFE8E2",
+            border: `3px solid ${INK}`,
+            boxShadow: `5px 5px 0 ${INK}`,
+            padding: "12px 16px",
+            marginBottom: 18,
+            fontFamily: FONT_MONO,
+            fontSize: 11,
+            fontWeight: 700,
+            color: INK,
+          }}
+        >
+          {actionMessage}
+        </div>
+      )}
+
       {pushed && (
         <div
           style={{
@@ -292,19 +376,19 @@ export function CampaignView({
         }}
       >
         <div>
-          <div style={{ fontFamily: FONT_BLACK, fontSize: 24, letterSpacing: "-0.01em" }}>CMP-004 · Earbuds Launch — LatAm</div>
+          <div style={{ fontFamily: FONT_BLACK, fontSize: 24, letterSpacing: "-0.01em" }}>{campaignTitle}</div>
           <div style={{ fontSize: 13, fontWeight: 500, color: "rgba(10,10,10,0.6)", marginTop: 4 }}>
-            Noise-canceling earbuds · young professionals &amp; students · MX / CO / CL · ES/EN
+            {campaignSubtitle}
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ fontFamily: FONT_MONO, fontSize: 11.5, fontWeight: 600 }}>{approvedCount}/6 APPROVED</div>
+          <div style={{ fontFamily: FONT_MONO, fontSize: 11.5, fontWeight: 600 }}>{approvedCount}/{totalCount} APPROVED</div>
           <div style={{ width: 150, height: 14, border: `2px solid ${INK}`, background: CARD }}>
             <div
               style={{
                 height: "100%",
                 background: ACID,
-                width: `${Math.round((approvedCount / 6) * 100)}%`,
+                width: `${Math.round((approvedCount / totalCount) * 100)}%`,
                 transition: "width 0.4s",
               }}
             />
@@ -320,18 +404,19 @@ export function CampaignView({
           status={statuses.strategy}
           onApprove={() => approve("strategy")}
           onRegen={() => regen("strategy")}
+          canRegen={hasRealAssets(dashboard, "strategy")}
         >
           <div style={{ padding: 16, flex: 1 }}>
             <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>Launch strategy</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12.5, fontWeight: 500 }}>
               <div style={{ display: "flex", gap: 8 }}>
-                <span style={specTag}>OBJECTIVE</span> Conversions — earbuds pre-orders, 3-week burst
+                <span style={specTag}>OBJECTIVE</span> {dashboard?.campaign.objective ?? "Conversions — earbuds pre-orders, 3-week burst"}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <span style={specTag}>FUNNEL</span> 60% cold reach · 25% retargeting · 15% lookalike
+                <span style={specTag}>FUNNEL</span> {strategy?.notes ?? "60% cold reach · 25% retargeting · 15% lookalike"}
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <span style={specTag}>ANGLE</span> &quot;Silence the commute&quot; — focus &amp; productivity, not specs
+                <span style={specTag}>ANGLE</span> {strategy?.commercialAngle ?? "\"Silence the commute\" — focus & productivity, not specs"}
               </div>
             </div>
           </div>
@@ -344,22 +429,28 @@ export function CampaignView({
           status={statuses.audiences}
           onApprove={() => approve("audiences")}
           onRegen={() => regen("audiences")}
+          canRegen={hasRealAssets(dashboard, "audiences")}
         >
           <div style={{ padding: 16, flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ fontWeight: 800, fontSize: 15 }}>Audience segmentation</div>
             <div style={{ border: `2px solid ${INK}`, padding: "10px 12px", background: PAPER }}>
               <div style={{ fontFamily: FONT_MONO, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>
-                SEG A · YOUNG PROFESSIONALS 24–32
+                SEG A · {typeof audience.ageRange === "string" ? audience.ageRange : "YOUNG PROFESSIONALS 24-32"}
               </div>
               <div style={{ fontSize: 12, fontWeight: 500 }}>
-                MX · CO · CL — commuting, productivity apps, remote work. Est. reach 2.1M
+                {typeof audience.description === "string"
+                  ? audience.description
+                  : "MX · CO · CL — commuting, productivity apps, remote work. Est. reach 2.1M"}
               </div>
             </div>
             <div style={{ border: `2px solid ${INK}`, padding: "10px 12px", background: PAPER }}>
               <div style={{ fontFamily: FONT_MONO, fontSize: 10, fontWeight: 700, marginBottom: 6 }}>
-                SEG B · UNI STUDENTS 18–24
+                META TARGETING
               </div>
-              <div style={{ fontSize: 12, fontWeight: 500 }}>study music, gaming audio, budget tech. Est. reach 3.4M</div>
+              <div style={{ fontSize: 12, fontWeight: 500 }}>
+                {joinList(segmentation.locations, "study music, gaming audio, budget tech")} ·{" "}
+                {joinList(segmentation.interests, "Est. reach 3.4M")}
+              </div>
             </div>
           </div>
         </AssetCard>
@@ -371,6 +462,7 @@ export function CampaignView({
           status={statuses.copy}
           onApprove={() => approve("copy")}
           onRegen={() => regen("copy")}
+          canRegen={hasRealAssets(dashboard, "copy")}
         >
           <div style={{ padding: 16, flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -427,6 +519,7 @@ export function CampaignView({
           status={statuses.creatives}
           onApprove={() => approve("creatives")}
           onRegen={() => regen("creatives")}
+          canRegen={hasRealAssets(dashboard, "creatives")}
         >
           <div style={{ padding: 16, flex: 1 }}>
             <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>Static creatives · 1080×1080</div>
@@ -441,6 +534,7 @@ export function CampaignView({
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
+                  overflow: "hidden",
                 }}
               >
                 <div
@@ -456,23 +550,31 @@ export function CampaignView({
                   <span>{brandUpper}</span>
                   <span>A</span>
                 </div>
-                <div
-                  style={{
-                    flex: 1,
-                    margin: "10px 0",
-                    border: `1.5px dashed ${ACID}`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    opacity: 0.9,
-                    background:
-                      "repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(198,244,50,0.08) 6px, rgba(198,244,50,0.08) 7px)",
-                  }}
-                >
-                  <span style={{ fontFamily: FONT_MONO, fontSize: 8.5 }}>[ earbuds shot ]</span>
-                </div>
+                {assetA?.imageUrl ? (
+                  <img
+                    src={assetA.imageUrl}
+                    alt={assetA.altText ?? "Creative variant A"}
+                    style={{ flex: 1, minHeight: 0, margin: "10px 0", width: "100%", objectFit: "cover", border: `1.5px solid ${ACID}` }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      flex: 1,
+                      margin: "10px 0",
+                      border: `1.5px dashed ${ACID}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      opacity: 0.9,
+                      background:
+                        "repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(198,244,50,0.08) 6px, rgba(198,244,50,0.08) 7px)",
+                    }}
+                  >
+                    <span style={{ fontFamily: FONT_MONO, fontSize: 8.5 }}>[ awaiting creative ]</span>
+                  </div>
+                )}
                 <div style={{ fontFamily: FONT_BLACK, fontSize: 15, lineHeight: 1.05, textTransform: "uppercase" }}>
-                  Silence the commute.
+                  {assetA?.prompt?.slice(0, 48) ?? "Silence the commute."}
                 </div>
               </div>
               <div
@@ -485,6 +587,7 @@ export function CampaignView({
                   display: "flex",
                   flexDirection: "column",
                   justifyContent: "space-between",
+                  overflow: "hidden",
                 }}
               >
                 <div
@@ -499,12 +602,22 @@ export function CampaignView({
                   <span>{brandUpper}</span>
                   <span>B</span>
                 </div>
-                <div style={{ fontFamily: FONT_BLACK, fontSize: 26, lineHeight: 0.95 }}>
-                  36H
-                  <br />
-                  BATTERY.
+                {assetB?.imageUrl ? (
+                  <img
+                    src={assetB.imageUrl}
+                    alt={assetB.altText ?? "Creative variant B"}
+                    style={{ flex: 1, minHeight: 0, margin: "10px 0", width: "100%", objectFit: "cover", border: `1.5px solid ${INK}` }}
+                  />
+                ) : (
+                  <div style={{ fontFamily: FONT_BLACK, fontSize: 26, lineHeight: 0.95 }}>
+                    36H
+                    <br />
+                    BATTERY.
+                  </div>
+                )}
+                <div style={{ fontFamily: FONT_MONO, fontSize: 9, fontWeight: 600 }}>
+                  {assetB?.prompt?.slice(0, 54) ?? "ANC EARBUDS — PRE-ORDER -20%"}
                 </div>
-                <div style={{ fontFamily: FONT_MONO, fontSize: 9, fontWeight: 600 }}>ANC EARBUDS — PRE-ORDER −20%</div>
               </div>
             </div>
           </div>
@@ -517,18 +630,27 @@ export function CampaignView({
           status={statuses.video}
           onApprove={() => approve("video")}
           onRegen={() => regen("video")}
+          canRegen={hasRealAssets(dashboard, "video")}
         >
           <div style={{ padding: 16, flex: 1 }}>
-            <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>Short video script · 15s Reels</div>
+            <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>
+              {videoScript?.title ?? "Short video script · 15s Reels"}
+            </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12.5, fontWeight: 500 }}>
-              {[
-                ["0:00–03", "Chaotic metro sounds — close-up: earbud goes in. Sudden silence."],
-                ["0:03–09", 'Split shots: studying, commuting, deep work. On-screen: "36h. Zero ruido."'],
-                ["0:09–15", 'Product spin + price card. VO CTA + "Pre-ordena hoy — 20% off."'],
-              ].map(([t, s]) => (
-                <div key={t} style={{ display: "flex", gap: 10 }}>
+              {(videoScript?.scenes && videoScript.scenes.length > 0
+                ? videoScript.scenes.map((scene, index) => [
+                    `SC ${scene.sceneNumber ?? index + 1}`,
+                    [scene.description, scene.dialogue].filter(Boolean).join(" — "),
+                  ])
+                : [
+                    ["0:00-03", "Chaotic metro sounds — close-up: earbud goes in. Sudden silence."],
+                    ["0:03-09", 'Split shots: studying, commuting, deep work. On-screen: "36h. Zero ruido."'],
+                    ["0:09-15", 'Product spin + price card. VO CTA + "Pre-ordena hoy — 20% off."'],
+                  ]
+              ).map(([t, s]) => (
+                <div key={`${t}-${s}`} style={{ display: "flex", gap: 10 }}>
                   <span style={{ fontFamily: FONT_MONO, fontSize: 10, fontWeight: 700, flex: "none", width: 52 }}>{t}</span>
-                  <span>{s}</span>
+                  <span>{s || "Scene pending content."}</span>
                 </div>
               ))}
             </div>
@@ -542,11 +664,12 @@ export function CampaignView({
           status={statuses.voice}
           onApprove={() => approve("voice")}
           onRegen={() => regen("voice")}
-          regenLabel={statuses.voice === "draft" ? "⚡ Generate" : "↻ Regenerate"}
+          canRegen={hasRealAssets(dashboard, "voice")}
+          regenLabel={statuses.voice === "draft" ? "Generate" : "↻ Regenerate"}
         >
           <div style={{ padding: 16, flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
             <div style={{ fontWeight: 800, fontSize: 15 }}>Voiceovers</div>
-            {statuses.voice === "draft" ? (
+            {voiceovers.length === 0 ? (
               <div
                 style={{
                   border: `2px dashed ${INK}`,
@@ -561,8 +684,17 @@ export function CampaignView({
               </div>
             ) : (
               <>
-                <WaveRow playing={playEs} onToggle={togglePlayEs} heights={wave(1)} meta="ES · VALENTINA · 0:14" />
-                <WaveRow playing={playEn} onToggle={togglePlayEn} heights={wave(2)} meta="EN · NOAH · 0:15" />
+                {voiceovers.slice(0, 2).map((voiceover, index) => (
+                  <WaveRow
+                    key={voiceover.id}
+                    playing={voiceover.language === "es" ? playEs : playEn}
+                    onToggle={voiceover.language === "es" ? togglePlayEs : togglePlayEn}
+                    heights={wave(index + 1)}
+                    meta={`${voiceover.language.toUpperCase()} · ${voiceover.voiceId.slice(0, 16).toUpperCase()} · 0:${String(
+                      voiceover.durationSeconds ?? 0,
+                    ).padStart(2, "0")}`}
+                  />
+                ))}
               </>
             )}
           </div>
