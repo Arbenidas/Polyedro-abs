@@ -1,17 +1,10 @@
+import type { GeneratedImage, ImageProvider, ImageRequest } from "@/api/services/images/types";
 import { ApiError } from "@/api/shared";
 import { env } from "@Polyedro-abs/env/server";
 
-/** Helper compartido para generar imágenes con Flux vía Fal.ai (endpoint
- *  síncrono fal.run). Lo usan el Creative Agent y el Brand Agent (logo). */
-
-export type GeneratedImage = {
-  url: string;
-  provider: "fal.ai" | "placeholder";
-  model?: string;
-  seed?: number;
-  width: number;
-  height: number;
-};
+/** Provider Fal.ai (Flux vía endpoint síncrono fal.run). Dormante mientras no
+ *  haya FAL_KEY; al reactivarlo considerar migrar a @ai-sdk/fal para unificar
+ *  con el provider de OpenAI. */
 
 const FAL_REQUEST_TIMEOUT_MS = 120_000;
 
@@ -24,12 +17,7 @@ type FalImageResponse = {
   seed?: number;
 };
 
-export const isFalConfigured = () => !!env.FAL_KEY;
-
-const requestFalImage = (
-  falKey: string,
-  input: { prompt: string; width: number; height: number },
-) =>
+const requestFalImage = (falKey: string, request: ImageRequest) =>
   fetch(`https://fal.run/${env.FAL_IMAGE_MODEL}`, {
     method: "POST",
     headers: {
@@ -42,8 +30,8 @@ const requestFalImage = (
       }),
     },
     body: JSON.stringify({
-      prompt: input.prompt,
-      image_size: { width: input.width, height: input.height },
+      prompt: request.prompt,
+      image_size: { width: request.width, height: request.height },
       num_images: 1,
       output_format: "jpeg",
       enable_safety_checker: true,
@@ -51,21 +39,15 @@ const requestFalImage = (
     signal: AbortSignal.timeout(FAL_REQUEST_TIMEOUT_MS),
   });
 
-/** Genera una imagen con Fal.ai. Lanza ApiError si FAL_KEY no está
- *  configurada o la generación falla; los callers deciden su fallback. */
-export const generateFalImage = async (input: {
-  prompt: string;
-  width: number;
-  height: number;
-}): Promise<GeneratedImage> => {
+const generate = async (request: ImageRequest): Promise<GeneratedImage> => {
   if (!env.FAL_KEY) {
     throw new ApiError(500, "FAL_KEY is not configured");
   }
 
-  let response = await requestFalImage(env.FAL_KEY, input);
+  let response = await requestFalImage(env.FAL_KEY, request);
 
   if (TRANSIENT_STATUSES.has(response.status)) {
-    response = await requestFalImage(env.FAL_KEY, input);
+    response = await requestFalImage(env.FAL_KEY, request);
   }
 
   if (!response.ok) {
@@ -85,7 +67,13 @@ export const generateFalImage = async (input: {
     provider: "fal.ai",
     model: env.FAL_IMAGE_MODEL,
     seed: data.seed,
-    width: image.width ?? input.width,
-    height: image.height ?? input.height,
+    width: image.width ?? request.width,
+    height: image.height ?? request.height,
   };
+};
+
+export const falProvider: ImageProvider = {
+  name: "fal.ai",
+  isConfigured: () => !!env.FAL_KEY,
+  generate,
 };

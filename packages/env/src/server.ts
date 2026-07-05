@@ -10,10 +10,19 @@ export const env = createEnv({
     DIRECT_URL: z.url().optional(),
     SUPABASE_URL: z.url(),
     SUPABASE_ANON_KEY: z.string().min(1),
-    /** Fal.ai API key para el Creative Agent; sin ella se generan placeholders. */
+    /** Provider de generación de imágenes (logo y creativos). "auto" usa el
+     *  primero configurado (fal → openai) y cae a placeholder si no hay keys. */
+    IMAGE_PROVIDER: z.enum(["auto", "fal", "openai", "placeholder"]).default("auto"),
+    /** Calidad para providers que la soportan (gpt-image). "low" para
+     *  dev/smoke; subir a "medium"/"high" para la demo. */
+    IMAGE_QUALITY: z.enum(["low", "medium", "high", "auto"]).default("low"),
+    /** Fal.ai API key; sin ella el provider fal queda no-configurado. */
     FAL_KEY: z.string().min(1).optional(),
-    /** Endpoint de modelo en Fal.ai usado para creativos (texto → imagen). */
+    /** Endpoint de modelo en Fal.ai usado para imágenes (texto → imagen). */
     FAL_IMAGE_MODEL: z.string().min(1).default("fal-ai/flux-2"),
+    /** Modelo de imágenes de OpenAI (requiere OPENAI_API_KEY y organización
+     *  verificada en OpenAI para los modelos gpt-image). */
+    OPENAI_IMAGE_MODEL: z.string().min(1).default("gpt-image-2"),
     /** OpenAI API key para el Brand Agent (vía Vercel AI SDK); sin ella el
      *  brand kit usa contenido template. */
     OPENAI_API_KEY: z.string().min(1).optional(),

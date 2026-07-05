@@ -1,8 +1,4 @@
-import {
-  type GeneratedImage,
-  generateFalImage,
-  isFalConfigured,
-} from "@/api/services/fal";
+import { type ImageRequest, generateImage } from "@/api/services/images";
 import {
   emitAgentCompleted,
   emitAgentLog,
@@ -14,9 +10,10 @@ import { db } from "@/db";
 import { campaigns, creativeAssets } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 
-/** Creative Agent — genera creativos estáticos 1080×1080 para Meta Ads con
- *  Flux vía Fal.ai (FLUX.2 por defecto), en variantes A/B. Sin FAL_KEY el
- *  agente cae a imágenes placeholder para no romper la demo. */
+/** Creative Agent — genera creativos estáticos 1080×1080 para Meta Ads en
+ *  variantes A/B, vía el provider de imágenes configurado (IMAGE_PROVIDER:
+ *  fal/openai/placeholder). Sin keys cae a placeholders y la demo no se
+ *  rompe. */
 
 const IMAGE_WIDTH = 1080;
 const IMAGE_HEIGHT = 1080;
@@ -112,31 +109,21 @@ const buildAltText = (context: CreativeContext, variant: Variant) => {
   return `${context.brand.name} — ${context.campaign.name}: 1080×1080 ad creative (${angle}), variant ${variant.toUpperCase()}.`;
 };
 
-const buildPlaceholderImage = (context: CreativeContext, variant: Variant): GeneratedImage => {
-  const background = (context.brandKit?.colorPalette?.primary ?? "#B7FF1A").replace("#", "");
-  const text = encodeURIComponent(`${context.brand.name}\nVariant ${variant.toUpperCase()}`);
-
-  return {
-    url: `https://placehold.co/${IMAGE_WIDTH}x${IMAGE_HEIGHT}/${background}/111111/png?text=${text}`,
-    provider: "placeholder",
-    width: IMAGE_WIDTH,
-    height: IMAGE_HEIGHT,
-  };
-};
-
-const generateImage = async (
+const buildImageRequest = (
   context: CreativeContext,
   variant: Variant,
   prompt: string,
-): Promise<GeneratedImage> => {
-  if (!isFalConfigured()) {
-    return buildPlaceholderImage(context, variant);
-  }
+): ImageRequest => ({
+  prompt,
+  width: IMAGE_WIDTH,
+  height: IMAGE_HEIGHT,
+  placeholder: {
+    label: `${context.brand.name}\nVariant ${variant.toUpperCase()}`,
+    background: context.brandKit?.colorPalette?.primary,
+  },
+});
 
-  return generateFalImage({ prompt, width: IMAGE_WIDTH, height: IMAGE_HEIGHT });
-};
-
-const buildMetadata = (image: GeneratedImage) => ({
+const buildMetadata = (image: Awaited<ReturnType<typeof generateImage>>) => ({
   provider: image.provider,
   model: image.model,
   seed: image.seed,
@@ -176,7 +163,7 @@ const generateVariant = async (context: CreativeContext, assetId: string, varian
   });
 
   try {
-    const image = await generateImage(context, variant, prompt);
+    const image = await generateImage(buildImageRequest(context, variant, prompt));
     const [updated] = await db
       .update(creativeAssets)
       .set({
@@ -206,7 +193,6 @@ const generateVariant = async (context: CreativeContext, assetId: string, varian
       .set({
         status: "draft",
         metadata: {
-          provider: "fal.ai",
           error: error instanceof Error ? error.message : "Unknown generation error",
           failedAt: new Date().toISOString(),
         },
