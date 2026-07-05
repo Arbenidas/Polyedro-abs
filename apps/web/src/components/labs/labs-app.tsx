@@ -3,6 +3,8 @@
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { createBrand, createCampaignBrief, type Brand, type BrandKit, type TranscriptionResponse } from "@/lib/api";
+
 import { CampaignView } from "./campaign-view";
 import {
   ACCENT,
@@ -14,7 +16,6 @@ import {
   GOAL,
   gridBg,
   INK,
-  KIT_LOGS,
   NAV_DEFS,
   PAPER,
   RUN_DEFS,
@@ -26,6 +27,7 @@ import {
 } from "./defs";
 import { GenliveView, KitgenView, NewCampaignView, OnboardingView } from "./flow-views";
 import { AgentsView, AutomationView, BrandkitView } from "./library-views";
+import { useAudioTranscription } from "./use-audio-transcription";
 
 const ALL_REVIEW: Statuses = {
   strategy: "review",
@@ -46,10 +48,15 @@ export default function LabsApp() {
   );
   const [brandName, setBrandName] = useState("NovaGear Tech");
   const [markets, setMarkets] = useState<Record<string, boolean>>({ MX: true, CO: true, CL: true, PE: false, AR: false });
-  const [kitDoneCount, setKitDoneCount] = useState(0);
-  const [kitLogs, setKitLogs] = useState<{ t: string; msg: string }[]>([]);
+  const [brand, setBrand] = useState<Brand | null>(null);
+  const [brandKit, setBrandKit] = useState<BrandKit | null>(null);
+  const [kitSteps, setKitSteps] = useState<string[]>([]);
+  const [kitLoading, setKitLoading] = useState(false);
+  const [kitError, setKitError] = useState<string | null>(null);
   const [goalInput, setGoalInput] = useState("");
-  const [goalPhase, setGoalPhase] = useState<"idle" | "listening" | "typing">("idle");
+  const [goalTranscriptionId, setGoalTranscriptionId] = useState<string | null>(null);
+  const [savedGoalBriefText, setSavedGoalBriefText] = useState<string | null>(null);
+  const [goalBriefError, setGoalBriefError] = useState<string | null>(null);
   const [runIdx, setRunIdx] = useState(-1);
   const [statuses, setStatuses] = useState<Statuses>(ALL_REVIEW);
   const [pushed, setPushed] = useState(false);
@@ -75,44 +82,107 @@ export default function LabsApp() {
     timersRef.current.push(setTimeout(fn, ms));
   }, []);
 
+  const setSavedGoalBrief = useCallback((brief: TranscriptionResponse) => {
+    setGoalTranscriptionId(brief.id);
+    setSavedGoalBriefText(brief.text);
+  }, []);
+
+  const {
+    phase: goalPhase,
+    message: goalTranscriptionMessage,
+    start: startGoalTranscription,
+    stop: stopGoalTranscription,
+  } = useAudioTranscription({
+    brandId: brand?.id,
+    onSaved: setSavedGoalBrief,
+    onTranscript: setGoalInput,
+  });
+
   /* ---------- onboarding ---------- */
   const initWorkspace = useCallback(() => {
-    setBrandName(brandInput || "NovaGear Tech");
+    const name = brandInput || "NovaGear Tech";
+    setBrandName(name);
     setView("kitgen");
-    setKitDoneCount(0);
-    setKitLogs([]);
-    KIT_LOGS.forEach(([t, msg], i) =>
-      after(700 + i * 620, () => setKitLogs((s) => [...s, { t, msg }])),
-    );
-    for (let k = 1; k <= 6; k++) {
-      after(900 + k * 700, () => setKitDoneCount(k));
-    }
-  }, [brandInput, after]);
+    setBrand(null);
+    setBrandKit(null);
+    setKitSteps([]);
+    setKitError(null);
+    setKitLoading(true);
+
+    createBrand({
+      name,
+      description: descInput || undefined,
+      markets: Object.entries(markets)
+        .filter(([, selected]) => selected)
+        .map(([market]) => market),
+    })
+      .then(({ brand: createdBrand, brandKit: createdKit, generation }) => {
+        setBrand(createdBrand);
+        setBrandKit(createdKit);
+        setKitSteps(generation.steps);
+      })
+      .catch((err: unknown) => {
+        setKitError(err instanceof Error ? err.message : "Could not generate the brand kit.");
+      })
+      .finally(() => setKitLoading(false));
+  }, [brandInput, descInput, markets]);
 
   /* ---------- new campaign ---------- */
   const goalOrbClick = useCallback(() => {
-    if (goalPhase !== "idle") return;
-    setGoalPhase("listening");
-    setGoalInput("");
-    after(1500, () => {
-      setGoalPhase("typing");
-      let i = 0;
-      intervalRef.current = setInterval(() => {
-        i += 3;
-        if (i >= GOAL.length) {
-          if (intervalRef.current) clearInterval(intervalRef.current);
-          intervalRef.current = null;
-          setGoalInput(GOAL);
-          setGoalPhase("idle");
-        } else {
-          setGoalInput(GOAL.slice(0, i));
-        }
-      }, 26);
-    });
-  }, [goalPhase, after]);
+    if (goalPhase === "recording") {
+      stopGoalTranscription();
+      return;
+    }
 
-  const deployAgents = useCallback(() => {
-    if (!goalInput) setGoalInput(GOAL);
+    if (goalPhase === "uploading") return;
+
+    void startGoalTranscription().then((started) => {
+      if (started) {
+        setGoalInput("");
+        setGoalTranscriptionId(null);
+        setSavedGoalBriefText(null);
+        setGoalBriefError(null);
+      }
+    });
+  }, [goalPhase, startGoalTranscription, stopGoalTranscription]);
+
+  const handleGoalInput = useCallback(
+    (value: string) => {
+      setGoalInput(value);
+      setGoalBriefError(null);
+
+      if (savedGoalBriefText !== null && value !== savedGoalBriefText) {
+        setGoalTranscriptionId(null);
+        setSavedGoalBriefText(null);
+      }
+    },
+    [savedGoalBriefText],
+  );
+
+  const deployAgents = useCallback(async () => {
+    const nextGoal = goalInput.trim() || GOAL;
+
+    if (!goalInput.trim()) setGoalInput(nextGoal);
+
+    if (!brand) {
+      setGoalBriefError("BRAND REQUIRED BEFORE SAVING BRIEF");
+      return;
+    }
+
+    if (nextGoal !== savedGoalBriefText) {
+      try {
+        const brief = await createCampaignBrief({
+          brandId: brand.id,
+          text: nextGoal,
+        });
+        setSavedGoalBrief(brief);
+        setGoalBriefError(null);
+      } catch (err) {
+        setGoalBriefError(err instanceof Error ? err.message.toUpperCase() : "COULD NOT SAVE BRIEF");
+        return;
+      }
+    }
+
     setView("genlive");
     setRunIdx(0);
     const N = RUN_DEFS.length;
@@ -129,7 +199,7 @@ export default function LabsApp() {
         }
       });
     }
-  }, [goalInput, after]);
+  }, [brand, goalInput, savedGoalBriefText, setSavedGoalBrief, after]);
 
   /* ---------- campaign assets ---------- */
   const setStatus = useCallback((id: AssetId, status: Statuses[AssetId]) => {
@@ -487,13 +557,21 @@ export default function LabsApp() {
         {/* MAIN */}
         <main style={{ gridArea: "main", padding: "26px 26px 120px", minWidth: 0, backgroundImage: gridBg(0.035) }}>
           {view === "kitgen" && (
-            <KitgenView kitDoneCount={kitDoneCount} kitLogs={kitLogs} goNewCampaign={() => setView("newcampaign")} />
+            <KitgenView
+              brandKit={brandKit}
+              steps={kitSteps}
+              loading={kitLoading}
+              error={kitError}
+              goNewCampaign={() => setView("newcampaign")}
+            />
           )}
           {view === "newcampaign" && (
             <NewCampaignView
               goalInput={goalInput}
-              onGoalInput={setGoalInput}
+              onGoalInput={handleGoalInput}
               goalPhase={goalPhase}
+              goalMessage={goalBriefError ?? goalTranscriptionMessage}
+              goalTranscriptionId={goalTranscriptionId}
               goalOrbClick={goalOrbClick}
               deployAgents={deployAgents}
             />
@@ -524,7 +602,7 @@ export default function LabsApp() {
               voiceCmdClick={voiceCmdClick}
             />
           )}
-          {view === "brandkit" && <BrandkitView brandName={brandName} />}
+          {view === "brandkit" && <BrandkitView brand={brand} brandKit={brandKit} />}
           {view === "agents" && <AgentsView />}
           {view === "automation" && <AutomationView />}
         </main>
