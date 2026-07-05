@@ -8,6 +8,7 @@ import {
   seedDemoCampaign,
 } from "@/api/services/campaign";
 import { runCreativeAgent } from "@/api/services/creative";
+import { runMetaAdsAgent } from "@/api/services/meta-ads-agent";
 import { runStrategyAgent } from "@/api/services/strategy-agent";
 import { parseBody, parseUuidParam } from "@/api/shared";
 import { Hono } from "hono";
@@ -62,6 +63,13 @@ campaignRoutes.post("/campaigns/:campaignId/agents/strategy", async (c) => {
 campaignRoutes.post("/campaigns/:campaignId/agents/creative", async (c) => {
   const campaignId = parseUuidParam(c.req.param("campaignId"), "campaignId");
   const result = await runCreativeAgent(campaignId);
+
+  return c.json(result, 201);
+});
+
+campaignRoutes.post("/campaigns/:campaignId/agents/meta-ads", async (c) => {
+  const campaignId = parseUuidParam(c.req.param("campaignId"), "campaignId");
+  const result = await runMetaAdsAgent(campaignId);
 
   return c.json(result, 201);
 });
