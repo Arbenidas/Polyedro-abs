@@ -510,6 +510,7 @@ export const exportCampaignToMetaAds = async (campaignId: string) => {
       brandId: campaign.brand.id,
       campaignId,
       target: "meta_ads",
+      payload: metaAdsPayload,
     });
 
     const [sent] = await db
