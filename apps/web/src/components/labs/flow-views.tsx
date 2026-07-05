@@ -5,6 +5,7 @@ import type { CSSProperties } from "react";
 import type { BrandKit } from "@/lib/api";
 
 import {
+  ACCENT,
   ACID,
   CARD,
   CORAL,
