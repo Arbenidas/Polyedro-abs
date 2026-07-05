@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createBrand, createCampaignBrief, type Brand, type BrandKit, type TranscriptionResponse } from "@/lib/api";
 import { useAuth } from "../auth-provider";
 import { CampaignView } from "./campaign-view";
+import { BrandWordmarkLink } from "./brand-wordmark-link";
 import {
   ACID,
   CARD,
@@ -29,6 +30,7 @@ import {
 import { GenliveView, KitgenView, NewCampaignView, OnboardingView } from "./flow-views";
 import { AgentsView, AutomationView, BrandkitView } from "./library-views";
 import { LoginView } from "./login-view";
+import { SignOutButton } from "./sign-out-button";
 import { useAudioTranscription } from "./use-audio-transcription";
 
 const ALL_REVIEW: Statuses = {
@@ -43,7 +45,7 @@ const ALL_REVIEW: Statuses = {
 const STAGE_ORDER = ["DRAFT", "GENERATING", "REVIEW", "APPROVED", "READY_TO_PUBLISH"] as const;
 
 export default function LabsApp() {
-  const { session, loading, signOut } = useAuth();
+  const { session, loading } = useAuth();
   const [view, setView] = useState<View>("onboard");
   const [brandInput, setBrandInput] = useState("NovaGear Tech");
   const [descInput, setDescInput] = useState(
@@ -353,22 +355,7 @@ export default function LabsApp() {
           }}
         >
           <div style={{ padding: "18px 18px 16px", borderBottom: `3px solid ${INK}` }}>
-            <div style={{ display: "flex", alignItems: "baseline" }}>
-              <span style={{ fontFamily: FONT_BLACK, fontSize: 19, letterSpacing: "-0.02em" }}>POLYEDRO</span>
-              <span
-                style={{
-                  fontFamily: FONT_MONO,
-                  fontSize: 17,
-                  fontWeight: 700,
-                  background: ACID,
-                  padding: "0 5px",
-                  border: `2px solid ${INK}`,
-                  marginLeft: 5,
-                }}
-              >
-                /abs
-              </span>
-            </div>
+            <BrandWordmarkLink titleSize={19} suffixSize={17} />
             <div style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: "0.1em", color: "rgba(10,10,10,0.5)", marginTop: 6 }}>
               AI MARKETING LAB
             </div>
@@ -519,21 +506,7 @@ export default function LabsApp() {
                 <span style={{ fontFamily: FONT_MONO, fontSize: 10, color: "rgba(10,10,10,0.5)" }}>OWNER</span>
               </div>
             </div>
-            <button
-              onClick={() => void signOut()}
-              style={{
-                fontFamily: FONT_MONO,
-                fontSize: 10,
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                background: "#FFFFFF",
-                border: `2px solid ${INK}`,
-                padding: "6px 8px",
-                cursor: "pointer",
-              }}
-            >
-              SIGN OUT →
-            </button>
+            <SignOutButton fullWidth />
           </div>
         </aside>
 

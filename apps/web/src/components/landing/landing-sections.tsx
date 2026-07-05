@@ -16,6 +16,7 @@ import {
   PAPER,
   VOLT,
 } from "@/components/labs/defs";
+import { BrandWordmarkLinkFooter, useBrandHomeHref } from "@/components/labs/brand-wordmark-link";
 
 import { LANDING_STATUS_STYLE, landingSignal, landingSignalInk } from "./landing-colors";
 import StartTourCta from "./start-tour-cta";
@@ -239,6 +240,7 @@ const HERO_SIGNAL_LANES = [
 ] as const;
 
 export function LandingHeader() {
+  const homeHref = useBrandHomeHref();
   const navLinks = [
     { href: "#how-it-works", label: "Cómo funciona" },
     { href: "#agents", label: "Agentes" },
@@ -263,7 +265,7 @@ export function LandingHeader() {
       }}
       transition={{ duration: 0.45, ease: "easeOut" }}
     >
-      <Link href="/" style={{ textDecoration: "none", color: INK }}>
+      <Link href={homeHref} style={{ textDecoration: "none", color: INK }}>
         <motion.div
           style={{ display: "flex", alignItems: "baseline" }}
           whileHover={{ x: -2, y: -1, rotate: -0.35 }}
@@ -331,6 +333,8 @@ export function LandingHeader() {
 }
 
 export function HeroSection() {
+  const homeHref = useBrandHomeHref();
+
   return (
     <motion.section
       animate="visible"
@@ -355,29 +359,42 @@ export function HeroSection() {
           variants={revealVariants}
           whileHover={{ scale: 1.012, rotate: -0.2 }}
         >
-          <span
+          <Link
+            href={homeHref}
             style={{
-              fontFamily: FONT_BLACK,
-              fontSize: "clamp(3rem, 14vw, 9rem)",
-              letterSpacing: "-0.03em",
-              lineHeight: 1,
+              display: "inline-flex",
+              alignItems: "baseline",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              gap: "0.12em",
+              textDecoration: "none",
+              color: INK,
             }}
           >
-            POLYEDRO
-          </span>
-          <span
-            style={{
-              fontFamily: FONT_MONO,
-              fontSize: "clamp(2.25rem, 10vw, 6.5rem)",
-              fontWeight: 700,
-              background: ACID,
-              padding: "0.06em 0.14em",
-              border: `0.06em solid ${INK}`,
-              lineHeight: 1,
-            }}
-          >
-            /abs
-          </span>
+            <span
+              style={{
+                fontFamily: FONT_BLACK,
+                fontSize: "clamp(3rem, 14vw, 9rem)",
+                letterSpacing: "-0.03em",
+                lineHeight: 1,
+              }}
+            >
+              POLYEDRO
+            </span>
+            <span
+              style={{
+                fontFamily: FONT_MONO,
+                fontSize: "clamp(2.25rem, 10vw, 6.5rem)",
+                fontWeight: 700,
+                background: ACID,
+                padding: "0.06em 0.14em",
+                border: `0.06em solid ${INK}`,
+                lineHeight: 1,
+              }}
+            >
+              /abs
+            </span>
+          </Link>
         </motion.div>
 
         <motion.p
@@ -1287,22 +1304,8 @@ export function LandingFooter() {
       viewport={{ once: true, amount: 0.4 }}
       whileInView={{ opacity: 1, y: 0 }}
     >
-      <motion.div style={{ display: "flex", alignItems: "baseline" }} whileHover={{ x: -2, y: -1 }}>
-        <span style={{ fontFamily: FONT_BLACK, fontSize: 16, letterSpacing: "-0.02em" }}>POLYEDRO</span>
-        <span
-          style={{
-            fontFamily: FONT_MONO,
-            fontSize: 12,
-            fontWeight: 700,
-            background: ACID,
-            color: INK,
-            padding: "0 4px",
-            border: `2px solid ${PAPER}`,
-            marginLeft: 6,
-          }}
-        >
-          /abs
-        </span>
+      <motion.div style={{ display: "inline-flex" }} whileHover={{ x: -2, y: -1 }}>
+        <BrandWordmarkLinkFooter titleSize={16} suffixSize={12} />
       </motion.div>
       <span style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: "0.1em", opacity: 0.55 }}>
         LAB DE MARKETING CON IA · V0.4

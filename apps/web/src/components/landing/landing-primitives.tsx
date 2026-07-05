@@ -14,6 +14,7 @@ import {
   PAPER,
   textOnSignal,
 } from "@/components/labs/defs";
+import { BrandWordmarkLink, useBrandHomeHref } from "@/components/labs/brand-wordmark-link";
 
 import {
   cardVariants,
@@ -27,6 +28,7 @@ import {
 type LinkHref = ComponentProps<typeof Link>["href"];
 
 export function Wordmark({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
+  const href = useBrandHomeHref();
   const titleSize =
     size === "lg" ? "clamp(3rem, 14vw, 11rem)" : size === "md" ? 20 : 16;
   const suffixSize =
@@ -38,30 +40,42 @@ export function Wordmark({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
       variants={revealVariants}
       whileHover={{ scale: 1.015, rotate: -0.4 }}
     >
-      <span
+      <Link
+        href={href}
         style={{
-          fontFamily: FONT_BLACK,
-          fontSize: titleSize,
-          letterSpacing: "-0.03em",
-          lineHeight: 1,
+          display: "inline-flex",
+          alignItems: "baseline",
+          flexWrap: "wrap",
+          gap: "0.12em",
+          textDecoration: "none",
+          color: INK,
         }}
       >
-        POLYEDRO
-      </span>
-      <span
-        style={{
-          fontFamily: FONT_MONO,
-          fontSize: suffixSize,
-          fontWeight: 700,
-          background: ACID,
-          padding: size === "lg" ? "0.06em 0.14em" : "0 5px",
-          border: `${size === "lg" ? "0.06em" : "2px"} solid ${INK}`,
-          lineHeight: 1,
-          marginLeft: size === "lg" ? 0 : 6,
-        }}
-      >
-        /abs
-      </span>
+        <span
+          style={{
+            fontFamily: FONT_BLACK,
+            fontSize: titleSize,
+            letterSpacing: "-0.03em",
+            lineHeight: 1,
+          }}
+        >
+          POLYEDRO
+        </span>
+        <span
+          style={{
+            fontFamily: FONT_MONO,
+            fontSize: suffixSize,
+            fontWeight: 700,
+            background: ACID,
+            padding: size === "lg" ? "0.06em 0.14em" : "0 5px",
+            border: `${size === "lg" ? "0.06em" : "2px"} solid ${INK}`,
+            lineHeight: 1,
+            marginLeft: size === "lg" ? 0 : 6,
+          }}
+        >
+          /abs
+        </span>
+      </Link>
     </motion.div>
   );
 }

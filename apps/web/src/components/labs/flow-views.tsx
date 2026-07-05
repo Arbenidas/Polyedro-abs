@@ -23,6 +23,8 @@ import {
   textOnSignal,
 } from "./defs";
 import { buildKitCards, PLACEHOLDER_CARDS } from "./kit-cards";
+import { BrandWordmarkLink } from "./brand-wordmark-link";
+import { SignOutButton } from "./sign-out-button";
 import type { AudioTranscriptionPhase } from "./use-audio-transcription";
 
 /* ═══════════ ONBOARDING ═══════════ */
@@ -57,24 +59,12 @@ export function OnboardingView({
       <header
         style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 32px" }}
       >
-        <div style={{ display: "flex", alignItems: "baseline" }}>
-          <span style={{ fontFamily: FONT_BLACK, fontSize: 20, letterSpacing: "-0.02em" }}>POLYEDRO</span>
-          <span
-            style={{
-              fontFamily: FONT_MONO,
-              fontSize: 18,
-              fontWeight: 700,
-              background: ACID,
-              padding: "0 5px",
-              border: `2px solid ${INK}`,
-              marginLeft: 6,
-            }}
-          >
-            /abs
-          </span>
-        </div>
-        <div style={{ fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: "0.1em", color: "rgba(10,10,10,0.55)" }}>
-          AI MARKETING LAB · v0.4
+        <BrandWordmarkLink />
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <SignOutButton />
+          <div style={{ fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: "0.1em", color: "rgba(10,10,10,0.55)" }}>
+            AI MARKETING LAB · v0.4
+          </div>
         </div>
       </header>
 
@@ -543,7 +533,7 @@ export function NewCampaignView({
                 width: 72,
                 border: `3px solid ${INK}`,
                 cursor: uploading ? "wait" : "pointer",
-                background: recording ? CORAL : uploading ? SUN : ACCENT,
+                background: recording ? CORAL : uploading ? SUN : ACID,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

@@ -4,6 +4,7 @@ import type { CSSProperties, FormEvent } from "react";
 import { useState } from "react";
 
 import { useAuth } from "../auth-provider";
+import { BrandWordmarkLink } from "./brand-wordmark-link";
 import {
   ACCENT,
   CARD,
@@ -75,22 +76,7 @@ export function LoginView() {
       <header
         style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 32px" }}
       >
-        <div style={{ display: "flex", alignItems: "baseline" }}>
-          <span style={{ fontFamily: FONT_BLACK, fontSize: 20, letterSpacing: "-0.02em" }}>POLYEDRO</span>
-          <span
-            style={{
-              fontFamily: FONT_MONO,
-              fontSize: 18,
-              fontWeight: 700,
-              background: ACCENT,
-              padding: "0 5px",
-              border: `2px solid ${INK}`,
-              marginLeft: 6,
-            }}
-          >
-            /abs
-          </span>
-        </div>
+        <BrandWordmarkLink />
         <div style={{ fontFamily: FONT_MONO, fontSize: 10.5, letterSpacing: "0.1em", color: "rgba(10,10,10,0.55)" }}>
           AI MARKETING LAB · v0.4
         </div>
