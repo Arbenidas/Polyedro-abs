@@ -2,6 +2,8 @@
 
 import type { CSSProperties } from "react";
 
+import type { BrandKit } from "@/lib/api";
+
 import {
   ACCENT,
   CORAL,
@@ -11,13 +13,14 @@ import {
   GOAL,
   gridBg,
   INK,
-  KIT_DEFS,
   monoLabel,
   PAPER,
   RUN_DEFS,
   STONE,
   SUN,
 } from "./defs";
+import { buildKitCards, PLACEHOLDER_CARDS } from "./kit-cards";
+import type { AudioTranscriptionPhase } from "./use-audio-transcription";
 
 /* ═══════════ ONBOARDING ═══════════ */
 
@@ -258,15 +261,20 @@ export function OnboardingView({
 /* ═══════════ KIT GENERATION (step 02) ═══════════ */
 
 export function KitgenView({
-  kitDoneCount,
-  kitLogs,
+  brandKit,
+  steps,
+  loading,
+  error,
   goNewCampaign,
 }: {
-  kitDoneCount: number;
-  kitLogs: { t: string; msg: string }[];
+  brandKit: BrandKit | null;
+  steps: string[];
+  loading: boolean;
+  error: string | null;
   goNewCampaign: () => void;
 }) {
-  const kitAllDone = kitDoneCount >= 6;
+  const kitAllDone = !loading && !error && !!brandKit;
+  const kitCards = brandKit ? buildKitCards(brandKit) : [];
   return (
     <div style={{ maxWidth: 1040, margin: "0 auto" }}>
       <div
@@ -292,18 +300,18 @@ export function KitgenView({
             fontWeight: 700,
             border: `2px solid ${INK}`,
             padding: "4px 10px",
-            background: SUN,
-            animation: kitAllDone ? "none" : "pv-pulse 1s ease-in-out infinite",
+            background: error ? CORAL : SUN,
+            animation: kitAllDone || error ? "none" : "pv-pulse 1s ease-in-out infinite",
           }}
         >
-          {kitAllDone ? "READY ✓" : "GENERATING"}
+          {error ? "ERROR" : kitAllDone ? "READY ✓" : "GENERATING"}
         </span>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 20, alignItems: "start" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-          {KIT_DEFS.map((kc, i) => {
-            const done = i < kitDoneCount;
+          {(kitCards.length ? kitCards : PLACEHOLDER_CARDS).map((kc) => {
+            const done = kitAllDone;
             return (
               <div
                 key={kc.tag}
@@ -378,9 +386,13 @@ export function KitgenView({
           >
             brand_agent.log
           </div>
-          {kitLogs.map((lg, i) => (
+          {loading && <div style={{ animation: "pv-rise 0.3s ease both" }}>contacting brand agent…</div>}
+          {error && (
+            <div style={{ color: CORAL, animation: "pv-rise 0.3s ease both" }}>error: {error}</div>
+          )}
+          {steps.map((step, i) => (
             <div key={i} style={{ animation: "pv-rise 0.3s ease both" }}>
-              <span style={{ color: "rgba(244,242,236,0.45)" }}>{lg.t}</span> {lg.msg}
+              {step}
             </div>
           ))}
           <span
@@ -431,16 +443,21 @@ export function NewCampaignView({
   goalInput,
   onGoalInput,
   goalPhase,
+  goalMessage,
+  goalTranscriptionId,
   goalOrbClick,
   deployAgents,
 }: {
   goalInput: string;
   onGoalInput: (v: string) => void;
-  goalPhase: "idle" | "listening" | "typing";
+  goalPhase: AudioTranscriptionPhase;
+  goalMessage: string;
+  goalTranscriptionId: string | null;
   goalOrbClick: () => void;
   deployAgents: () => void;
 }) {
-  const listening = goalPhase === "listening";
+  const recording = goalPhase === "recording";
+  const uploading = goalPhase === "uploading";
   return (
     <div style={{ maxWidth: 760, margin: "24px auto 0" }}>
       <div
@@ -514,24 +531,26 @@ export function NewCampaignView({
           />
           <button
             onClick={goalOrbClick}
-            aria-label="Speak your goal"
+            aria-label={recording ? "Stop recording and transcribe" : "Record your goal"}
             className="nb-press"
+            disabled={uploading}
             style={
               {
                 flex: "none",
                 width: 72,
                 border: `3px solid ${INK}`,
-                cursor: "pointer",
-                background: listening ? CORAL : ACCENT,
+                cursor: uploading ? "wait" : "pointer",
+                background: recording ? CORAL : uploading ? SUN : ACCENT,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                opacity: uploading ? 0.8 : 1,
                 transition: "background 0.2s, transform 0.08s, box-shadow 0.08s",
                 "--sx": "4px",
               } as CSSProperties
             }
           >
-            {listening ? (
+            {recording || uploading ? (
               <div style={{ display: "flex", alignItems: "center", gap: 4, height: 26 }}>
                 {[
                   "pv-bar 0.8s ease-in-out infinite",
@@ -559,13 +578,23 @@ export function NewCampaignView({
             )}
           </button>
         </div>
-        <div style={{ fontFamily: FONT_MONO, fontSize: 10.5, fontWeight: 600, color: "rgba(10,10,10,0.5)", marginTop: -12 }}>
-          {listening
-            ? "LISTENING…"
-            : goalPhase === "typing"
-              ? "TRANSCRIBING…"
-              : 'MIC IS SIMULATED — CLICK TO "HEAR" A SAMPLE BRIEF'}
+        <div
+          style={{
+            fontFamily: FONT_MONO,
+            fontSize: 10.5,
+            fontWeight: 600,
+            color: goalPhase === "error" || goalPhase === "unsupported" ? CORAL : "rgba(10,10,10,0.5)",
+            lineHeight: 1.4,
+            marginTop: -12,
+          }}
+        >
+          {goalMessage}
         </div>
+        {goalTranscriptionId && (
+          <div style={{ fontFamily: FONT_MONO, fontSize: 10, fontWeight: 700, color: "rgba(10,10,10,0.45)", marginTop: -20 }}>
+            BRIEF SAVED · {goalTranscriptionId.slice(0, 8)}
+          </div>
+        )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <span style={monoLabel}>DELIVERABLES</span>

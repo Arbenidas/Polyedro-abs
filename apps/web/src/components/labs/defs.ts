@@ -47,62 +47,6 @@ export const GOAL =
   "Lanzamiento de audífonos inalámbricos con cancelación de ruido para jóvenes profesionales y estudiantes en LatAm.";
 export const CMD = "Regenerate the Spanish headline with more urgency for students.";
 
-export const KIT_LOGS: Array<[string, string]> = [
-  ["00:01", "reading brand input… ok"],
-  ["00:02", "naming + monogram → done"],
-  ["00:04", "palette: carbon / acid / volt / cyan / bone"],
-  ["00:06", "voice&tone (es/en) drafted"],
-  ["00:08", 'persona: "Diego, 26, CDMX"'],
-  ["00:10", "value prop + key messages locked"],
-  ["00:12", "visual style rules exported"],
-  ["00:12", "brand kit v1 → READY"],
-];
-
-export const KIT_DEFS = [
-  {
-    tag: "LOGO CONCEPT",
-    title: '"Signal block" monogram',
-    body: "Squared mark, engraved-device ready, favicon-safe.",
-    bg: INK,
-    ink: PAPER,
-  },
-  {
-    tag: "PALETTE",
-    title: "Carbon · Acid · Volt · Cyan · Bone",
-    body: "High-contrast, no gradients. Dark product, electric accents.",
-    bg: ACCENT,
-    ink: INK,
-  },
-  {
-    tag: "VOICE & TONE",
-    title: "Directo, seguro, irreverente.",
-    body: "ES/EN bilingual. Benefits over spec sheets. No fake urgency.",
-    bg: "#FFFFFF",
-    ink: INK,
-  },
-  {
-    tag: "BUYER PERSONA",
-    title: '"Diego, 26 — hybrid analyst, CDMX"',
-    body: "70-min commute, buys on Instagram, trigger = discount + reviews.",
-    bg: "#FFFFFF",
-    ink: INK,
-  },
-  {
-    tag: "VALUE PROP",
-    title: "Flagship audio, mid-range LatAm price.",
-    body: "36h battery · adaptive ANC · 2-yr warranty.",
-    bg: "#FFFFFF",
-    ink: INK,
-  },
-  {
-    tag: "VISUAL STYLE",
-    title: "Carbon grids, hard edges.",
-    body: "Condensed black caps for claims, mono for specs.",
-    bg: "#FFFFFF",
-    ink: INK,
-  },
-] as const;
-
 export const RUN_DEFS = [
   { name: "Strategy Agent", glyph: "S", color: VOLT, task: "objective · funnel split · commercial angle" },
   { name: "Meta Ads Agent", glyph: "M", color: CYAN, task: "audience segments · placements · campaign structure" },
