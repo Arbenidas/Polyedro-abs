@@ -45,7 +45,7 @@ const regenerateVoiceover = vi.fn(async () => undefined);
 vi.mock("@/api/services/voice-agent", () => ({ regenerateVoiceover }));
 
 // Importado después de los mocks para que resuelvan al módulo mockeado.
-const { approveAsset, exportCampaignToMetaAds, getCampaignDashboard, regenerateAsset } =
+const { approveAsset, exportCampaignToMetaAds, getCampaignDashboard, regenerateAsset, seedDemoCampaign } =
   await import("@/api/services/campaign");
 
 type AssetStatus =
@@ -317,5 +317,32 @@ describe("exportCampaignToMetaAds → push gate", () => {
 
     const dashboard = await getCampaignDashboard(seed.campaign.id);
     expect(dashboard.latestExport?.exportStatus).toBe("failed");
+  });
+});
+
+describe("seedDemoCampaign", () => {
+  it("uses reachable demo asset URLs instead of the retired fake CDN host", async () => {
+    const user = requireOne(
+      (await testDb
+        .insert(users)
+        .values({ email: "demo-seed-owner@test.dev", name: "Demo Owner" })
+        .returning())[0],
+      "seed demo owner",
+    );
+
+    const result = await seedDemoCampaign(user.id);
+    const imageUrls = result.dashboard.agents.visualAssets.map((asset) => asset.imageUrl);
+
+    expect(result.brandKit.logoUrl).toBe(
+      "https://polyedro-ads.netlify.app/voice-demo/assets/style-neobrutal.png",
+    );
+    expect(imageUrls).toEqual(
+      expect.arrayContaining([
+        "https://polyedro-ads.netlify.app/voice-demo/assets/facebook-tech.png",
+        "https://polyedro-ads.netlify.app/voice-demo/assets/facebook-launch.png",
+      ]),
+    );
+    expect(JSON.stringify(result.dashboard)).not.toContain("cdn.polyedro.abs");
+    expect(result.dashboard.agents.voiceovers[0]?.audioUrl).toBeNull();
   });
 });
