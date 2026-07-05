@@ -6,6 +6,7 @@ import type { BrandKit } from "@/lib/api";
 
 import {
   ACID,
+  ACCENT,
   CARD,
   CORAL,
   CYAN,
@@ -643,7 +644,36 @@ export function NewCampaignView({
 
 /* ═══════════ LIVE GENERATION ═══════════ */
 
-export function GenliveView({ runIdx, goalEcho }: { runIdx: number; goalEcho: string }) {
+export type LiveGenerationStep = {
+  name: string;
+  glyph: string;
+  color: string;
+  task: string;
+  state: "queued" | "running" | "done" | "failed";
+};
+
+export function GenliveView({
+  runIdx,
+  goalEcho,
+  steps,
+  campaignLabel = "CMP-004",
+  transport,
+  error,
+}: {
+  runIdx: number;
+  goalEcho: string;
+  steps?: LiveGenerationStep[];
+  campaignLabel?: string;
+  transport?: string;
+  error?: string | null;
+}) {
+  const rows =
+    steps ??
+    RUN_DEFS.map((rr, i) => ({
+      ...rr,
+      state: (i < runIdx ? "done" : i === runIdx ? "running" : "queued") as LiveGenerationStep["state"],
+    }));
+
   return (
     <div style={{ maxWidth: 860, margin: "12px auto 0" }}>
       <div
@@ -668,12 +698,12 @@ export function GenliveView({ runIdx, goalEcho }: { runIdx: number; goalEcho: st
             animation: "pv-pulse 1s ease-in-out infinite",
           }}
         >
-          GENERATING · CMP-004
+          {error ? "ERROR" : "GENERATING"} · {campaignLabel}
         </span>
       </div>
       <div style={{ background: CARD, border: `3px solid ${INK}`, boxShadow: `6px 6px 0 ${INK}` }}>
-        {RUN_DEFS.map((rr, i) => {
-          const state = i < runIdx ? "done" : i === runIdx ? "running" : "queued";
+        {rows.map((rr) => {
+          const state = rr.state;
           return (
             <div
               key={rr.name}
@@ -683,7 +713,7 @@ export function GenliveView({ runIdx, goalEcho }: { runIdx: number; goalEcho: st
                 gap: 14,
                 padding: "13px 20px",
                 borderBottom: `2px solid ${INK}`,
-                background: state === "running" ? "#FFF9E0" : state === "done" ? CARD : PAPER,
+                background: state === "running" ? "#FFF9E0" : state === "done" ? CARD : state === "failed" ? "#FFE8E2" : PAPER,
               }}
             >
               <div
@@ -738,17 +768,19 @@ export function GenliveView({ runIdx, goalEcho }: { runIdx: number; goalEcho: st
                   fontWeight: 700,
                   border: `2px solid ${INK}`,
                   padding: "3px 8px",
-                  background: state === "done" ? ACID : state === "running" ? CYAN : STONE,
+                  background: state === "done" ? ACID : state === "running" ? CYAN : state === "failed" ? CORAL : STONE,
                   flex: "none",
                 }}
               >
-                {state === "done" ? "DONE ✓" : state === "running" ? "RUNNING" : "QUEUED"}
+                {state === "done" ? "DONE ✓" : state === "running" ? "RUNNING" : state === "failed" ? "FAILED" : "QUEUED"}
               </span>
             </div>
           );
         })}
         <div style={{ padding: "12px 20px", fontFamily: FONT_MONO, fontSize: 10.5, color: "rgba(10,10,10,0.55)" }}>
           brief: &quot;{goalEcho || GOAL}&quot;
+          {transport ? ` · transport: ${transport.toUpperCase()}` : ""}
+          {error ? ` · ${error}` : ""}
         </div>
       </div>
     </div>

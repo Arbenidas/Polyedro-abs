@@ -1,9 +1,25 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { createBrand, createCampaignBrief, type Brand, type BrandKit, type TranscriptionResponse } from "@/lib/api";
+import {
+  approveCampaignAsset,
+  createBrand,
+  createCampaign,
+  createCampaignBrief,
+  exportCampaignToMetaAds,
+  getCampaignDashboard,
+  regenerateCampaignAsset,
+  runCampaignAgent,
+  type AssetStatus as ApiAssetStatus,
+  type Brand,
+  type BrandKit,
+  type CampaignAssetTarget,
+  type CampaignDashboard,
+  type TranscriptionResponse,
+} from "@/lib/api";
+import { useCampaignProgress, type CampaignProgressEvent } from "@/lib/use-campaign-progress";
 import { useAuth } from "../auth-provider";
 import { CampaignView } from "./campaign-view";
 import {
@@ -26,7 +42,7 @@ import {
   type View,
   VOLT,
 } from "./defs";
-import { GenliveView, KitgenView, NewCampaignView, OnboardingView } from "./flow-views";
+import { GenliveView, KitgenView, type LiveGenerationStep, NewCampaignView, OnboardingView } from "./flow-views";
 import { AgentsView, AutomationView, BrandkitView } from "./library-views";
 import { LoginView } from "./login-view";
 import { useAudioTranscription } from "./use-audio-transcription";
@@ -40,7 +56,136 @@ const ALL_REVIEW: Statuses = {
   voice: "review",
 };
 
+const ALL_DRAFT: Statuses = {
+  strategy: "draft",
+  audiences: "draft",
+  copy: "draft",
+  creatives: "draft",
+  video: "draft",
+  voice: "draft",
+};
+
 const STAGE_ORDER = ["DRAFT", "GENERATING", "REVIEW", "APPROVED", "READY_TO_PUBLISH"] as const;
+
+type AssetAction = { target: CampaignAssetTarget; id: string };
+
+const isApprovedStatus = (status: ApiAssetStatus | undefined) =>
+  status === "approved" || status === "ready_to_publish";
+
+const toLabStatus = (status: ApiAssetStatus | null | undefined): Statuses[AssetId] => {
+  if (!status) return "draft";
+  if (status === "generating") return "generating";
+  if (isApprovedStatus(status)) return "approved";
+  if (status === "review" || status === "rejected") return "review";
+  return "draft";
+};
+
+const collectionStatus = (items: { status: ApiAssetStatus }[]): Statuses[AssetId] => {
+  if (items.length === 0) return "draft";
+  if (items.some((item) => item.status === "generating")) return "generating";
+  if (items.every((item) => isApprovedStatus(item.status))) return "approved";
+  return "review";
+};
+
+const statusesFromDashboard = (dashboard: CampaignDashboard | null): Statuses => {
+  if (!dashboard) return ALL_DRAFT;
+  const strategyStatus = toLabStatus(dashboard.agents.strategy?.status);
+
+  return {
+    strategy: strategyStatus,
+    audiences: strategyStatus,
+    copy: collectionStatus(dashboard.agents.adCopies),
+    creatives: collectionStatus(dashboard.agents.visualAssets),
+    video: collectionStatus(dashboard.agents.videoScripts),
+    voice: collectionStatus(dashboard.agents.voiceovers),
+  };
+};
+
+const notApproved = (item: { status: ApiAssetStatus }) => !isApprovedStatus(item.status);
+
+const getApprovalTargets = (dashboard: CampaignDashboard, id: AssetId): AssetAction[] => {
+  switch (id) {
+    case "strategy":
+    case "audiences":
+      return dashboard.agents.strategy && notApproved(dashboard.agents.strategy)
+        ? [{ target: "strategy", id: dashboard.agents.strategy.id }]
+        : [];
+    case "copy":
+      return dashboard.agents.adCopies.filter(notApproved).map((copy) => ({
+        target: "ad_copy",
+        id: copy.id,
+      }));
+    case "creatives":
+      return dashboard.agents.visualAssets.filter(notApproved).map((asset) => ({
+        target: "creative_asset",
+        id: asset.id,
+      }));
+    case "video":
+      return dashboard.agents.videoScripts.filter(notApproved).map((script) => ({
+        target: "video_script",
+        id: script.id,
+      }));
+    case "voice":
+      return dashboard.agents.voiceovers.filter(notApproved).map((voiceover) => ({
+        target: "voiceover",
+        id: voiceover.id,
+      }));
+  }
+};
+
+const getRegenerationTargets = (
+  dashboard: CampaignDashboard,
+  id: AssetId,
+  copyVar: "A" | "B",
+): AssetAction[] => {
+  switch (id) {
+    case "strategy":
+    case "audiences":
+      return dashboard.agents.strategy ? [{ target: "strategy", id: dashboard.agents.strategy.id }] : [];
+    case "copy": {
+      const variant = copyVar.toLowerCase() as "a" | "b";
+      const selected =
+        dashboard.agents.adCopies.find((copy) => copy.language === "es" && copy.variant === variant) ??
+        dashboard.agents.adCopies.find((copy) => copy.variant === variant) ??
+        dashboard.agents.adCopies[0];
+      return selected ? [{ target: "ad_copy", id: selected.id }] : [];
+    }
+    case "creatives":
+      return dashboard.agents.visualAssets.map((asset) => ({
+        target: "creative_asset",
+        id: asset.id,
+      }));
+    case "video":
+      return dashboard.agents.videoScripts[0]
+        ? [{ target: "video_script", id: dashboard.agents.videoScripts[0].id }]
+        : [];
+    case "voice":
+      return dashboard.agents.voiceovers[0]
+        ? [{ target: "voiceover", id: dashboard.agents.voiceovers[0].id }]
+        : [];
+  }
+};
+
+const agentStateFromEvents = (
+  events: CampaignProgressEvent[],
+  agent: "strategy" | "meta_ads" | "creative",
+  fallbackDone: boolean,
+): LiveGenerationStep["state"] => {
+  const relevant = events.filter((event) => event.data.agent === agent);
+  if (relevant.some((event) => event.type === "agent_completed" && event.data.outcome === "failed")) {
+    return "failed";
+  }
+  if (
+    relevant.some((event) => event.type === "agent_completed" && event.data.outcome === "succeeded") ||
+    fallbackDone
+  ) {
+    return "done";
+  }
+  if (relevant.length > 0) {
+    return "running";
+  }
+  return "queued";
+};
 
 export default function LabsApp() {
   const { session, loading, signOut } = useAuth();
@@ -69,9 +214,13 @@ export default function LabsApp() {
   const [cmdText, setCmdText] = useState("");
   const [copyUrgent, setCopyUrgent] = useState(false);
   const [copyVar, setCopyVar] = useState<"A" | "B">("A");
+  const [campaignId, setCampaignId] = useState<string | null>(null);
+  const [dashboard, setDashboard] = useState<CampaignDashboard | null>(null);
+  const [campaignError, setCampaignError] = useState<string | null>(null);
 
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { events: progressEvents, transport: progressTransport } = useCampaignProgress(campaignId);
 
   useEffect(
     () => () => {
@@ -188,21 +337,41 @@ export default function LabsApp() {
 
     setView("genlive");
     setRunIdx(0);
-    const N = RUN_DEFS.length;
-    for (let k = 1; k <= N; k++) {
-      after(k * 950, () => {
-        if (k < N) {
-          setRunIdx(k);
-        } else {
-          setRunIdx(N);
-          setStatuses(ALL_REVIEW);
-          setPushed(false);
-          setCmdText("7 assets generated — awaiting your review.");
-          after(800, () => setView("campaign"));
-        }
+    setStatuses(ALL_DRAFT);
+    setPushed(false);
+    setCampaignId(null);
+    setDashboard(null);
+    setCampaignError(null);
+    setCmdText("Creating campaign and starting agents…");
+
+    try {
+      const created = await createCampaign({
+        brandId: brand.id,
+        name: `${brandName || brand.name} Campaign`,
+        objective: nextGoal,
       });
+      const nextCampaignId = created.campaign.id;
+      setCampaignId(nextCampaignId);
+
+      let latestDashboard = await getCampaignDashboard(nextCampaignId);
+      setDashboard(latestDashboard);
+
+      await runCampaignAgent(nextCampaignId, "meta-ads");
+      latestDashboard = await getCampaignDashboard(nextCampaignId);
+      setDashboard(latestDashboard);
+
+      await runCampaignAgent(nextCampaignId, "creative");
+      latestDashboard = await getCampaignDashboard(nextCampaignId);
+      setDashboard(latestDashboard);
+      setStatuses(statusesFromDashboard(latestDashboard));
+      setCmdText("Campaign agents finished — dashboard synced.");
+      setView("campaign");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Could not generate campaign.";
+      setCampaignError(message);
+      setCmdText(message);
     }
-  }, [brand, goalInput, savedGoalBriefText, setSavedGoalBrief, after]);
+  }, [brand, brandName, goalInput, savedGoalBriefText, setSavedGoalBrief]);
 
   /* ---------- campaign assets ---------- */
   const setStatus = useCallback((id: AssetId, status: Statuses[AssetId]) => {
@@ -210,18 +379,61 @@ export default function LabsApp() {
   }, []);
 
   const approve = useCallback(
-    (id: AssetId) => {
-      setStatuses((s) => (s[id] === "review" ? { ...s, [id]: "approved" } : s));
+    async (id: AssetId) => {
+      if (!campaignId || !dashboard) {
+        setStatuses((s) => (s[id] === "review" ? { ...s, [id]: "approved" } : s));
+        return;
+      }
+
+      const targets = getApprovalTargets(dashboard, id);
+      if (targets.length === 0) {
+        setCampaignError("No real asset is available for this approval yet.");
+        return;
+      }
+
+      try {
+        setCampaignError(null);
+        let nextDashboard = dashboard;
+        for (const target of targets) {
+          nextDashboard = await approveCampaignAsset(campaignId, target);
+        }
+        setDashboard(nextDashboard);
+        setStatuses(statusesFromDashboard(nextDashboard));
+      } catch (err) {
+        setCampaignError(err instanceof Error ? err.message : "Could not approve asset.");
+      }
     },
-    [],
+    [campaignId, dashboard],
   );
 
   const regen = useCallback(
-    (id: AssetId) => {
+    async (id: AssetId) => {
+      if (!campaignId || !dashboard) {
+        setStatus(id, "generating");
+        return;
+      }
+
+      const targets = getRegenerationTargets(dashboard, id, copyVar);
+      if (targets.length === 0) {
+        setCampaignError("No real asset is available to regenerate yet.");
+        return;
+      }
+
       setStatus(id, "generating");
-      after(2000, () => setStatus(id, "review"));
+      try {
+        setCampaignError(null);
+        let nextDashboard = dashboard;
+        for (const target of targets) {
+          nextDashboard = await regenerateCampaignAsset(campaignId, target);
+        }
+        setDashboard(nextDashboard);
+        setStatuses(statusesFromDashboard(nextDashboard));
+      } catch (err) {
+        setCampaignError(err instanceof Error ? err.message : "Could not regenerate asset.");
+        setStatuses(statusesFromDashboard(dashboard));
+      }
     },
-    [setStatus, after],
+    [campaignId, copyVar, dashboard, setStatus],
   );
 
   const voiceCmdClick = useCallback(() => {
@@ -237,25 +449,57 @@ export default function LabsApp() {
           if (intervalRef.current) clearInterval(intervalRef.current);
           intervalRef.current = null;
           setCmdText(CMD);
-          setStatus("copy", "generating");
-          after(1800, () => {
+          void regen("copy").then(() => {
             setCopyUrgent(true);
             setCmdPhase("idle");
             setCmdText("Applied — Spanish headline recut by Meta Ads Agent.");
-            setStatus("copy", "review");
           });
         } else {
           setCmdText(CMD.slice(0, i));
         }
       }, 24);
     });
-  }, [cmdPhase, after, setStatus]);
+  }, [cmdPhase, after, regen]);
 
   /* ---------- derived ---------- */
-  const approvedCount = Object.values(statuses).filter((x) => x === "approved").length;
-  const allApproved = approvedCount === 6;
-  const anyGenerating = Object.values(statuses).includes("generating");
-  const currentStage = pushed ? 4 : allApproved ? 3 : anyGenerating ? 1 : 2;
+  const visibleStatuses = dashboard ? statusesFromDashboard(dashboard) : statuses;
+  const approvedCount = dashboard?.progress.approved ?? Object.values(visibleStatuses).filter((x) => x === "approved").length;
+  const totalCount = dashboard?.progress.total ?? 6;
+  const allApproved = dashboard?.progress.readyToPublish ?? approvedCount === totalCount;
+  const anyGenerating = Object.values(visibleStatuses).includes("generating");
+  const exported = pushed || dashboard?.latestExport?.exportStatus === "sent";
+  const currentStage = exported ? 4 : allApproved ? 3 : anyGenerating ? 1 : dashboard ? 2 : 0;
+
+  const liveSteps = useMemo<LiveGenerationStep[]>(() => {
+    const strategyDone = !!dashboard?.agents.strategy && dashboard.agents.strategy.status !== "generating";
+    const metaDone = dashboard ? dashboard.agents.adCopies.length > 0 && collectionStatus(dashboard.agents.adCopies) !== "generating" : false;
+    const creativeDone = dashboard
+      ? dashboard.agents.visualAssets.length > 0 && collectionStatus(dashboard.agents.visualAssets) !== "generating"
+      : false;
+    const hasVideo = (dashboard?.agents.videoScripts.length ?? 0) > 0;
+    const hasVoice = (dashboard?.agents.voiceovers.length ?? 0) > 0;
+
+    return RUN_DEFS.map((step, index) => {
+      let state: LiveGenerationStep["state"] = "queued";
+      if (campaignError && index === RUN_DEFS.length - 1) {
+        state = "failed";
+      } else if (index === 0 || index === 1) {
+        state = agentStateFromEvents(progressEvents, "strategy", strategyDone);
+      } else if (index === 2) {
+        state = agentStateFromEvents(progressEvents, "meta_ads", metaDone);
+      } else if (index === 3) {
+        state = agentStateFromEvents(progressEvents, "creative", creativeDone);
+      } else if (index === 4) {
+        state = hasVideo ? "done" : "queued";
+      } else if (index === 5) {
+        state = hasVoice ? "done" : "queued";
+      } else if (dashboard && !campaignError) {
+        state = "done";
+      }
+
+      return { ...step, state };
+    });
+  }, [campaignError, dashboard, progressEvents]);
 
   const slug = brandName
     .toLowerCase()
@@ -264,8 +508,8 @@ export default function LabsApp() {
   const paths: Record<string, string> = {
     kitgen: `${slug}/brand-kit --generate`,
     newcampaign: `${slug}/campaigns/new`,
-    genlive: `${slug}/campaigns/cmp-004 --running`,
-    campaign: `${slug}/campaigns/cmp-004`,
+    genlive: `${slug}/campaigns/${campaignId?.slice(0, 8) ?? "new"} --running`,
+    campaign: `${slug}/campaigns/${campaignId?.slice(0, 8) ?? "new"}`,
     brandkit: `${slug}/brand-kit`,
     agents: `${slug}/agents`,
     automation: `${slug}/automation`,
@@ -278,7 +522,26 @@ export default function LabsApp() {
     .slice(0, 2)
     .toUpperCase();
 
-  const pushable = allApproved && !pushed;
+  const pushable = allApproved && !exported;
+
+  const pushToMetaAds = useCallback(async () => {
+    if (!pushable) return;
+
+    if (!campaignId) {
+      setPushed(true);
+      return;
+    }
+
+    try {
+      setCampaignError(null);
+      const result = await exportCampaignToMetaAds(campaignId);
+      setDashboard(result.dashboard);
+      setPushed(true);
+      setCmdText("READY_TO_PUBLISH — n8n export queued.");
+    } catch (err) {
+      setCampaignError(err instanceof Error ? err.message : "Could not export campaign.");
+    }
+  }, [campaignId, pushable]);
 
   const userEmail = session?.user.email ?? "";
   const userName =
@@ -590,9 +853,7 @@ export default function LabsApp() {
                 ))}
               </div>
               <button
-                onClick={() => {
-                  if (pushable) setPushed(true);
-                }}
+                onClick={() => void pushToMetaAds()}
                 disabled={!pushable}
                 className="nb-press"
                 style={
@@ -601,8 +862,8 @@ export default function LabsApp() {
                     fontSize: 13,
                     fontWeight: 800,
                     textTransform: "uppercase",
-                    background: pushed ? VOLT : allApproved ? ACID : STONE,
-                    color: pushed ? CARD : allApproved ? INK : "rgba(10,10,10,0.4)",
+                    background: exported ? VOLT : allApproved ? ACID : STONE,
+                    color: exported ? CARD : allApproved ? INK : "rgba(10,10,10,0.4)",
                     border: `3px solid ${INK}`,
                     padding: "10px 18px",
                     cursor: pushable ? "pointer" : "default",
@@ -610,7 +871,7 @@ export default function LabsApp() {
                   } as CSSProperties
                 }
               >
-                {pushed ? "⟶ Queued in n8n" : "Push to Meta Ads"}
+                {exported ? "⟶ Queued in n8n" : "Push to Meta Ads"}
               </button>
             </div>
           )}
@@ -638,10 +899,20 @@ export default function LabsApp() {
               deployAgents={deployAgents}
             />
           )}
-          {view === "genlive" && <GenliveView runIdx={runIdx} goalEcho={goalInput} />}
+          {view === "genlive" && (
+            <GenliveView
+              runIdx={runIdx}
+              goalEcho={goalInput}
+              steps={liveSteps}
+              campaignLabel={campaignId?.slice(0, 8) ?? "new"}
+              transport={progressTransport}
+              error={campaignError}
+            />
+          )}
           {view === "campaign" && (
             <CampaignView
-              statuses={statuses}
+              dashboard={dashboard}
+              statuses={visibleStatuses}
               approve={approve}
               regen={regen}
               copyVar={copyVar}
@@ -658,7 +929,8 @@ export default function LabsApp() {
                 setPlayEn((v) => !v);
                 setPlayEs(false);
               }}
-              pushed={pushed}
+              pushed={exported}
+              actionMessage={campaignError}
               cmdPhase={cmdPhase}
               cmdText={cmdText}
               voiceCmdClick={voiceCmdClick}

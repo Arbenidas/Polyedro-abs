@@ -15,6 +15,7 @@ export async function apiFetch(path: string, init: RequestInit = {}): Promise<Re
 }
 
 export type AssetStatus = "draft" | "generating" | "review" | "approved" | "ready_to_publish" | "rejected";
+export type CampaignAssetTarget = "strategy" | "ad_copy" | "creative_asset" | "video_script" | "voiceover";
 
 export type Bilingual<T = string> = { es: T; en: T };
 
@@ -97,6 +98,140 @@ export type TranscriptionResponse = {
   createdAt: string;
 };
 
+export type CampaignSummary = {
+  id: string;
+  name: string;
+  objective: string;
+  status: AssetStatus;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CampaignProgressBlock = {
+  key: string;
+  label: string;
+  approved: boolean;
+  missing: boolean;
+};
+
+export type CampaignStrategy = {
+  id: string;
+  campaignId: string;
+  status: AssetStatus;
+  audience: unknown;
+  segmentation: unknown;
+  commercialAngle: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CampaignAdCopy = {
+  id: string;
+  campaignId: string;
+  language: "es" | "en";
+  variant: "a" | "b";
+  status: AssetStatus;
+  headline: string | null;
+  primaryText: string | null;
+  description: string | null;
+  callToAction: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CampaignCreativeAsset = {
+  id: string;
+  campaignId: string;
+  variant: "a" | "b";
+  status: AssetStatus;
+  imageUrl: string | null;
+  prompt: string | null;
+  altText: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CampaignVideoScript = {
+  id: string;
+  campaignId: string;
+  status: AssetStatus;
+  language: "es" | "en";
+  title: string | null;
+  scenes: Array<{
+    sceneNumber?: number;
+    description?: string;
+    dialogue?: string;
+    durationSeconds?: number;
+  }> | null;
+  durationSeconds: number | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CampaignVoiceover = {
+  id: string;
+  videoScriptId: string;
+  videoScriptTitle?: string | null;
+  status: AssetStatus;
+  language: "es" | "en";
+  voiceId: string;
+  audioUrl: string | null;
+  durationSeconds: number | null;
+  settings: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CampaignExport = {
+  id: string;
+  campaignId: string;
+  exportStatus: "pending" | "sent" | "failed";
+  n8nWorkflowId: string | null;
+  n8nExecutionId: string | null;
+  metaAdsPayload: Record<string, unknown> | null;
+  metaCampaignId: string | null;
+  errorMessage: string | null;
+  requestedAt: string;
+  completedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type CampaignDashboard = {
+  campaign: CampaignSummary;
+  brand: Pick<Brand, "id" | "name" | "description" | "industry" | "status">;
+  brandKit: BrandKit | null;
+  progress: {
+    approved: number;
+    total: number;
+    readyToPublish: boolean;
+    pending: string[];
+    blocks: CampaignProgressBlock[];
+  };
+  agents: {
+    strategy: CampaignStrategy | null;
+    adCopies: CampaignAdCopy[];
+    visualAssets: CampaignCreativeAsset[];
+    videoScripts: CampaignVideoScript[];
+    voiceovers: CampaignVoiceover[];
+  };
+  latestExport: CampaignExport | null;
+};
+
+export type CreateCampaignResponse = {
+  campaign: CampaignSummary;
+  strategy: CampaignStrategy;
+  generation: {
+    triggered: boolean;
+    agent: string;
+    provider: string;
+    status: AssetStatus;
+    steps: string[];
+  };
+};
+
 const parseErrorMessage = (body: unknown, fallback: string) =>
   (body as { error?: { message?: string } } | undefined)?.error?.message ?? fallback;
 
@@ -149,4 +284,104 @@ export async function createCampaignBrief(input: { brandId: string; text: string
   }
 
   return body as TranscriptionResponse;
+}
+
+export async function createCampaign(input: {
+  brandId: string;
+  name: string;
+  objective: string;
+}): Promise<CreateCampaignResponse> {
+  const res = await apiFetch("/api/campaigns", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  const body: unknown = await res.json().catch(() => undefined);
+
+  if (!res.ok) {
+    throw new Error(parseErrorMessage(body, `Campaign creation failed with status ${res.status}`));
+  }
+
+  return body as CreateCampaignResponse;
+}
+
+export async function getCampaignDashboard(campaignId: string): Promise<CampaignDashboard> {
+  const res = await apiFetch(`/api/campaigns/${campaignId}/dashboard`);
+  const body: unknown = await res.json().catch(() => undefined);
+
+  if (!res.ok) {
+    throw new Error(parseErrorMessage(body, `Campaign dashboard failed with status ${res.status}`));
+  }
+
+  return body as CampaignDashboard;
+}
+
+export async function runCampaignAgent(campaignId: string, agent: "strategy" | "creative" | "meta-ads") {
+  const res = await apiFetch(`/api/campaigns/${campaignId}/agents/${agent}`, {
+    method: "POST",
+  });
+
+  const body: unknown = await res.json().catch(() => undefined);
+
+  if (!res.ok) {
+    throw new Error(parseErrorMessage(body, `${agent} agent failed with status ${res.status}`));
+  }
+
+  return body;
+}
+
+export async function approveCampaignAsset(
+  campaignId: string,
+  input: { target: CampaignAssetTarget; id: string },
+): Promise<CampaignDashboard> {
+  const res = await apiFetch(`/api/campaigns/${campaignId}/approve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  const body: unknown = await res.json().catch(() => undefined);
+
+  if (!res.ok) {
+    throw new Error(parseErrorMessage(body, `Approve failed with status ${res.status}`));
+  }
+
+  return body as CampaignDashboard;
+}
+
+export async function regenerateCampaignAsset(
+  campaignId: string,
+  input: { target: CampaignAssetTarget; id: string },
+): Promise<CampaignDashboard> {
+  const res = await apiFetch(`/api/campaigns/${campaignId}/regenerate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+
+  const body: unknown = await res.json().catch(() => undefined);
+
+  if (!res.ok) {
+    throw new Error(parseErrorMessage(body, `Regenerate failed with status ${res.status}`));
+  }
+
+  return body as CampaignDashboard;
+}
+
+export async function exportCampaignToMetaAds(campaignId: string): Promise<{
+  export: CampaignExport;
+  dashboard: CampaignDashboard;
+}> {
+  const res = await apiFetch(`/api/campaigns/${campaignId}/meta-ads/export`, {
+    method: "POST",
+  });
+
+  const body: unknown = await res.json().catch(() => undefined);
+
+  if (!res.ok) {
+    throw new Error(parseErrorMessage(body, `Export failed with status ${res.status}`));
+  }
+
+  return body as { export: CampaignExport; dashboard: CampaignDashboard };
 }
