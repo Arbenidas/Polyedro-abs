@@ -17,6 +17,7 @@
     "@swc/helpers": "^0.5.23",
     "babel-plugin-react-compiler": "^1.0.0",
     "dotenv": "catalog:",
+    "framer-motion": "^12.42.2",
     "lucide-react": "catalog:",
     "next": "^16.2.0",
     "next-themes": "catalog:",

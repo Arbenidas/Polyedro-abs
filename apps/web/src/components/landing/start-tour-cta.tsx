@@ -3,10 +3,11 @@
 import { FONT_SANS, INK, PAPER } from "@/components/labs/defs";
 
 import { requestGuideTourStart } from "./guide-tour-events";
+import { motion, revealVariants } from "./landing-motion";
 
 export default function StartTourCta() {
   return (
-    <button
+    <motion.button
       type="button"
       data-tour-id="hero-cta-tour"
       className="nb-press hov-accent"
@@ -23,8 +24,11 @@ export default function StartTourCta() {
         padding: "14px 22px",
         cursor: "pointer",
       }}
+      variants={revealVariants}
+      whileHover={{ scale: 1.025, rotate: 0.7 }}
+      whileTap={{ scale: 0.97, x: 3, y: 3 }}
     >
       Iniciar recorrido →
-    </button>
+    </motion.button>
   );
 }

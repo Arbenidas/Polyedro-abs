@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 
 import {
@@ -27,6 +29,7 @@ import {
   SectionTitle,
   SecondaryCta,
 } from "./landing-primitives";
+import { motion, MotionGroup, revealVariants, staggerVariants } from "./landing-motion";
 
 const PROBLEM_ITEMS = [
   {
@@ -228,6 +231,13 @@ const DEMO_COPY = {
   cta: "Comprar ahora →",
 };
 
+const HERO_SIGNAL_LANES = [
+  { tag: "BRAND KIT", label: "voz + paleta", color: ACID },
+  { tag: "COPY", label: "variantes ES/EN", color: VOLT },
+  { tag: "CREATIVOS", label: "1080×1080 + 9:16", color: CORAL },
+  { tag: "META ADS", label: "borrador listo", color: ACID },
+] as const;
+
 export function LandingHeader() {
   const navLinks = [
     { href: "#how-it-works", label: "Cómo funciona" },
@@ -237,7 +247,9 @@ export function LandingHeader() {
   ];
 
   return (
-    <header
+    <motion.header
+      animate={{ opacity: 1, y: 0 }}
+      initial={{ opacity: 0, y: -24 }}
       style={{
         position: "sticky",
         top: 0,
@@ -249,9 +261,13 @@ export function LandingHeader() {
         background: PAPER,
         borderBottom: `3px solid ${INK}`,
       }}
+      transition={{ duration: 0.45, ease: "easeOut" }}
     >
       <Link href="/" style={{ textDecoration: "none", color: INK }}>
-        <div style={{ display: "flex", alignItems: "baseline" }}>
+        <motion.div
+          style={{ display: "flex", alignItems: "baseline" }}
+          whileHover={{ x: -2, y: -1, rotate: -0.35 }}
+        >
           <span style={{ fontFamily: FONT_BLACK, fontSize: 18, letterSpacing: "-0.02em" }}>POLYEDRO</span>
           <span
             style={{
@@ -266,19 +282,22 @@ export function LandingHeader() {
           >
             /abs
           </span>
-        </div>
+        </motion.div>
       </Link>
 
-      <nav
+      <motion.nav
+        animate="visible"
+        initial="hidden"
         style={{
           display: "flex",
           alignItems: "center",
           gap: "clamp(12px, 3vw, 28px)",
         }}
         aria-label="Secciones de la landing"
+        variants={staggerVariants}
       >
         {navLinks.map((link) => (
-          <a
+          <motion.a
             key={link.href}
             href={link.href}
             style={{
@@ -291,35 +310,40 @@ export function LandingHeader() {
               display: "none",
             }}
             className="landing-nav-link"
+            variants={revealVariants}
+            whileHover={{ color: INK, x: -1, y: -1 }}
           >
             {link.label}
-          </a>
+          </motion.a>
         ))}
         <PrimaryCta href="/dashboard" style={{ padding: "10px 16px", fontSize: 11 }}>
           Crear workspace →
         </PrimaryCta>
-      </nav>
+      </motion.nav>
 
       <style>{`
         @media (min-width: 768px) {
           .landing-nav-link { display: inline !important; }
         }
       `}</style>
-    </header>
+    </motion.header>
   );
 }
 
 export function HeroSection() {
   return (
-    <section
+    <motion.section
+      animate="visible"
       id="hero"
+      initial="hidden"
       style={{
         padding: "clamp(64px, 12vw, 120px) clamp(20px, 5vw, 48px) clamp(48px, 8vw, 80px)",
         textAlign: "center",
       }}
+      variants={staggerVariants}
     >
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
-        <div
+      <motion.div style={{ maxWidth: 900, margin: "0 auto" }} variants={staggerVariants}>
+        <motion.div
           data-tour-id="hero-wordmark"
           style={{
             display: "flex",
@@ -328,6 +352,8 @@ export function HeroSection() {
             justifyContent: "center",
             gap: "0.12em",
           }}
+          variants={revealVariants}
+          whileHover={{ scale: 1.012, rotate: -0.2 }}
         >
           <span
             style={{
@@ -352,9 +378,9 @@ export function HeroSection() {
           >
             /abs
           </span>
-        </div>
+        </motion.div>
 
-        <p
+        <motion.p
           data-tour-id="hero-tagline"
           style={{
             fontFamily: FONT_MONO,
@@ -363,11 +389,12 @@ export function HeroSection() {
             color: "rgba(10,10,10,0.5)",
             marginTop: "0.85em",
           }}
+          variants={revealVariants}
         >
           EL LAB DE MARKETING CON IA
-        </p>
+        </motion.p>
 
-        <h1
+        <motion.h1
           data-tour-id="hero-headline"
           style={{
             fontFamily: FONT_BLACK,
@@ -377,13 +404,14 @@ export function HeroSection() {
             marginTop: 28,
             marginBottom: 0,
           }}
+          variants={revealVariants}
         >
           Un workspace. Ocho agentes.
           <br />
           Tú apruebas — ellos ejecutan.
-        </h1>
+        </motion.h1>
 
-        <p
+        <motion.p
           data-tour-id="hero-description"
           style={{
             fontSize: "clamp(0.95rem, 2vw, 1.1rem)",
@@ -396,12 +424,13 @@ export function HeroSection() {
             marginLeft: "auto",
             marginRight: "auto",
           }}
+          variants={revealVariants}
         >
           Brand kit, campañas, copy, creativos y locuciones — construidos por agentes de IA especializados en un
           workspace por marca.
-        </p>
+        </motion.p>
 
-        <div
+        <motion.div
           style={{
             display: "flex",
             flexWrap: "wrap",
@@ -409,15 +438,140 @@ export function HeroSection() {
             justifyContent: "center",
             marginTop: 32,
           }}
+          variants={staggerVariants}
         >
           <PrimaryCta href="/dashboard" tourId="hero-cta-create">
             Crear workspace →
           </PrimaryCta>
           <StartTourCta />
           <SecondaryCta href="#how-it-works">Ver cómo funciona ↓</SecondaryCta>
-        </div>
+        </motion.div>
+
+        <HeroSignalMap />
+      </motion.div>
+    </motion.section>
+  );
+}
+
+function HeroSignalMap() {
+  return (
+    <motion.div
+      data-tour-id="hero-system-map"
+      style={{
+        position: "relative",
+        maxWidth: 780,
+        minHeight: 178,
+        margin: "42px auto 0",
+        background: CARD,
+        border: `3px solid ${INK}`,
+        boxShadow: `8px 8px 0 ${INK}`,
+        overflow: "hidden",
+        textAlign: "left",
+      }}
+      variants={revealVariants}
+      whileHover={{ rotate: -0.25, scale: 1.008, boxShadow: `11px 11px 0 ${INK}` }}
+    >
+      <motion.div
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(90deg, transparent 0%, rgba(198,244,50,0.18) 44%, rgba(69,216,232,0.2) 52%, transparent 100%)",
+          borderLeft: `2px solid ${INK}`,
+          pointerEvents: "none",
+          width: "38%",
+        }}
+        animate={{ x: ["-45%", "185%"] }}
+        transition={{ duration: 3.4, ease: "easeInOut", repeat: Infinity, repeatDelay: 0.7 }}
+      />
+
+      <div
+        style={{
+          position: "relative",
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+          gap: 10,
+          padding: 16,
+        }}
+      >
+        {HERO_SIGNAL_LANES.map((lane, i) => (
+          <motion.div
+            key={lane.tag}
+            style={{
+              minHeight: 92,
+              padding: "14px 14px 12px",
+              background: i % 2 === 0 ? PAPER : CARD,
+              border: `2px solid ${INK}`,
+              color: INK,
+              overflow: "hidden",
+            }}
+            animate={{ y: [0, -7, 0], rotate: [0, i % 2 === 0 ? -0.7 : 0.7, 0] }}
+            transition={{
+              duration: 3 + i * 0.25,
+              ease: "easeInOut",
+              repeat: Infinity,
+              delay: i * 0.16,
+            }}
+          >
+            <span
+              style={{
+                ...monoLabel,
+                display: "inline-block",
+                background: lane.color,
+                color: landingSignalInk(lane.color),
+                border: `2px solid ${INK}`,
+                padding: "3px 7px",
+                fontSize: 8,
+              }}
+            >
+              {lane.tag}
+            </span>
+            <div style={{ fontFamily: FONT_BLACK, fontSize: 17, marginTop: 12, lineHeight: 1.05 }}>{lane.label}</div>
+            <motion.div
+              style={{
+                height: 8,
+                marginTop: 14,
+                background: INK,
+                transformOrigin: "left",
+              }}
+              animate={{ scaleX: [0.18, 1, 0.42, 0.88] }}
+              transition={{ duration: 2.8, ease: "easeInOut", repeat: Infinity, delay: i * 0.22 }}
+            />
+          </motion.div>
+        ))}
       </div>
-    </section>
+
+      <motion.div
+        style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          padding: "10px 16px",
+          background: INK,
+          color: PAPER,
+          borderTop: `3px solid ${INK}`,
+          fontFamily: FONT_MONO,
+          fontSize: 10,
+          letterSpacing: "0.08em",
+        }}
+      >
+        <span>AGENTES SINCRONIZADOS</span>
+        <motion.span
+          style={{
+            display: "inline-block",
+            width: 10,
+            height: 10,
+            background: ACID,
+            border: `2px solid ${PAPER}`,
+          }}
+          animate={{ scale: [1, 1.5, 1], rotate: [0, 90, 0] }}
+          transition={{ duration: 1.5, ease: "easeInOut", repeat: Infinity }}
+        />
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -430,7 +584,7 @@ export function ProblemSection() {
         Los equipos pegan una docena de herramientas. La consistencia de marca se rompe. Los outputs de IA salen sin revisión.
       </SectionLead>
 
-      <div
+      <MotionGroup
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
@@ -467,7 +621,7 @@ export function ProblemSection() {
             </p>
           </Card>
         ))}
-      </div>
+      </MotionGroup>
     </LandingSection>
   );
 }
@@ -479,9 +633,9 @@ export function HowItWorksSection() {
       <SectionTitle>Marca → Kit → Campaña.</SectionTitle>
       <SectionLead>Tres pasos para ir de cero a un pipeline de campaña completo — el mismo flujo dentro de la app.</SectionLead>
 
-      <div style={{ marginTop: 36, display: "flex", flexDirection: "column", gap: 0 }}>
+      <MotionGroup style={{ marginTop: 36, display: "flex", flexDirection: "column", gap: 0 }}>
         {FLOW_STEPS.map((step, i) => (
-          <div
+          <motion.div
             key={step.n}
             style={{
               display: "grid",
@@ -489,9 +643,10 @@ export function HowItWorksSection() {
               gap: "0 24px",
               position: "relative",
             }}
+            variants={revealVariants}
           >
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <div
+              <motion.div
                 style={{
                   width: 44,
                   height: 44,
@@ -505,11 +660,14 @@ export function HowItWorksSection() {
                   fontSize: 12,
                   fontWeight: 700,
                 }}
+                animate={step.active ? { scale: [1, 1.1, 1], rotate: [0, -4, 0] } : undefined}
+                transition={step.active ? { duration: 1.8, ease: "easeInOut", repeat: Infinity } : undefined}
+                whileHover={{ scale: 1.12, rotate: -4 }}
               >
                 {step.n}
-              </div>
+              </motion.div>
               {i < FLOW_STEPS.length - 1 && (
-                <div
+                <motion.div
                   style={{
                     width: 3,
                     flex: 1,
@@ -517,6 +675,10 @@ export function HowItWorksSection() {
                     background: INK,
                     margin: "4px 0",
                   }}
+                  initial={{ scaleY: 0, transformOrigin: "top" }}
+                  whileInView={{ scaleY: 1 }}
+                  transition={{ duration: 0.55, ease: "easeOut", delay: 0.1 + i * 0.08 }}
+                  viewport={{ once: true, amount: 0.5 }}
                 />
               )}
             </div>
@@ -549,9 +711,9 @@ export function HowItWorksSection() {
                 {step.body}
               </p>
             </Card>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </MotionGroup>
     </LandingSection>
   );
 }
@@ -565,7 +727,7 @@ export function AgentsSection() {
         Cada agente tiene un pedazo del pipeline — estrategia, ads, creative, video, voz, automatización y aprobación.
       </SectionLead>
 
-      <div
+      <MotionGroup
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
@@ -576,63 +738,66 @@ export function AgentsSection() {
         {AGENT_DEFS.map((agent, i) => {
           const copy = AGENT_COPY_ES[i]!;
           return (
-          <Card key={agent.name} tourId={AGENT_TOUR_IDS[i]} style={{ padding: "18px 20px" }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-              <span
-                style={{
-                  width: 36,
-                  height: 36,
-                  flexShrink: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: landingSignal(i),
-                  color: landingSignalInk(landingSignal(i)),
-                  border: `2px solid ${INK}`,
-                  fontFamily: FONT_BLACK,
-                  fontSize: 15,
-                }}
-              >
-                {agent.glyph}
-              </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                  <span style={{ fontFamily: FONT_BLACK, fontSize: 14, letterSpacing: "-0.01em" }}>{copy.name}</span>
+            <Card key={agent.name} tourId={AGENT_TOUR_IDS[i]} style={{ padding: "18px 20px" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+                <motion.span
+                  style={{
+                    width: 36,
+                    height: 36,
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    background: landingSignal(i),
+                    color: landingSignalInk(landingSignal(i)),
+                    border: `2px solid ${INK}`,
+                    fontFamily: FONT_BLACK,
+                    fontSize: 15,
+                  }}
+                  animate={agent.pulse ? { scale: [1, 1.12, 1], rotate: [0, -7, 0] } : undefined}
+                  transition={agent.pulse ? { duration: 1.9, ease: "easeInOut", repeat: Infinity } : undefined}
+                  whileHover={{ scale: 1.18, rotate: -8 }}
+                >
+                  {agent.glyph}
+                </motion.span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ fontFamily: FONT_BLACK, fontSize: 14, letterSpacing: "-0.01em" }}>{copy.name}</span>
+                    <span
+                      style={{
+                        ...monoLabel,
+                        fontSize: 8,
+                        background: agent.pulse ? VOLT : CARD,
+                        color: agent.pulse ? CARD : INK,
+                        border: `1px solid ${INK}`,
+                        padding: "2px 6px",
+                        animation: agent.pulse ? "pv-pulse 1s ease-in-out infinite" : undefined,
+                      }}
+                    >
+                      {AGENT_STATUS_ES[agent.status] ?? agent.status}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 12, lineHeight: 1.4, marginTop: 6, marginBottom: 8, color: "rgba(10,10,10,0.7)" }}>
+                    {copy.role}
+                  </p>
                   <span
                     style={{
                       ...monoLabel,
                       fontSize: 8,
-                      background: agent.pulse ? VOLT : CARD,
-                      color: agent.pulse ? CARD : INK,
+                      background: landingSignal(i + 1),
+                      color: landingSignalInk(landingSignal(i + 1)),
                       border: `1px solid ${INK}`,
                       padding: "2px 6px",
-                      animation: agent.pulse ? "pv-pulse 1s ease-in-out infinite" : undefined,
                     }}
                   >
-                    {AGENT_STATUS_ES[agent.status] ?? agent.status}
+                    {agent.tool}
                   </span>
                 </div>
-                <p style={{ fontSize: 12, lineHeight: 1.4, marginTop: 6, marginBottom: 8, color: "rgba(10,10,10,0.7)" }}>
-                  {copy.role}
-                </p>
-                <span
-                  style={{
-                    ...monoLabel,
-                    fontSize: 8,
-                    background: landingSignal(i + 1),
-                    color: landingSignalInk(landingSignal(i + 1)),
-                    border: `1px solid ${INK}`,
-                    padding: "2px 6px",
-                  }}
-                >
-                  {agent.tool}
-                </span>
               </div>
-            </div>
-          </Card>
-        );
+            </Card>
+          );
         })}
-      </div>
+      </MotionGroup>
     </LandingSection>
   );
 }
@@ -646,7 +811,7 @@ export function PipelineSection() {
         Cada campaña produce estrategia, audiencias, copy, creativos, video y voz — cada uno con un estado claro.
       </SectionLead>
 
-      <div
+      <MotionGroup
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
@@ -678,7 +843,7 @@ export function PipelineSection() {
             </Card>
           );
         })}
-      </div>
+      </MotionGroup>
     </LandingSection>
   );
 }
@@ -686,7 +851,7 @@ export function PipelineSection() {
 export function ApprovalSection() {
   return (
     <LandingSection id="approval" alt>
-      <div
+      <MotionGroup
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
@@ -694,18 +859,18 @@ export function ApprovalSection() {
           alignItems: "center",
         }}
       >
-        <div>
+        <motion.div variants={revealVariants}>
           <SectionLabel accent={VOLT}>HUMANO EN EL LOOP</SectionLabel>
           <SectionTitle>Nada se publica sin ti.</SectionTitle>
           <SectionLead>
             El Agente de Aprobación revisa cada asset contra tu Brand Kit — voz, visuales, claims. Los outputs fuera de
             marca se bloquean hasta que des el visto bueno.
           </SectionLead>
-        </div>
+        </motion.div>
 
         <Card tourId="approval-panel" style={{ padding: 24 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <span
+            <motion.span
               style={{
                 width: 40,
                 height: 40,
@@ -717,9 +882,11 @@ export function ApprovalSection() {
                 fontFamily: FONT_BLACK,
                 fontSize: 18,
               }}
+              animate={{ rotate: [0, -7, 0], scale: [1, 1.08, 1] }}
+              transition={{ duration: 2.2, ease: "easeInOut", repeat: Infinity }}
             >
               ✓
-            </span>
+            </motion.span>
             <div>
               <div style={{ fontFamily: FONT_BLACK, fontSize: 18 }}>Agente de Aprobación</div>
               <span style={{ ...monoLabel, fontSize: 9, color: "rgba(10,10,10,0.5)" }}>REVISIÓN DE COHERENCIA · ACTIVO</span>
@@ -731,29 +898,30 @@ export function ApprovalSection() {
               { tourId: "approval-ok-copy", line: "Creative 1080×1080 — paleta ok" },
               { tourId: "approval-ok-voice", line: "Locución ES — guion aprobado" },
             ].map((row, i) => (
-                <div
-                  key={row.line}
-                  data-tour-id={row.tourId}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "10px 12px",
-                    background: i === 0 ? CORAL : i === 2 ? ACID : VOLT,
-                    color: landingSignalInk(i === 0 ? CORAL : i === 2 ? ACID : VOLT),
-                    border: `2px solid ${INK}`,
-                    fontSize: 12,
-                    fontWeight: 600,
-                  }}
-                >
-                  <span style={{ fontFamily: FONT_MONO, fontSize: 10 }}>{i === 0 ? "✗" : "✓"}</span>
-                  {row.line}
-                </div>
-              ),
-            )}
+              <motion.div
+                key={row.line}
+                data-tour-id={row.tourId}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "10px 12px",
+                  background: i === 0 ? CORAL : i === 2 ? ACID : VOLT,
+                  color: landingSignalInk(i === 0 ? CORAL : i === 2 ? ACID : VOLT),
+                  border: `2px solid ${INK}`,
+                  fontSize: 12,
+                  fontWeight: 600,
+                }}
+                variants={revealVariants}
+                whileHover={{ x: -3, y: -1 }}
+              >
+                <span style={{ fontFamily: FONT_MONO, fontSize: 10 }}>{i === 0 ? "✗" : "✓"}</span>
+                {row.line}
+              </motion.div>
+            ))}
           </div>
         </Card>
-      </div>
+      </MotionGroup>
     </LandingSection>
   );
 }
@@ -768,11 +936,11 @@ export function AutomationSection() {
         borradores en Meta Ads vía n8n.
       </SectionLead>
 
-      <div style={{ marginTop: 36, display: "flex", flexDirection: "column", gap: 0 }}>
+      <MotionGroup style={{ marginTop: 36, display: "flex", flexDirection: "column", gap: 0 }}>
         {LANDING_PIPE_STEPS.map((step) => (
-          <div key={step.n} style={{ display: "flex", gap: 16, alignItems: "stretch" }}>
+          <motion.div key={step.n} style={{ display: "flex", gap: 16, alignItems: "stretch" }} variants={revealVariants}>
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", width: 44 }}>
-              <div
+              <motion.div
                 style={{
                   width: 44,
                   height: 44,
@@ -788,10 +956,21 @@ export function AutomationSection() {
                   fontWeight: 700,
                   animation: step.pulse ? "pv-pulse 1s ease-in-out infinite" : undefined,
                 }}
+                animate={step.pulse ? { scale: [1, 1.12, 1], rotate: [0, 6, 0] } : undefined}
+                transition={step.pulse ? { duration: 1.7, ease: "easeInOut", repeat: Infinity } : undefined}
+                whileHover={{ scale: 1.12, rotate: -5 }}
               >
                 {step.n}
-              </div>
-              {step.hasLine && <div style={{ width: 3, flex: 1, minHeight: 24, background: INK, margin: "4px 0" }} />}
+              </motion.div>
+              {step.hasLine && (
+                <motion.div
+                  style={{ width: 3, flex: 1, minHeight: 24, background: INK, margin: "4px 0", transformOrigin: "top" }}
+                  initial={{ scaleY: 0 }}
+                  transition={{ duration: 0.55, ease: "easeOut" }}
+                  viewport={{ once: true, amount: 0.5 }}
+                  whileInView={{ scaleY: 1 }}
+                />
+              )}
             </div>
             <Card tourId={step.tourId} style={{ flex: 1, padding: "16px 20px", marginBottom: step.hasLine ? 12 : 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -811,9 +990,9 @@ export function AutomationSection() {
               </div>
               <p style={{ fontSize: 13, marginTop: 6, marginBottom: 0, color: "rgba(10,10,10,0.65)" }}>{step.desc}</p>
             </Card>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </MotionGroup>
     </LandingSection>
   );
 }
@@ -827,7 +1006,7 @@ export function DemoSection() {
       <SectionTitle>Signal Audio — lanzamiento LatAm.</SectionTitle>
       <SectionLead>{GOAL}</SectionLead>
 
-      <div
+      <MotionGroup
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
@@ -839,7 +1018,7 @@ export function DemoSection() {
           <span style={monoLabel}>BRAND KIT · V1</span>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}>
             {kitSample.map((kit) => (
-              <div
+              <motion.div
                 key={kit.tag}
                 data-tour-id={kit.tourId}
                 style={{
@@ -848,11 +1027,13 @@ export function DemoSection() {
                   color: kit.ink,
                   border: `2px solid ${INK}`,
                 }}
+                variants={revealVariants}
+                whileHover={{ x: -3, y: -2, rotate: -0.4 }}
               >
                 <span style={{ ...monoLabel, fontSize: 8, opacity: 0.7 }}>{kit.tag}</span>
                 <div style={{ fontFamily: FONT_BLACK, fontSize: 14, marginTop: 4 }}>{kit.title}</div>
                 <p style={{ fontSize: 11, marginTop: 4, marginBottom: 0, opacity: 0.85 }}>{kit.body}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
         </Card>
@@ -888,7 +1069,7 @@ export function DemoSection() {
             >
               {DEMO_COPY.sub}
             </p>
-            <span
+            <motion.span
               style={{
                 display: "inline-block",
                 marginTop: 20,
@@ -900,12 +1081,14 @@ export function DemoSection() {
                 border: `2px solid ${PAPER}`,
                 padding: "8px 14px",
               }}
+              animate={{ x: [0, 3, 0], y: [0, -2, 0] }}
+              transition={{ duration: 1.8, ease: "easeInOut", repeat: Infinity }}
             >
               {DEMO_COPY.cta}
-            </span>
+            </motion.span>
           </div>
         </Card>
-      </div>
+      </MotionGroup>
     </LandingSection>
   );
 }
@@ -917,7 +1100,7 @@ export function AudienceSection() {
       <SectionTitle>Hecho para equipos que lanzan.</SectionTitle>
       <SectionLead>Ya seas founder solo o agencia multi-cliente — un workspace por marca.</SectionLead>
 
-      <div
+      <MotionGroup
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
@@ -947,7 +1130,7 @@ export function AudienceSection() {
             </p>
           </Card>
         ))}
-      </div>
+      </MotionGroup>
     </LandingSection>
   );
 }
@@ -955,7 +1138,7 @@ export function AudienceSection() {
 export function GuideSection() {
   return (
     <LandingSection id="guide" alt>
-      <div
+      <MotionGroup
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
@@ -963,7 +1146,7 @@ export function GuideSection() {
           alignItems: "center",
         }}
       >
-        <div data-tour-id="guide-intro">
+        <motion.div data-tour-id="guide-intro" variants={revealVariants}>
           <SectionLabel accent={ACID}>AGENTE GUÍA · ELEVENLABS</SectionLabel>
           <SectionTitle>Una voz que te acompaña.</SectionTitle>
           <SectionLead>
@@ -974,11 +1157,11 @@ export function GuideSection() {
             <StartTourCta />
             <PrimaryCta href="/dashboard">Empezar con workspace →</PrimaryCta>
           </div>
-        </div>
+        </motion.div>
 
         <Card tourId="guide-capabilities" style={{ padding: 24 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <span
+            <motion.span
               style={{
                 width: 44,
                 height: 44,
@@ -991,9 +1174,11 @@ export function GuideSection() {
                 fontFamily: FONT_BLACK,
                 fontSize: 20,
               }}
+              animate={{ y: [0, -4, 0], rotate: [0, -6, 0] }}
+              transition={{ duration: 2.1, ease: "easeInOut", repeat: Infinity }}
             >
               G
-            </span>
+            </motion.span>
             <div>
               <div style={{ fontFamily: FONT_BLACK, fontSize: 18 }}>Agente guía</div>
               <span style={{ ...monoLabel, fontSize: 9, color: "rgba(10,10,10,0.5)" }}>ELEVENLABS · RECORRIDO DE PLATAFORMA</span>
@@ -1015,7 +1200,7 @@ export function GuideSection() {
               "Explica los roles de cada agente dentro del lab",
               "Lee los outputs de campaña en voz alta (ES/EN)",
             ].map((item, i) => (
-              <li
+              <motion.li
                 key={item}
                 style={{
                   display: "flex",
@@ -1027,6 +1212,8 @@ export function GuideSection() {
                   fontSize: 12,
                   fontWeight: 600,
                 }}
+                variants={revealVariants}
+                whileHover={{ x: -3, y: -1 }}
               >
                 <span
                   style={{
@@ -1040,11 +1227,11 @@ export function GuideSection() {
                   →
                 </span>
                 {item}
-              </li>
+              </motion.li>
             ))}
           </ul>
         </Card>
-      </div>
+      </MotionGroup>
     </LandingSection>
   );
 }
@@ -1083,7 +1270,7 @@ export function CtaFooterSection() {
 
 export function LandingFooter() {
   return (
-    <footer
+    <motion.footer
       style={{
         padding: "24px clamp(20px, 5vw, 48px)",
         borderTop: `3px solid ${INK}`,
@@ -1095,8 +1282,12 @@ export function LandingFooter() {
         justifyContent: "space-between",
         gap: 16,
       }}
+      initial={{ opacity: 0, y: 24 }}
+      transition={{ duration: 0.45, ease: "easeOut" }}
+      viewport={{ once: true, amount: 0.4 }}
+      whileInView={{ opacity: 1, y: 0 }}
     >
-      <div style={{ display: "flex", alignItems: "baseline" }}>
+      <motion.div style={{ display: "flex", alignItems: "baseline" }} whileHover={{ x: -2, y: -1 }}>
         <span style={{ fontFamily: FONT_BLACK, fontSize: 16, letterSpacing: "-0.02em" }}>POLYEDRO</span>
         <span
           style={{
@@ -1112,10 +1303,10 @@ export function LandingFooter() {
         >
           /abs
         </span>
-      </div>
+      </motion.div>
       <span style={{ fontFamily: FONT_MONO, fontSize: 10, letterSpacing: "0.1em", opacity: 0.55 }}>
         LAB DE MARKETING CON IA · V0.4
       </span>
-    </footer>
+    </motion.footer>
   );
 }

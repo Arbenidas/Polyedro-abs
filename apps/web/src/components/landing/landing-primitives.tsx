@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import type { ComponentProps, CSSProperties, ReactNode } from "react";
 
@@ -13,6 +15,15 @@ import {
   textOnSignal,
 } from "@/components/labs/defs";
 
+import {
+  cardVariants,
+  motion,
+  motionViewport,
+  revealVariants,
+  sectionShellVariants,
+  staggerVariants,
+} from "./landing-motion";
+
 type LinkHref = ComponentProps<typeof Link>["href"];
 
 export function Wordmark({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
@@ -22,7 +33,11 @@ export function Wordmark({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
     size === "lg" ? "clamp(2.25rem, 10vw, 8rem)" : size === "md" ? 18 : 14;
 
   return (
-    <div style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: "0.12em" }}>
+    <motion.div
+      style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: "0.12em" }}
+      variants={revealVariants}
+      whileHover={{ scale: 1.015, rotate: -0.4 }}
+    >
       <span
         style={{
           fontFamily: FONT_BLACK,
@@ -47,7 +62,7 @@ export function Wordmark({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
       >
         /abs
       </span>
-    </div>
+    </motion.div>
   );
 }
 
@@ -59,7 +74,7 @@ export function SectionLabel({
   accent?: string;
 }) {
   return (
-    <span
+    <motion.span
       style={{
         ...monoLabel,
         display: "inline-block",
@@ -69,15 +84,17 @@ export function SectionLabel({
         padding: "5px 12px",
         marginBottom: 16,
       }}
+      variants={revealVariants}
+      whileHover={{ x: -2, y: -2, rotate: -1.2 }}
     >
       {children}
-    </span>
+    </motion.span>
   );
 }
 
 export function SectionTitle({ children }: { children: ReactNode }) {
   return (
-    <h2
+    <motion.h2
       style={{
         fontFamily: FONT_BLACK,
         fontSize: "clamp(1.75rem, 5vw, 2.75rem)",
@@ -85,15 +102,16 @@ export function SectionTitle({ children }: { children: ReactNode }) {
         lineHeight: 1.05,
         margin: 0,
       }}
+      variants={revealVariants}
     >
       {children}
-    </h2>
+    </motion.h2>
   );
 }
 
 export function SectionLead({ children }: { children: ReactNode }) {
   return (
-    <p
+    <motion.p
       style={{
         fontSize: "clamp(0.95rem, 2vw, 1.05rem)",
         fontWeight: 500,
@@ -103,9 +121,10 @@ export function SectionLead({ children }: { children: ReactNode }) {
         maxWidth: 560,
         lineHeight: 1.5,
       }}
+      variants={revealVariants}
     >
       {children}
-    </p>
+    </motion.p>
   );
 }
 
@@ -121,28 +140,37 @@ export function PrimaryCta({
   tourId?: string;
 }) {
   return (
-    <Link
-      href={href}
-      data-tour-id={tourId}
-      className="nb-press"
+    <motion.span
       style={{
-        fontFamily: FONT_SANS,
-        fontWeight: 800,
-        textTransform: "uppercase",
-        background: ACID,
-        border: `3px solid ${INK}`,
-        padding: "14px 22px",
-        cursor: "pointer",
-        textDecoration: "none",
-        color: INK,
         display: "inline-block",
-        fontSize: 14,
-        letterSpacing: "0.04em",
-        ...style,
       }}
+      variants={revealVariants}
+      whileHover={{ scale: 1.035, rotate: -0.7 }}
+      whileTap={{ scale: 0.97, x: 3, y: 3 }}
     >
-      {children}
-    </Link>
+      <Link
+        href={href}
+        data-tour-id={tourId}
+        className="nb-press"
+        style={{
+          fontFamily: FONT_SANS,
+          fontWeight: 800,
+          textTransform: "uppercase",
+          background: ACID,
+          border: `3px solid ${INK}`,
+          padding: "14px 22px",
+          cursor: "pointer",
+          textDecoration: "none",
+          color: INK,
+          display: "inline-block",
+          fontSize: 14,
+          letterSpacing: "0.04em",
+          ...style,
+        }}
+      >
+        {children}
+      </Link>
+    </motion.span>
   );
 }
 
@@ -154,26 +182,35 @@ export function SecondaryCta({
   children: ReactNode;
 }) {
   return (
-    <a
-      href={href}
-      className="hov-paper nb-press"
+    <motion.span
       style={{
-        fontFamily: FONT_SANS,
-        fontWeight: 700,
-        textTransform: "uppercase",
-        background: CARD,
-        border: `3px solid ${INK}`,
-        padding: "14px 22px",
-        cursor: "pointer",
-        textDecoration: "none",
-        color: INK,
         display: "inline-block",
-        fontSize: 14,
-        letterSpacing: "0.04em",
       }}
+      variants={revealVariants}
+      whileHover={{ scale: 1.025, rotate: 0.6 }}
+      whileTap={{ scale: 0.97, x: 3, y: 3 }}
     >
-      {children}
-    </a>
+      <a
+        href={href}
+        className="hov-paper nb-press"
+        style={{
+          fontFamily: FONT_SANS,
+          fontWeight: 700,
+          textTransform: "uppercase",
+          background: CARD,
+          border: `3px solid ${INK}`,
+          padding: "14px 22px",
+          cursor: "pointer",
+          textDecoration: "none",
+          color: INK,
+          display: "inline-block",
+          fontSize: 14,
+          letterSpacing: "0.04em",
+        }}
+      >
+        {children}
+      </a>
+    </motion.span>
   );
 }
 
@@ -187,16 +224,22 @@ export function LandingSection({
   alt?: boolean;
 }) {
   return (
-    <section
+    <motion.section
       id={id}
+      initial="hidden"
       style={{
         padding: "clamp(48px, 8vw, 96px) clamp(20px, 5vw, 48px)",
         background: alt ? CARD : PAPER,
         borderTop: alt ? `3px solid ${INK}` : undefined,
       }}
+      variants={staggerVariants}
+      viewport={motionViewport}
+      whileInView="visible"
     >
-      <div style={{ maxWidth: 1100, margin: "0 auto" }}>{children}</div>
-    </section>
+      <motion.div style={{ maxWidth: 1100, margin: "0 auto" }} variants={sectionShellVariants}>
+        {children}
+      </motion.div>
+    </motion.section>
   );
 }
 
@@ -210,7 +253,7 @@ export function Card({
   tourId?: string;
 }) {
   return (
-    <div
+    <motion.div
       data-tour-id={tourId}
       style={{
         background: CARD,
@@ -218,8 +261,22 @@ export function Card({
         boxShadow: `5px 5px 0 ${INK}`,
         ...style,
       }}
+      variants={cardVariants}
+      whileHover={{
+        x: -3,
+        y: -3,
+        rotate: -0.35,
+        boxShadow: `9px 9px 0 ${INK}`,
+        transition: { type: "spring", stiffness: 420, damping: 20 },
+      }}
+      whileTap={{
+        x: 4,
+        y: 4,
+        rotate: 0,
+        boxShadow: `1px 1px 0 ${INK}`,
+      }}
     >
       {children}
-    </div>
+    </motion.div>
   );
 }
