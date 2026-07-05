@@ -36,7 +36,15 @@ type ProgressBlock = {
   label: string;
   approved: boolean;
   missing: boolean;
+  /** Un bloque opcional no bloquea el publish si no se generó; si existe,
+   *  igual debe estar aprobado. */
+  optional?: boolean;
 };
+
+/** Un bloque se considera satisfecho para publicar cuando está aprobado, o
+ *  cuando es opcional y no se generó (ej. voiceover, que aún no tiene agente). */
+const isBlockSatisfied = (block: ProgressBlock) =>
+  block.approved || (!!block.optional && block.missing);
 
 const isApproved = (status: AssetStatus | null | undefined) =>
   !!status && APPROVED_STATUSES.has(status);
@@ -69,9 +77,11 @@ const getProgressBlocks = (dashboard: {
     key: string,
     label: string,
     items: { status: AssetStatus }[],
+    optional = false,
   ): ProgressBlock => ({
     key,
     label,
+    optional,
     missing: items.length === 0,
     approved: items.length > 0 && items.every((item) => isApproved(item.status)),
   });
@@ -92,7 +102,9 @@ const getProgressBlocks = (dashboard: {
     collectionBlock("ad_copy", "Ad Copy", dashboard.agents.adCopies),
     collectionBlock("creative_asset", "Visual Assets", dashboard.agents.visualAssets),
     collectionBlock("video_script", "Video Agent", dashboard.agents.videoScripts),
-    collectionBlock("voiceover", "Voice Agent", dashboard.agents.voiceovers),
+    // Voiceover es opcional: aún no hay agente de voz, así que no debe bloquear
+    // el publish cuando no se generó (si algún día existe, seguirá exigiéndose).
+    collectionBlock("voiceover", "Voice Agent", dashboard.agents.voiceovers, true),
   ];
 };
 
@@ -319,16 +331,18 @@ export const getCampaignDashboard = async (campaignId: string) => {
   };
 
   const blocks = getProgressBlocks(dashboard);
-  const approved = blocks.filter((block) => block.approved).length;
+  // Bloques opcionales no generados no cuentan para el total ni bloquean.
+  const requiredBlocks = blocks.filter((block) => !(block.optional && block.missing));
+  const approved = requiredBlocks.filter((block) => block.approved).length;
 
   return {
     ...dashboard,
     progress: {
       approved,
-      total: blocks.length,
-      readyToPublish: approved === blocks.length,
-      pending: blocks
-        .filter((block) => !block.approved)
+      total: requiredBlocks.length,
+      readyToPublish: requiredBlocks.length > 0 && requiredBlocks.every(isBlockSatisfied),
+      pending: requiredBlocks
+        .filter((block) => !isBlockSatisfied(block))
         .map((block) => block.label),
       blocks,
     },

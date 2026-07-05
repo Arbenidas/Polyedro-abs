@@ -12,7 +12,6 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       defaultTheme="system"
       enableSystem
       disableTransitionOnChange
-      scriptProps={{ type: "application/json" }}
     >
       <AuthProvider>{children}</AuthProvider>
       <Toaster richColors />

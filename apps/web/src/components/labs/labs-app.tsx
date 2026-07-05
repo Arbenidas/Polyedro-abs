@@ -222,6 +222,9 @@ export default function LabsApp() {
 
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Campaña ya creada para el brief actual — evita duplicar si un agente falla
+  // y el usuario reintenta Deploy con el mismo objetivo.
+  const deployedCampaignRef = useRef<{ id: string; objective: string } | null>(null);
   const { events: progressEvents, transport: progressTransport } = useCampaignProgress(campaignId);
 
   useEffect(
@@ -341,29 +344,38 @@ export default function LabsApp() {
     setRunIdx(0);
     setStatuses(ALL_DRAFT);
     setPushed(false);
-    setCampaignId(null);
     setDashboard(null);
     setCampaignError(null);
     setCmdText("Creating campaign and starting agents…");
 
+    // Reutiliza la campaña ya creada para este mismo objetivo (reintento tras
+    // un fallo de agente) en vez de crear una duplicada.
+    const reuse =
+      deployedCampaignRef.current?.objective === nextGoal ? deployedCampaignRef.current : null;
+    let nextCampaignId: string | null = reuse?.id ?? null;
+    setCampaignId(nextCampaignId);
+
     try {
-      const created = await createCampaign({
-        brandId: brand.id,
-        name: `${brandName || brand.name} Campaign`,
-        objective: nextGoal,
-      });
-      const nextCampaignId = created.campaign.id;
-      setCampaignId(nextCampaignId);
+      if (!nextCampaignId) {
+        const created = await createCampaign({
+          brandId: brand.id,
+          name: `${brandName || brand.name} Campaign`,
+          objective: nextGoal,
+        });
+        nextCampaignId = created.campaign.id;
+        deployedCampaignRef.current = { id: nextCampaignId, objective: nextGoal };
+        setCampaignId(nextCampaignId);
+      }
 
-      let latestDashboard = await getCampaignDashboard(nextCampaignId);
-      setDashboard(latestDashboard);
+      // Los tres agentes escriben assets disjuntos; corren en paralelo para no
+      // sumar sus latencias. Se sincroniza el dashboard una sola vez al final.
+      await Promise.all([
+        runCampaignAgent(nextCampaignId, "meta-ads"),
+        runCampaignAgent(nextCampaignId, "creative"),
+        runCampaignAgent(nextCampaignId, "video"),
+      ]);
 
-      await runCampaignAgent(nextCampaignId, "meta-ads");
-      latestDashboard = await getCampaignDashboard(nextCampaignId);
-      setDashboard(latestDashboard);
-
-      await runCampaignAgent(nextCampaignId, "creative");
-      latestDashboard = await getCampaignDashboard(nextCampaignId);
+      const latestDashboard = await getCampaignDashboard(nextCampaignId);
       setDashboard(latestDashboard);
       setStatuses(statusesFromDashboard(latestDashboard));
       setCmdText("Campaign agents finished — dashboard synced.");
@@ -372,6 +384,19 @@ export default function LabsApp() {
       const message = err instanceof Error ? err.message : "Could not generate campaign.";
       setCampaignError(message);
       setCmdText(message);
+      // Si la campaña ya existe, llevar al usuario a su dashboard para que vea
+      // y apruebe lo que sí se generó (y pueda regenerar lo que falló), en vez
+      // de dejarlo atascado en la pantalla de generación.
+      if (nextCampaignId) {
+        try {
+          const partial = await getCampaignDashboard(nextCampaignId);
+          setDashboard(partial);
+          setStatuses(statusesFromDashboard(partial));
+        } catch {
+          // Si ni el dashboard carga, se queda el error en pantalla.
+        }
+        setView("campaign");
+      }
     }
   }, [brand, brandName, goalInput, savedGoalBriefText, setSavedGoalBrief]);
 
@@ -408,17 +433,19 @@ export default function LabsApp() {
     [campaignId, dashboard],
   );
 
+  // Devuelve true solo si la regeneración realmente ocurrió, para que los
+  // callers (ej. el comando de voz) no reporten éxito cuando la API falló.
   const regen = useCallback(
-    async (id: AssetId) => {
+    async (id: AssetId): Promise<boolean> => {
       if (!campaignId || !dashboard) {
         setStatus(id, "generating");
-        return;
+        return true;
       }
 
       const targets = getRegenerationTargets(dashboard, id, copyVar);
       if (targets.length === 0) {
         setCampaignError("No real asset is available to regenerate yet.");
-        return;
+        return false;
       }
 
       setStatus(id, "generating");
@@ -430,9 +457,11 @@ export default function LabsApp() {
         }
         setDashboard(nextDashboard);
         setStatuses(statusesFromDashboard(nextDashboard));
+        return true;
       } catch (err) {
         setCampaignError(err instanceof Error ? err.message : "Could not regenerate asset.");
         setStatuses(statusesFromDashboard(dashboard));
+        return false;
       }
     },
     [campaignId, copyVar, dashboard, setStatus],
@@ -451,10 +480,14 @@ export default function LabsApp() {
           if (intervalRef.current) clearInterval(intervalRef.current);
           intervalRef.current = null;
           setCmdText(CMD);
-          void regen("copy").then(() => {
-            setCopyUrgent(true);
+          void regen("copy").then((ok) => {
             setCmdPhase("idle");
-            setCmdText("Applied — Spanish headline recut by Meta Ads Agent.");
+            if (ok) {
+              setCopyUrgent(true);
+              setCmdText("Applied — Spanish headline recut by Meta Ads Agent.");
+            } else {
+              setCmdText("No se pudo aplicar el cambio — reintentá.");
+            }
           });
         } else {
           setCmdText(CMD.slice(0, i));

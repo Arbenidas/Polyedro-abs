@@ -254,8 +254,12 @@ export const generateBrandKitForBrand = async (
 
   const [completedKit] = await db
     .update(brandKits)
+    // El brand kit se revisa en el onboarding y no tiene un paso de aprobación
+    // propio (no hay target "brand_kit" en /approve). Queda "approved" al
+    // generarse — igual que la data demo — para no bloquear el publish de la
+    // campaña, cuyo readiness lo exige aprobado.
     .set({
-      status: "review",
+      status: "approved",
       logoUrl: logo.url,
       logoPrompt,
       ...content,
@@ -310,7 +314,9 @@ export const runBrandAgent = async (
 
     const [updated] = await db
       .update(brandKits)
-      .set({ status: "review", ...content })
+      // Ver nota en generateBrandKitForBrand: sin paso de aprobación propio,
+      // el kit queda "approved" al generarse.
+      .set({ status: "approved", ...content })
       .where(eq(brandKits.id, kit.id))
       .returning();
 
@@ -326,7 +332,7 @@ export const runBrandAgent = async (
         steps: [
           "brand_kit.regenerating:generating",
           `brand_kit.content:${provider}`,
-          "brand_kit.completed:review",
+          "brand_kit.completed:approved",
         ],
       },
     };
