@@ -21,6 +21,11 @@ import {
 
 import { landingSignal } from "./landing-colors";
 import {
+  abortGuideNarration,
+  playGuideNarration,
+  unlockGuideNarrationAudio,
+} from "@/lib/elevenlabs/guide-tts";
+import {
   formatGuideError,
   normalizeGuideErrorMessage,
   getGuideSessionAuth,
@@ -43,8 +48,6 @@ import {
   guideFirstMessage,
   guideIdlePrompt,
   getGuideSectionNarration,
-  guideSectionNarrationPrompt,
-  guideSectionNarrationRetryPrompt,
   guideStartTourLabel,
   isLandingTourSectionId,
   scrollToLandingSectionAsync,
@@ -99,6 +102,31 @@ const GUIDE_META_LEAK_MARKERS = [
   "Voy a decir",
   "Debo decir",
 ] as const;
+
+const GUIDE_ACKNOWLEDGMENT_PREFIX =
+  /^(?:excelente|perfecto|genial|muy bien|de acuerdo|claro|bien|ok|vale|listo|continuemos|siguiente|vamos)[,.!\s-]+/i;
+
+const GUIDE_QUESTION_SENTENCE = /[^.!]*[¿?][^.!]*/g;
+
+function stripGuideAcknowledgmentsAndQuestions(message: string): string {
+  let cleaned = message.trim();
+
+  while (GUIDE_ACKNOWLEDGMENT_PREFIX.test(cleaned)) {
+    cleaned = cleaned.replace(GUIDE_ACKNOWLEDGMENT_PREFIX, "").trim();
+  }
+
+  const sentences =
+    cleaned.match(/[^.!]+[.!]*/g)?.map((sentence) => sentence.trim()).filter(Boolean) ?? [];
+
+  if (sentences.length === 0) {
+    return cleaned.replace(GUIDE_QUESTION_SENTENCE, "").replace(/[¿?]+/g, ".").trim();
+  }
+
+  return sentences
+    .filter((sentence) => !/[¿?]/.test(sentence))
+    .join(" ")
+    .trim();
+}
 
 const GUIDE_META_ONLY_PATTERNS = [
   /^obtuve\b/i,
@@ -173,8 +201,10 @@ function sanitizeGuideAgentMessage(message: string): { message: string | null; l
   cleaned = cleaned
     .replace(/\s*Solo escucha\.?/gi, "")
     .replace(/\s*Listen only\.?/gi, "")
-    .replace(/\s*(?:seguimos|quieres continuar|shall we continue)\.?/gi, "")
+    .replace(/\s*(?:seguimos|quieres continuar|shall we continue|continuamos|seguir|avanzamos)\.?/gi, "")
     .replace(/[¿?]+/g, ".");
+
+  cleaned = stripGuideAcknowledgmentsAndQuestions(cleaned);
   let leakedMeta = cleaned !== message.trim();
 
   for (const marker of GUIDE_META_LEAK_MARKERS) {
@@ -257,12 +287,20 @@ function resolveGuideAgentSpokenMessage(
 
   if (expectedNarration) {
     const expectedFingerprint = normalizeGuideMessageFingerprint(expectedNarration);
-    const responseFingerprint = normalizeGuideMessageFingerprint(trimmed);
+    const strippedResponse = stripGuideAcknowledgmentsAndQuestions(trimmed);
+    const responseFingerprint = normalizeGuideMessageFingerprint(strippedResponse);
 
     if (expectedFingerprint && responseFingerprint.includes(expectedFingerprint)) {
       return {
         message: expectedNarration,
         leakedMeta: responseFingerprint !== expectedFingerprint,
+      };
+    }
+
+    if (expectedFingerprint && normalizeGuideMessageFingerprint(trimmed).includes(expectedFingerprint)) {
+      return {
+        message: expectedNarration,
+        leakedMeta: true,
       };
     }
   }
@@ -285,9 +323,11 @@ export default function GuideAgentInner({
   const { mode } = useConversationMode();
   const [lastMessage, setLastMessage] = useState(() => guideIdlePrompt(language, GUIDE_DEMO_MODE));
   const [localError, setLocalError] = useState<string | null>(null);
+  const [isNarrating, setIsNarrating] = useState(false);
   const startingRef = useRef(false);
   const statusRef = useRef(status);
   const modeRef = useRef(mode);
+  const isNarratingRef = useRef(false);
   const lastAudioAtRef = useRef(0);
   const lastSpeakingAtRef = useRef(0);
   const agentBusyUntilRef = useRef(0);
@@ -329,7 +369,7 @@ export default function GuideAgentInner({
   const connecting = status === "connecting";
   const hasError = status === "error";
   const speaking = mode === "speaking";
-  const playing = connected && speaking;
+  const playing = GUIDE_DEMO_MODE ? isNarrating : connected && speaking;
   const tourActive = connected || connecting || isGuideSessionActive();
   const rawError = localError ?? (hasError ? statusMessage : null);
   const error = rawError
@@ -339,6 +379,9 @@ export default function GuideAgentInner({
   statusRef.current = status;
 
   const resetSceneSync = useCallback(() => {
+    abortGuideNarration();
+    isNarratingRef.current = false;
+    setIsNarrating(false);
     tourRunIdRef.current += 1;
     expectedNarrationRef.current = null;
     sessionHadAgentOutputRef.current = false;
@@ -352,6 +395,10 @@ export default function GuideAgentInner({
   }, []);
 
   const isAgentVoiceActive = useCallback(() => {
+    if (GUIDE_DEMO_MODE && isNarratingRef.current) {
+      return true;
+    }
+
     const now = Date.now();
 
     if (modeRef.current === "speaking") {
@@ -386,7 +433,15 @@ export default function GuideAgentInner({
   }, [isAgentVoiceActive]);
 
   const isTourRunCurrent = useCallback((runId: number) => {
-    return tourRunIdRef.current === runId && statusRef.current === "connected";
+    if (tourRunIdRef.current !== runId) {
+      return false;
+    }
+
+    if (GUIDE_DEMO_MODE) {
+      return isGuideSessionActive();
+    }
+
+    return statusRef.current === "connected";
   }, []);
 
   const safeSendUserMessage = useCallback(
@@ -568,19 +623,18 @@ export default function GuideAgentInner({
     [isAgentVoiceActive, isTourRunCurrent, waitForNarrationPlaybackToFinish],
   );
 
-  const runGuidedTour = useCallback(
+  const runGuidedTourWithTts = useCallback(
     async (sessionLanguage: GuideLanguage, runId: number): Promise<TourRunResult> => {
-      const ready = await waitForInitialAgentSettle(runId);
-      if (!ready) {
+      await sleep(CONNECTED_READY_DELAY_MS);
+
+      if (!isTourRunCurrent(runId)) {
         return "cancelled";
       }
 
-      for (const [index, sectionId] of LANDING_TOUR_ORDER.entries()) {
+      for (const sectionId of LANDING_TOUR_ORDER) {
         if (!isTourRunCurrent(runId)) {
           return "cancelled";
         }
-
-        nudgeConversationActivity();
 
         await runSceneStep(() =>
           scrollToLandingSectionAsync(sectionId as LandingTourSectionId, isAgentPresenting),
@@ -591,52 +645,31 @@ export default function GuideAgentInner({
         }
 
         const narration = getGuideSectionNarration(sectionId, sessionLanguage);
-        expectedNarrationRef.current = narration;
+        setLastMessage(narration);
+        sessionHadAgentOutputRef.current = true;
+        isNarratingRef.current = true;
+        setIsNarrating(true);
+        lastSpeakingAtRef.current = Date.now();
 
-        let messageSeqBefore = aiMessageSeqRef.current;
-        let sent = safeSendUserMessage(guideSectionNarrationPrompt(sectionId, sessionLanguage));
+        const playbackResult = await playGuideNarration(narration);
 
-        if (!sent) {
+        isNarratingRef.current = false;
+        setIsNarrating(false);
+
+        if (playbackResult === "aborted") {
           return "cancelled";
         }
 
-        let narrationResult = await waitForNarrationToFinish(
-          messageSeqBefore,
-          runId,
-          index === 0 ? FIRST_NARRATION_RESPONSE_TIMEOUT_MS : NARRATION_RESPONSE_TIMEOUT_MS,
-        );
-
-        if (narrationResult === "timeout" && isTourRunCurrent(runId)) {
-          messageSeqBefore = aiMessageSeqRef.current;
-          sent = safeSendUserMessage(guideSectionNarrationRetryPrompt(sectionId, sessionLanguage));
-
-          if (sent) {
-            narrationResult = await waitForNarrationToFinish(
-              messageSeqBefore,
-              runId,
-              NARRATION_RESPONSE_TIMEOUT_MS,
-            );
-          }
+        if (playbackResult === "failed") {
+          return "timeout";
         }
 
-        expectedNarrationRef.current = null;
-
-        if (narrationResult !== "finished") {
-          return narrationResult;
-        }
+        await sleep(POST_NARRATION_BEAT_MS);
       }
 
       return "completed";
     },
-    [
-      isAgentPresenting,
-      isTourRunCurrent,
-      nudgeConversationActivity,
-      runSceneStep,
-      safeSendUserMessage,
-      waitForInitialAgentSettle,
-      waitForNarrationToFinish,
-    ],
+    [isAgentPresenting, isTourRunCurrent, runSceneStep],
   );
 
   const scheduleTourKickoff = useCallback(
@@ -710,10 +743,31 @@ export default function GuideAgentInner({
       }
 
       unlockGuideAudioPlayback();
+      unlockGuideNarrationAudio();
       resetSceneSync();
       startingRef.current = true;
       setLocalError(null);
       setLastMessage(guideFirstMessage(sessionLanguage));
+
+      if (GUIDE_DEMO_MODE) {
+        startingRef.current = false;
+        const runId = tourRunIdRef.current;
+
+        void runGuidedTourWithTts(sessionLanguage, runId).then((result) => {
+          finishSession();
+          clearTourHighlights();
+          clearTourSectionActive();
+          setLastMessage(guideIdlePrompt(sessionLanguage, true));
+
+          if (result === "timeout") {
+            setLocalError(
+              formatGuideError("Guide response timeout", sessionLanguage),
+            );
+          }
+        });
+
+        return;
+      }
 
       if (!GUIDE_DEMO_MODE) {
         try {
@@ -740,16 +794,7 @@ export default function GuideAgentInner({
             statusRef.current = "connected";
             startingRef.current = false;
             const runId = tourRunIdRef.current;
-
-            if (GUIDE_DEMO_MODE) {
-              void runGuidedTour(sessionLanguage, runId).then((result) => {
-                if (result === "timeout" && isTourRunCurrent(runId)) {
-                  stopSessionAfterStall(sessionLanguage, "Guide response timeout");
-                }
-              });
-            } else {
-              scheduleTourKickoff(sessionLanguage, runId);
-            }
+            scheduleTourKickoff(sessionLanguage, runId);
           },
           onDisconnect: () => {
             const endedWithoutOutput = !sessionHadAgentOutputRef.current;
@@ -846,7 +891,7 @@ export default function GuideAgentInner({
       isTourRunCurrent,
       language,
       resetSceneSync,
-      runGuidedTour,
+      runGuidedTourWithTts,
       scheduleStartupTimeout,
       scheduleTourKickoff,
       startSession,
@@ -871,19 +916,24 @@ export default function GuideAgentInner({
   }, [beginSession]);
 
   const handleEndTour = useCallback(async () => {
-    try {
-      endSession();
-    } catch (error) {
-      console.warn("[Guide Agent] endSession failed", error);
+    abortGuideNarration();
+
+    if (connected || connecting) {
+      try {
+        endSession();
+      } catch (error) {
+        console.warn("[Guide Agent] endSession failed", error);
+      }
+
+      await waitForGuideDisconnect(() => statusRef.current);
     }
 
     finishSession();
     clearTourHighlights();
     clearTourSectionActive();
-    await waitForGuideDisconnect(() => statusRef.current);
     setLastMessage(guideIdlePrompt(language, GUIDE_DEMO_MODE));
     setLocalError(null);
-  }, [endSession, finishSession, language]);
+  }, [connected, connecting, endSession, finishSession, language]);
 
   useConversationClientTool("scrollToSection", async (parameters) => {
     if (GUIDE_DEMO_MODE) {
@@ -947,13 +997,15 @@ export default function GuideAgentInner({
 
   const statusLabel = connecting
     ? "…"
-    : speaking
+    : GUIDE_DEMO_MODE && isNarrating
       ? "NAR"
-      : connected
-        ? GUIDE_DEMO_MODE
-          ? "DEMO"
-          : "ON"
-        : "VO";
+      : speaking
+        ? "NAR"
+        : connected
+          ? "ON"
+          : tourActive
+            ? "DEMO"
+            : "VO";
 
   return (
     <>

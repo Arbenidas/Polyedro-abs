@@ -120,7 +120,13 @@ const LANDING_TOUR_NARRATION: Record<LandingTourSectionId, Record<GuideLanguage,
 const FORBIDDEN_NARRATION_PATTERNS = [
   /[¿?]/,
   /\bseguimos\b/i,
+  /\bcontinuamos\b/i,
+  /\bexcelente\b/i,
+  /\bperfecto\b/i,
+  /\bgenial\b/i,
   /\bquieres continuar\b/i,
+  /\bte parece\b/i,
+  /\bseguir\b/i,
   /\bsolo escucha\b/i,
   /\blisten only\b/i,
   /\bshall we continue\b/i,
@@ -200,7 +206,7 @@ export async function scrollToLandingSectionAsync(
   await smoothScrollToElement(target);
 
   const label = LANDING_TOUR_SECTIONS.find((section) => section.id === sectionId)?.labelEs ?? sectionId;
-  return `Sección "${sectionId}" (${label}) visible y estable. Ahora responde ÚNICAMENTE con la frase final de narración, máximo 28 palabras, como guía masculino en español latino. Pronuncia correctamente la letra ñ. No escribas razonamiento, instrucciones, etiquetas emocionales, texto en inglés ni cierres que ordenen escuchar. No repitas la frase, no hagas preguntas, no uses signos ? ni ¿, y no cierres con invitaciones a continuar. Cuando termines, llama scrollToSection con la próxima sección.`;
+  return `Sección "${sectionId}" (${label}) visible y estable. Responde ÚNICAMENTE con la frase de narración, máximo 28 palabras, como guía masculino en español latino. Pronuncia correctamente la letra ñ. Prohibido decir Excelente, Perfecto, Genial u otras muletillas; prohibidas preguntas, signos ? o ¿, confirmaciones o invitaciones a continuar. No escribas razonamiento, instrucciones, etiquetas emocionales ni texto en inglés. El frontend controla el avance.`;
 }
 
 export { clearTourHighlights, clearTourSectionActive } from "./landing-tour-highlights";
