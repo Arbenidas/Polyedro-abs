@@ -1,6 +1,7 @@
 import { upsertDemoUser } from "@/api/services/brand";
 import { regenerateCreativeAsset } from "@/api/services/creative";
 import { regenerateAdCopy } from "@/api/services/meta-ads-agent";
+import { emitAssetUpdated } from "@/api/services/progress";
 import { regenerateStrategy, runStrategyAgent } from "@/api/services/strategy-agent";
 import { ApiError, requireOne } from "@/api/shared";
 import { db } from "@/db";
@@ -383,6 +384,8 @@ export const approveAsset = async (
     }
   }
 
+  emitAssetUpdated(campaignId, { target: input.target, id: input.id, status: "approved" });
+
   await updateCampaignReadiness(campaignId);
 
   return getCampaignDashboard(campaignId);
@@ -441,6 +444,7 @@ export const regenerateAsset = async (
           durationSeconds: 12,
         })
         .where(eq(videoScripts.id, input.id));
+      emitAssetUpdated(campaignId, { target: "video_script", id: input.id, status: "review" });
       break;
     }
     case "voiceover": {
@@ -461,6 +465,7 @@ export const regenerateAsset = async (
           },
         })
         .where(eq(voiceovers.id, input.id));
+      emitAssetUpdated(campaignId, { target: "voiceover", id: input.id, status: "review" });
       break;
     }
   }
@@ -552,7 +557,7 @@ export const seedDemoCampaign = async () => {
   };
 };
 
-const requireCampaign = async (campaignId: string) => {
+export const requireCampaign = async (campaignId: string) => {
   const campaign = await findCampaign(campaignId);
 
   if (!campaign) {

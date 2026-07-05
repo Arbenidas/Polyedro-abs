@@ -1,4 +1,10 @@
 import { generateStructuredObject, isLlmConfigured } from "@/api/services/ai";
+import {
+  emitAgentCompleted,
+  emitAgentLog,
+  emitAgentStarted,
+  emitAssetUpdated,
+} from "@/api/services/progress";
 import { ApiError, requireOne } from "@/api/shared";
 import { db } from "@/db";
 import { campaignStrategies, campaigns } from "@/db/schema";
@@ -160,6 +166,7 @@ const generateStrategyContent = async (
  *  revierte la estrategia a "draft" y relanza. */
 export const runStrategyAgent = async (campaignId: string) => {
   const context = await loadStrategyContext(campaignId);
+  emitAgentStarted(campaignId, "strategy", { campaign: context.campaign.name });
 
   const existing = await db.query.campaignStrategies.findFirst({
     where: eq(campaignStrategies.campaignId, campaignId),
@@ -180,9 +187,14 @@ export const runStrategyAgent = async (campaignId: string) => {
     generatingStrategy,
     "Strategy generation could not be started",
   );
+  emitAssetUpdated(campaignId, { target: "strategy", id: strategy.id, status: "generating" });
+  emitAgentLog(campaignId, "strategy", "Generating campaign strategy content");
 
   try {
     const { content, provider } = await generateStrategyContent(context);
+    emitAgentLog(campaignId, "strategy", `Strategy content ready (provider: ${provider})`, {
+      provider,
+    });
 
     const [updated] = await db
       .update(campaignStrategies)
@@ -196,6 +208,9 @@ export const runStrategyAgent = async (campaignId: string) => {
       .update(campaigns)
       .set({ status: "review" })
       .where(eq(campaigns.id, campaignId));
+
+    emitAssetUpdated(campaignId, { target: "strategy", id: completed.id, status: completed.status });
+    emitAgentCompleted(campaignId, "strategy", "succeeded", { provider, status: completed.status });
 
     return {
       strategy: completed,
@@ -216,6 +231,10 @@ export const runStrategyAgent = async (campaignId: string) => {
       .update(campaignStrategies)
       .set({ status: "draft" })
       .where(eq(campaignStrategies.id, strategy.id));
+    emitAssetUpdated(campaignId, { target: "strategy", id: strategy.id, status: "draft" });
+    emitAgentCompleted(campaignId, "strategy", "failed", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
     throw error;
   }
 };

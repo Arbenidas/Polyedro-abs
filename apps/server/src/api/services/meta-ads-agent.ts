@@ -1,4 +1,10 @@
 import { generateStructuredObject, isLlmConfigured } from "@/api/services/ai";
+import {
+  emitAgentCompleted,
+  emitAgentLog,
+  emitAgentStarted,
+  emitAssetUpdated,
+} from "@/api/services/progress";
 import { ApiError, requireOne } from "@/api/shared";
 import { db } from "@/db";
 import { adCopies, campaigns } from "@/db/schema";
@@ -263,21 +269,33 @@ const upsertGeneratingCopy = async (
  *  revierte las filas a "draft" y relanza. */
 export const runMetaAdsAgent = async (campaignId: string) => {
   const context = await loadMetaAdsContext(campaignId);
+  emitAgentStarted(campaignId, "meta_ads", { languages: LANGUAGES, variants: VARIANTS });
 
   const combos = LANGUAGES.flatMap((language) =>
     VARIANTS.map((variant) => ({ language, variant })),
   );
 
   const generating = await Promise.all(
-    combos.map(async ({ language, variant }) => ({
-      language,
-      variant,
-      copy: await upsertGeneratingCopy(campaignId, language, variant),
-    })),
+    combos.map(async ({ language, variant }) => {
+      const copy = await upsertGeneratingCopy(campaignId, language, variant);
+      emitAssetUpdated(campaignId, {
+        target: "ad_copy",
+        id: copy.id,
+        status: "generating",
+        language,
+        variant,
+      });
+      return { language, variant, copy };
+    }),
   );
+
+  emitAgentLog(campaignId, "meta_ads", "Generating ad copy matrix (es/en × a/b)");
 
   try {
     const { matrix, provider } = await generateAdCopyMatrix(context);
+    emitAgentLog(campaignId, "meta_ads", `Ad copy matrix ready (provider: ${provider})`, {
+      provider,
+    });
 
     const copies = await Promise.all(
       generating.map(async ({ language, variant, copy }) => {
@@ -286,7 +304,15 @@ export const runMetaAdsAgent = async (campaignId: string) => {
           .set({ status: "review", ...matrix[language][variant] })
           .where(eq(adCopies.id, copy.id))
           .returning();
-        return requireOne(updated, "Ad copy could not be updated");
+        const completed = requireOne(updated, "Ad copy could not be updated");
+        emitAssetUpdated(campaignId, {
+          target: "ad_copy",
+          id: completed.id,
+          status: completed.status,
+          language,
+          variant,
+        });
+        return completed;
       }),
     );
 
@@ -294,6 +320,11 @@ export const runMetaAdsAgent = async (campaignId: string) => {
       .update(campaigns)
       .set({ status: "review" })
       .where(eq(campaigns.id, campaignId));
+
+    emitAgentCompleted(campaignId, "meta_ads", "succeeded", {
+      provider,
+      copies: copies.length,
+    });
 
     return {
       copies,
@@ -311,10 +342,20 @@ export const runMetaAdsAgent = async (campaignId: string) => {
     };
   } catch (error) {
     await Promise.all(
-      generating.map(({ copy }) =>
-        db.update(adCopies).set({ status: "draft" }).where(eq(adCopies.id, copy.id)),
-      ),
+      generating.map(async ({ language, variant, copy }) => {
+        await db.update(adCopies).set({ status: "draft" }).where(eq(adCopies.id, copy.id));
+        emitAssetUpdated(campaignId, {
+          target: "ad_copy",
+          id: copy.id,
+          status: "draft",
+          language,
+          variant,
+        });
+      }),
     );
+    emitAgentCompleted(campaignId, "meta_ads", "failed", {
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
     throw error;
   }
 };

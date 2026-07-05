@@ -5,13 +5,21 @@ import {
   getCampaignDashboard,
   listCampaigns,
   regenerateAsset,
+  requireCampaign,
   seedDemoCampaign,
 } from "@/api/services/campaign";
 import { runCreativeAgent } from "@/api/services/creative";
 import { runMetaAdsAgent } from "@/api/services/meta-ads-agent";
+import {
+  getLastProgressEventId,
+  getProgressEvents,
+  type ProgressEvent,
+  subscribeToProgress,
+} from "@/api/services/progress";
 import { runStrategyAgent } from "@/api/services/strategy-agent";
 import { parseBody, parseUuidParam } from "@/api/shared";
 import { Hono } from "hono";
+import { streamSSE } from "hono/streaming";
 import { z } from "zod";
 
 const campaignInputSchema = z.object({
@@ -51,6 +59,107 @@ campaignRoutes.post("/campaigns", async (c) => {
   const result = await createCampaign(input);
 
   return c.json(result, 201);
+});
+
+/** Cursor de reconexión: Last-Event-ID (SSE) o ?after / ?lastEventId. */
+const parseAfterCursor = (value: string | undefined) => {
+  if (!value) {
+    return 0;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+};
+
+/** Milisegundos entre pings de keep-alive del stream SSE (por debajo de los
+ *  timeouts típicos de proxies, ~60s). */
+const SSE_HEARTBEAT_MS = 15_000;
+
+/** Fallback de polling: eventos buffereados con id > after y el cursor para
+ *  la próxima llamada. */
+campaignRoutes.get("/campaigns/:campaignId/progress", async (c) => {
+  const campaignId = parseUuidParam(c.req.param("campaignId"), "campaignId");
+  await requireCampaign(campaignId);
+
+  const after = parseAfterCursor(c.req.query("after"));
+  const events = getProgressEvents(campaignId, after);
+
+  return c.json({
+    events,
+    lastEventId: events.at(-1)?.id ?? Math.max(after, getLastProgressEventId(campaignId)),
+  });
+});
+
+/** Stream SSE de progreso de la campaña: reenvía el buffer desde el cursor y
+ *  luego los eventos en vivo (agent_started / agent_log / agent_completed /
+ *  asset_updated), con ping periódico de keep-alive. Nota: EventSource no
+ *  manda headers — el cliente web debe consumirlo con fetch + ReadableStream
+ *  (mandando el Bearer) o usar el fallback de polling. */
+campaignRoutes.get("/campaigns/:campaignId/progress/stream", async (c) => {
+  const campaignId = parseUuidParam(c.req.param("campaignId"), "campaignId");
+  await requireCampaign(campaignId);
+
+  const after = parseAfterCursor(
+    c.req.header("Last-Event-ID") ?? c.req.query("lastEventId") ?? c.req.query("after"),
+  );
+
+  return streamSSE(c, async (stream) => {
+    let closed = false;
+    let lastSentId = after;
+    const pending: ProgressEvent[] = [];
+    let wake = () => {};
+
+    const unsubscribe = subscribeToProgress(campaignId, (event) => {
+      pending.push(event);
+      wake();
+    });
+
+    stream.onAbort(() => {
+      closed = true;
+      unsubscribe();
+      wake();
+    });
+
+    const send = async (event: ProgressEvent) => {
+      await stream.writeSSE({
+        id: String(event.id),
+        event: event.type,
+        data: JSON.stringify(event),
+      });
+      lastSentId = event.id;
+    };
+
+    for (const event of getProgressEvents(campaignId, after)) {
+      await send(event);
+    }
+
+    while (!closed) {
+      if (pending.length === 0) {
+        // El push del listener y esta asignación corren en el mismo tick, así
+        // que no se pierden eventos entre el chequeo y la espera.
+        const waited = await Promise.race([
+          new Promise<"event">((resolve) => {
+            wake = () => resolve("event");
+          }),
+          stream.sleep(SSE_HEARTBEAT_MS).then(() => "heartbeat" as const),
+        ]);
+        wake = () => {};
+
+        if (!closed && waited === "heartbeat") {
+          await stream.writeSSE({ event: "ping", data: String(lastSentId) });
+          continue;
+        }
+      }
+
+      while (!closed && pending.length > 0) {
+        const event = pending.shift();
+        if (event && event.id > lastSentId) {
+          await send(event);
+        }
+      }
+    }
+  });
 });
 
 campaignRoutes.post("/campaigns/:campaignId/agents/strategy", async (c) => {
