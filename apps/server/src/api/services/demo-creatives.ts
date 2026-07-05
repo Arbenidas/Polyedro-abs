@@ -95,6 +95,29 @@ const STYLE_DIRECTIONS: Record<string, string> = {
     "Botanical herbarium aesthetic: vintage scientific illustrations, pressed flowers, warm terracotta and sage greens, deckled-edge paper, organic textures, earthy and calm. Natural history museum meets modern brand.",
 };
 
+const STYLE_NEGATIVE_DIRECTIONS: Record<string, string> = {
+  minimal:
+    "Avoid neo-brutalist cues: no thick black outlines, no acid green blocks, no comic shadows, no collage, no loud poster typography. Keep it quiet, white, sparse and restrained.",
+  editorial:
+    "Avoid neon startup graphics, heavy outlines, comic effects, zine collage, and aggressive geometric blocks.",
+  premium:
+    "Avoid bright acid colors, playful poster shapes, cartoon outlines, and casual SaaS UI panels.",
+  grunge:
+    "Avoid clean corporate SaaS minimalism, luxury polish, perfect grids, and sterile white-space-only layouts.",
+  render3d:
+    "Avoid flat poster collage, illustrated line art, halftone comic effects, and paper editorial layouts.",
+  ilustrado:
+    "Avoid photoreal CGI, luxury product photography, flat SaaS dashboards, and neo-brutalist poster blocks.",
+  brutalist:
+    "Avoid playful pop colors, luxury gloss, botanical softness, and friendly rounded SaaS visuals.",
+  "pop-art":
+    "Avoid minimalist white editorial layouts, luxury black-and-gold product photography, and muted botanical palettes.",
+  "art-deco":
+    "Avoid neon brutalist colors, collage/zine textures, SaaS dashboard panels, and cartoonish comic treatment.",
+  botanico:
+    "Avoid acid green neo-brutalism, hard black poster shadows, tech dashboards, and luxury black-gold gloss.",
+};
+
 const GOAL_DIRECTIONS: Record<string, string> = {
   awareness: "The visual should maximize brand recall and feel highly shareable.",
   leads: "The visual should invite the viewer to leave their contact info or request information.",
@@ -107,6 +130,7 @@ const buildPrompt = (input: DemoCreativeInput, concept: string): string => {
   const brand = input.brandName?.trim() || "la marca";
   const styleDirection =
     STYLE_DIRECTIONS[input.style ?? ""] ?? STYLE_DIRECTIONS.neobrutal;
+  const styleNegativeDirection = STYLE_NEGATIVE_DIRECTIONS[input.style ?? ""];
   const goalDirection = GOAL_DIRECTIONS[input.goal ?? ""] ?? GOAL_DIRECTIONS.awareness;
   const audience = input.audienceLabel || input.audienceNotes || input.audience;
   const memory = (input.memory ?? []).filter(Boolean).slice(-4);
@@ -119,6 +143,7 @@ const buildPrompt = (input: DemoCreativeInput, concept: string): string => {
     input.goalLabel ? `Campaign goal: ${input.goalLabel}.` : undefined,
     goalDirection,
     styleDirection,
+    styleNegativeDirection,
     input.proposalNotes ? `Extra direction: ${input.proposalNotes}.` : undefined,
     memory.length ? `Keep in mind: ${memory.join(" ")}` : undefined,
     "Leave clean negative space for a short headline overlay. Professional, high quality, no watermarks, no real company logos, no gibberish text.",

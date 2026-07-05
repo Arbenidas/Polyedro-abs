@@ -2,6 +2,11 @@ import {
   generateDemoCreative,
   generateStylePreview,
 } from "@/api/services/demo-creatives";
+import {
+  OPENAI_TRANSCRIPTION_MODEL,
+  TRANSCRIPTION_LANGUAGE,
+  transcribeAudioFile,
+} from "@/api/services/transcription";
 import { ApiError } from "@/api/shared";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -60,6 +65,19 @@ publicRoutes.post("/demo/style-preview", async (c) => {
   const preview = await generateStylePreview(styleKey, input);
 
   return c.json({ preview });
+});
+
+publicRoutes.post("/demo/transcriptions", async (c) => {
+  const formData = await c.req.raw.formData().catch(() => null);
+  const audio = formData?.get("audio");
+  const text = await transcribeAudioFile(audio);
+
+  return c.json({
+    text,
+    language: TRANSCRIPTION_LANGUAGE,
+    model: OPENAI_TRANSCRIPTION_MODEL,
+    provider: "openai",
+  });
 });
 
 export { publicRoutes };

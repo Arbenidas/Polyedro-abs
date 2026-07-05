@@ -1782,7 +1782,14 @@
       new URLSearchParams(location.search).get("api") || "http://localhost:3000"
     ).replace(/\/$/, "");
     const AGENT_ID = new URLSearchParams(location.search).get("agent") || "";
+    const WEBM_OPUS = "audio/webm;codecs=opus";
+    const WEBM = "audio/webm";
     let isGeneratingFinals = false;
+    let voicePhase = "idle";
+    let voiceMessage = "Micrófono listo · habla en español";
+    let mediaRecorder = null;
+    let mediaStream = null;
+    let audioChunks = [];
 
     const STYLE_PREVIEW_KEY = "polyedro_style_previews_v1";
     const stylePreviewCache = loadStylePreviews();
@@ -1898,6 +1905,12 @@
       }
     };
 
+    const validChoices = {
+      audience: Object.keys(labels.audience),
+      goal: Object.keys(labels.goal),
+      style: Object.keys(labels.style)
+    };
+
     const initialState = {
       currentStep: 0,
       completedStep: 0,
@@ -1928,7 +1941,11 @@
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return structuredClone(initialState);
         const saved = JSON.parse(raw);
-      return { ...structuredClone(initialState), ...saved, memory: Array.isArray(saved.memory) ? saved.memory : initialState.memory };
+        const next = { ...structuredClone(initialState), ...saved, memory: Array.isArray(saved.memory) ? saved.memory : initialState.memory };
+        if (!validChoices.audience.includes(next.audience)) next.audience = initialState.audience;
+        if (!validChoices.goal.includes(next.goal)) next.goal = initialState.goal;
+        if (!validChoices.style.includes(next.style)) next.style = initialState.style;
+        return next;
       } catch {
         return structuredClone(initialState);
       }
@@ -2011,12 +2028,19 @@
     }
 
     function renderVoiceState() {
-      document.body.classList.toggle("is-manual", !state.voiceListening);
+      state.voiceListening = voicePhase === "recording";
+      document.body.classList.toggle("is-manual", voicePhase !== "recording");
       const briefSummary = document.getElementById("briefVoiceSummary");
       if (briefSummary) {
-        briefSummary.textContent = state.brandName
-          ? `${state.brandName}: brief capturado`
-          : "Escuchando brief...";
+        if (voicePhase === "recording") {
+          briefSummary.textContent = "Escuchando brief...";
+        } else if (voicePhase === "uploading") {
+          briefSummary.textContent = "Transcribiendo audio...";
+        } else {
+          briefSummary.textContent = state.brandName
+            ? `${state.brandName}: brief capturado`
+            : "Toca el micrófono para capturar el brief";
+        }
       }
     }
 
@@ -2053,15 +2077,15 @@
         panel.innerHTML = `
           <div class="voice-header">
             <h3>Guía de voz</h3>
-            <span class="voice-state">${state.voiceListening ? "Escuchando" : "Pausada"}</span>
+            <span class="voice-state">${voiceStatusLabel()}</span>
           </div>
           <div class="voice-core">
             <div class="mini-mic">
-              <button class="mic-button" type="button" data-toggle-voice>${state.voiceListening ? "ON" : "OFF"}</button>
+              <button class="mic-button" type="button" data-toggle-voice ${voicePhase === "uploading" ? "disabled" : ""}>${voiceButtonLabel()}</button>
             </div>
             <div>
               <p class="voice-question">${assistantQuestion()}</p>
-              <p class="assistant-copy">${assistantPrompt()}</p>
+              <p class="assistant-copy">${escapeHtml(voiceMessage || assistantPrompt())}</p>
             </div>
             <div class="wave" aria-hidden="true">
               ${Array.from({ length: 11 }, () => "<span></span>").join("")}
@@ -2111,6 +2135,23 @@
         6: "Las piezas aprobadas quedan colocadas en el calendario de publicación."
       };
       return prompts[state.currentStep] || "Presiona el micrófono para iniciar la experiencia guiada.";
+    }
+
+    function voiceStatusLabel() {
+      const labelsByPhase = {
+        idle: "Micrófono listo",
+        recording: "Grabando",
+        uploading: "Transcribiendo",
+        unsupported: "No soportado",
+        error: "Error"
+      };
+      return labelsByPhase[voicePhase] || "Micrófono";
+    }
+
+    function voiceButtonLabel() {
+      if (voicePhase === "recording") return "STOP";
+      if (voicePhase === "uploading") return "...";
+      return "MIC";
     }
 
     function styleImageFor(key) {
@@ -2338,6 +2379,133 @@
       render();
     }
 
+    function getRecorderMimeType() {
+      if (typeof MediaRecorder === "undefined") return "";
+      if (MediaRecorder.isTypeSupported(WEBM_OPUS)) return WEBM_OPUS;
+      if (MediaRecorder.isTypeSupported(WEBM)) return WEBM;
+      return "";
+    }
+
+    function stopMediaStream() {
+      if (mediaStream) {
+        mediaStream.getTracks().forEach((track) => track.stop());
+      }
+      mediaStream = null;
+    }
+
+    async function toggleVoiceRecording() {
+      if (voicePhase === "recording") {
+        stopVoiceRecording();
+        return;
+      }
+
+      if (voicePhase === "uploading") return;
+      await startVoiceRecording();
+    }
+
+    async function startVoiceRecording() {
+      if (
+        typeof navigator === "undefined" ||
+        !navigator.mediaDevices?.getUserMedia ||
+        typeof MediaRecorder === "undefined"
+      ) {
+        voicePhase = "unsupported";
+        voiceMessage = "La grabación de voz necesita un navegador con soporte de micrófono.";
+        render();
+        return;
+      }
+
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const mimeType = getRecorderMimeType();
+        mediaRecorder = mimeType ? new MediaRecorder(mediaStream, { mimeType }) : new MediaRecorder(mediaStream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+          const activeMimeType = mediaRecorder?.mimeType || mimeType || WEBM;
+          const audio = new Blob(audioChunks, { type: activeMimeType });
+          mediaRecorder = null;
+          audioChunks = [];
+          stopMediaStream();
+          void transcribeDemoAudio(audio);
+        };
+
+        mediaRecorder.start();
+        voicePhase = "recording";
+        voiceMessage = "Grabando... toca STOP para transcribir tu brief.";
+        render();
+      } catch (error) {
+        stopMediaStream();
+        mediaRecorder = null;
+        voicePhase = "error";
+        voiceMessage = error instanceof DOMException && error.name === "NotAllowedError"
+          ? "Micrófono bloqueado. Habilita el permiso del navegador."
+          : "No se pudo iniciar el micrófono.";
+        render();
+      }
+    }
+
+    function stopVoiceRecording() {
+      if (mediaRecorder?.state === "recording") {
+        mediaRecorder.stop();
+      }
+    }
+
+    async function transcribeDemoAudio(audio) {
+      if (!audio.size) {
+        voicePhase = "error";
+        voiceMessage = "No se grabó audio. Intenta hablar después de tocar MIC.";
+        render();
+        return;
+      }
+
+      voicePhase = "uploading";
+      voiceMessage = "Transcribiendo con Whisper...";
+      render();
+
+      const formData = new FormData();
+      formData.append("audio", audio, "voice-demo-brief.webm");
+
+      try {
+        const response = await fetch(`${API_BASE}/public/demo/transcriptions`, {
+          method: "POST",
+          body: formData
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data?.error?.message || data?.message || `HTTP ${response.status}`);
+        if (typeof data?.text !== "string") throw new Error("Respuesta de transcripción inválida.");
+        applyTranscript(data.text);
+        voicePhase = "idle";
+        voiceMessage = "Brief capturado. Puedes grabar otra vez para reemplazarlo o seguir avanzando.";
+        showToast("Brief transcrito y guardado en la demo.");
+      } catch (error) {
+        voicePhase = "error";
+        voiceMessage = error instanceof Error ? error.message : "No se pudo transcribir el audio.";
+        showToast("No se pudo transcribir el audio.");
+      } finally {
+        render();
+      }
+    }
+
+    function applyTranscript(text) {
+      const clean = String(text || "").trim();
+      if (!clean) return;
+
+      if (!state.brandName) {
+        const match = clean.match(/(?:marca|empresa|negocio|proyecto)\s+(?:se llama|llamado|es)\s+([^,.]{2,80})/i);
+        state.brandName = match?.[1]?.trim() || "Marca capturada por voz";
+      }
+
+      state.brief = clean.slice(0, 2000);
+      state.memory.push(`Transcripción de voz: ${clean.slice(0, 500)}`);
+      state.completedStep = Math.max(state.completedStep, 1);
+      saveState(false);
+    }
+
     function showToast(message) {
       const toast = document.getElementById("toast");
       toast.textContent = message;
@@ -2386,9 +2554,7 @@
         renderCalendar();
       }
       if (event.target.closest("[data-toggle-voice]")) {
-        state.voiceListening = !state.voiceListening;
-        saveState(false);
-        render();
+        void toggleVoiceRecording();
       }
       const zoomable = event.target.closest("[data-lightbox]");
       if (zoomable && zoomable.tagName === "IMG") {
@@ -2406,8 +2572,11 @@
     }
 
     onReadyClick("startTourBtn", () => { void runGuidedTour(); });
-    onReadyClick("startVoiceBtn", () => { void runGuidedTour(); });
-    onReadyClick("landingMicBtn", () => { void runGuidedTour(); });
+    onReadyClick("startVoiceBtn", () => startDemo());
+    onReadyClick("landingMicBtn", () => {
+      startDemo();
+      window.setTimeout(() => { void startVoiceRecording(); }, 980);
+    });
     onReadyClick("resumeBtn", () => goToStep(Math.max(1, state.completedStep || 1)));
     onReadyClick("saveBtn", () => saveState(true));
 
@@ -2467,6 +2636,10 @@
       };
     }
 
+    function fallbackCreativeImage() {
+      return styleImageFor(state.style) || "assets/style-neobrutal.png";
+    }
+
     // Genera las 3 piezas en paralelo (una request por concepto) para que la
     // barra avance de verdad conforme cada imagen llega.
     async function generateFinals() {
@@ -2506,10 +2679,10 @@
               creative.img = imageUrl;
               realCount += 1;
             } else {
-              creative.img = creative.staticImg;
+              creative.img = fallbackCreativeImage();
             }
           } catch {
-            creative.img = creative.staticImg;
+            creative.img = fallbackCreativeImage();
           } finally {
             creative.generating = false;
             done += 1;
