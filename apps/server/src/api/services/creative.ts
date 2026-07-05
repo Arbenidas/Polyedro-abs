@@ -1,4 +1,10 @@
 import { type ImageRequest, generateImage } from "@/api/services/images";
+import {
+  emitAgentCompleted,
+  emitAgentLog,
+  emitAgentStarted,
+  emitAssetUpdated,
+} from "@/api/services/progress";
 import { ApiError, requireOne } from "@/api/shared";
 import { db } from "@/db";
 import { campaigns, creativeAssets } from "@/db/schema";
@@ -151,6 +157,10 @@ const upsertGeneratingAsset = async (campaignId: string, variant: Variant) => {
 
 const generateVariant = async (context: CreativeContext, assetId: string, variant: Variant) => {
   const prompt = buildPrompt(context, variant);
+  const campaignId = context.campaign.id;
+  emitAgentLog(campaignId, "creative", `Generating image for variant ${variant.toUpperCase()}`, {
+    variant,
+  });
 
   try {
     const image = await generateImage(buildImageRequest(context, variant, prompt));
@@ -166,7 +176,17 @@ const generateVariant = async (context: CreativeContext, assetId: string, varian
       .where(eq(creativeAssets.id, assetId))
       .returning();
 
-    return requireOne(updated, "Creative asset could not be updated");
+    const asset = requireOne(updated, "Creative asset could not be updated");
+    emitAssetUpdated(campaignId, {
+      target: "creative_asset",
+      id: asset.id,
+      status: asset.status,
+      variant,
+      imageUrl: asset.imageUrl,
+      provider: image.provider,
+    });
+
+    return asset;
   } catch (error) {
     await db
       .update(creativeAssets)
@@ -178,6 +198,12 @@ const generateVariant = async (context: CreativeContext, assetId: string, varian
         },
       })
       .where(eq(creativeAssets.id, assetId));
+    emitAssetUpdated(campaignId, {
+      target: "creative_asset",
+      id: assetId,
+      status: "draft",
+      variant,
+    });
 
     throw error;
   }
@@ -186,12 +212,19 @@ const generateVariant = async (context: CreativeContext, assetId: string, varian
 /** Corre el Creative Agent completo: variantes A y B en paralelo. */
 export const runCreativeAgent = async (campaignId: string) => {
   const context = await loadCreativeContext(campaignId);
+  emitAgentStarted(campaignId, "creative", { variants: VARIANTS });
 
   const pending = await Promise.all(
-    VARIANTS.map(async (variant) => ({
-      variant,
-      asset: await upsertGeneratingAsset(campaignId, variant),
-    })),
+    VARIANTS.map(async (variant) => {
+      const asset = await upsertGeneratingAsset(campaignId, variant);
+      emitAssetUpdated(campaignId, {
+        target: "creative_asset",
+        id: asset.id,
+        status: "generating",
+        variant,
+      });
+      return { variant, asset };
+    }),
   );
 
   const results = await Promise.allSettled(
@@ -208,10 +241,15 @@ export const runCreativeAgent = async (campaignId: string) => {
     );
 
   if (assets.length === 0) {
+    emitAgentCompleted(campaignId, "creative", "failed", { failures });
     throw new ApiError(500, "Creative Agent could not generate any variant", { failures });
   }
 
   await db.update(campaigns).set({ status: "review" }).where(eq(campaigns.id, campaignId));
+  emitAgentCompleted(campaignId, "creative", "succeeded", {
+    generated: assets.length,
+    failures,
+  });
 
   return { assets, failures };
 };
@@ -227,11 +265,32 @@ export const regenerateCreativeAsset = async (campaignId: string, assetId: strin
   }
 
   const context = await loadCreativeContext(campaignId);
+  emitAgentStarted(campaignId, "creative", { scope: "regenerate", variant: asset.variant });
 
   await db
     .update(creativeAssets)
     .set({ status: "generating" })
     .where(eq(creativeAssets.id, asset.id));
+  emitAssetUpdated(campaignId, {
+    target: "creative_asset",
+    id: asset.id,
+    status: "generating",
+    variant: asset.variant,
+  });
 
-  return generateVariant(context, asset.id, asset.variant);
+  try {
+    const regenerated = await generateVariant(context, asset.id, asset.variant);
+    emitAgentCompleted(campaignId, "creative", "succeeded", {
+      scope: "regenerate",
+      variant: asset.variant,
+    });
+    return regenerated;
+  } catch (error) {
+    emitAgentCompleted(campaignId, "creative", "failed", {
+      scope: "regenerate",
+      variant: asset.variant,
+      error: error instanceof Error ? error.message : "Unknown generation error",
+    });
+    throw error;
+  }
 };
