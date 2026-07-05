@@ -58,48 +58,48 @@ export const LANDING_TOUR_ORDER: readonly LandingTourSectionId[] = [
 
 const LANDING_TOUR_NARRATION: Record<LandingTourSectionId, Record<GuideLanguage, string>> = {
   hero: {
-    es: "Polyedro /abs es un laboratorio de marketing con IA. La landing abre con la promesa principal: convertir una marca en un sistema de campañas completo.",
-    en: "Polyedro /abs is an AI marketing lab. The landing opens with the core promise: turning a brand into a complete campaign system.",
+    es: "Polyedro /abs convierte una marca en un sistema de campanas listo para operar: estrategia, piezas creativas, voz y aprobacion desde un solo workspace.",
+    en: "Polyedro /abs turns a brand into an operating campaign system: strategy, creative assets, voice, and approval from one workspace.",
   },
   problem: {
-    es: "Aqui mostramos el problema: las PyMEs usan demasiadas herramientas separadas y pierden consistencia entre estrategia, contenido y ejecucion.",
-    en: "Here we show the problem: small teams use too many disconnected tools and lose consistency between strategy, content, and execution.",
+    es: "El dolor es claro: demasiadas herramientas desconectadas hacen que estrategia, contenido y ejecucion avancen lento y pierdan consistencia.",
+    en: "The pain is clear: disconnected tools make strategy, content, and execution slower and less consistent.",
   },
   "how-it-works": {
-    es: "El flujo es simple: crear un workspace, construir el brand kit y generar una campaña lista para revisar antes de publicar.",
-    en: "The flow is simple: create a workspace, build the brand kit, and generate a campaign ready for review before publishing.",
+    es: "El flujo reduce la friccion: creas el workspace, defines la marca y los agentes preparan una campana que el usuario revisa antes de publicar.",
+    en: "The flow removes friction: create the workspace, define the brand, and agents prepare a campaign the user reviews before publishing.",
   },
   agents: {
-    es: "Esta seccion presenta los agentes especializados. Cada agente cubre una parte del trabajo: marca, estrategia, Meta Ads, creativos, video, voz, automatizacion y aprobacion.",
-    en: "This section presents the specialized agents. Each agent owns part of the work: brand, strategy, Meta Ads, creative, video, voice, automation, and approval.",
+    es: "Aqui el usuario entiende el equipo: cada agente toma una tarea concreta, desde marca y anuncios hasta video, voz, automatizacion y aprobacion.",
+    en: "Here the user sees the team: each agent owns a clear job, from brand and ads to video, voice, automation, and approval.",
   },
   pipeline: {
-    es: "Aqui se ve el pipeline de produccion. La campana deja de ser una idea suelta y se convierte en assets organizados para ejecutar.",
-    en: "Here you see the production pipeline. The campaign stops being a loose idea and becomes organized assets ready to execute.",
+    es: "El pipeline muestra el avance operativo: la idea se transforma en assets concretos, ordenados por estado y listos para decision.",
+    en: "The pipeline shows operational progress: the idea becomes concrete assets, organized by status and ready for a decision.",
   },
   approval: {
-    es: "La aprobacion humana mantiene el control. La IA produce rapido, pero el usuario decide que piezas pasan a publicacion.",
-    en: "Human approval keeps control in place. AI produces quickly, but the user decides which assets are approved for publishing.",
+    es: "La aprobacion mantiene control humano: la IA acelera la produccion, pero el usuario decide que piezas pasan a publicacion.",
+    en: "Approval keeps human control: AI speeds up production, but the user decides which assets move to publishing.",
   },
   automation: {
-    es: "La automatizacion conecta el sistema con herramientas como n8n, Supabase, ElevenLabs y Meta Ads para cerrar el flujo operativo.",
-    en: "Automation connects the system with tools like n8n, Supabase, ElevenLabs, and Meta Ads to complete the operating flow.",
+    es: "La automatizacion conecta el workspace con n8n, Supabase, ElevenLabs y Meta Ads para que el flujo no termine en archivos sueltos.",
+    en: "Automation connects the workspace with n8n, Supabase, ElevenLabs, and Meta Ads so the flow does not end in scattered files.",
   },
   demo: {
-    es: "La demo usa una marca tech ficticia para mostrar el resultado: brand kit, anuncio, copy, especificaciones y voz listos para campana.",
-    en: "The demo uses a fictional tech brand to show the output: brand kit, ad, copy, specs, and voice ready for a campaign.",
+    es: "La demo aterriza la promesa: una marca ficticia recibe brand kit, anuncio, copy, especificaciones y voz listos para evaluar.",
+    en: "The demo makes the promise concrete: a fictional brand gets a brand kit, ad, copy, specs, and voice ready to evaluate.",
   },
   audience: {
-    es: "El producto esta pensado para marcas personales y PyMEs que necesitan vender mas sin construir un equipo grande de marketing.",
-    en: "The product is built for personal brands and small businesses that need to sell more without building a large marketing team.",
+    es: "El publico objetivo son marcas personales y PyMEs que necesitan vender mejor sin contratar un equipo completo de marketing.",
+    en: "The target users are personal brands and small businesses that need better selling without hiring a full marketing team.",
   },
   guide: {
-    es: "El agente guia demuestra la experiencia conversacional: explica la plataforma mientras la interfaz se mueve al ritmo de la narracion.",
-    en: "The guide agent demonstrates the conversational experience: it explains the platform while the interface moves with the narration.",
+    es: "Este agente guia prueba la experiencia conversacional: explica lo importante mientras la interfaz se mueve con la narracion.",
+    en: "This guide agent proves the conversational experience: it explains what matters while the interface moves with the narration.",
   },
   cta: {
-    es: "El cierre lleva al usuario a empezar. La propuesta es pasar de marca a campana aprobable desde un solo workspace.",
-    en: "The closing section invites the user to start. The promise is moving from brand to approvable campaign in one workspace.",
+    es: "El cierre empuja a la accion: empezar con un workspace y pasar de marca a campana aprobable sin saltar entre herramientas.",
+    en: "The close pushes action: start with one workspace and move from brand to approvable campaign without jumping between tools.",
   },
 };
 
@@ -110,8 +110,8 @@ export function guideSectionNarrationPrompt(
   const narration = LANDING_TOUR_NARRATION[sectionId][language];
 
   return language === "es"
-    ? `[SECCION_VISIBLE:${sectionId}] La pagina ya esta posicionada en esta seccion. Narra de forma natural en 1-2 frases esta idea: ${narration} No uses tools en esta respuesta. Cuando termines de hablar, detente.`
-    : `[VISIBLE_SECTION:${sectionId}] The page is already positioned on this section. Naturally narrate this idea in 1-2 sentences: ${narration} Do not use tools in this response. After speaking, stop.`;
+    ? `[SECCION_VISIBLE:${sectionId}] La pagina ya esta posicionada. Narra en espanol latino, tono demo claro y energico, UNA frase de maximo 28 palabras. Explica que ve el usuario y por que importa usando esta idea: ${narration} No leas texto literal, no menciones IDs ni nombres tecnicos de seccion, no uses tools, y al terminar detente.`
+    : `[VISIBLE_SECTION:${sectionId}] The page is already positioned. Narrate in clear demo tone, ONE sentence, maximum 28 words. Explain what the user sees and why it matters using this idea: ${narration} Do not read UI text verbatim, do not mention section IDs, do not use tools, and stop after speaking.`;
 }
 
 export async function scrollToLandingSectionAsync(
@@ -130,7 +130,7 @@ export async function scrollToLandingSectionAsync(
   await smoothScrollToElement(target);
 
   const label = LANDING_TOUR_SECTIONS.find((section) => section.id === sectionId)?.labelEs ?? sectionId;
-  return `Sección "${sectionId}" (${label}) visible y estable. Ahora narra SOLO esta sección en 1-2 frases. Cuando termines de hablar, no narres la siguiente todavía: llama scrollToSection con la próxima sección.`;
+  return `Sección "${sectionId}" (${label}) visible y estable. Ahora narra SOLO esta sección en una frase concreta de máximo 28 palabras. Cuando termines, llama scrollToSection con la próxima sección.`;
 }
 
 export { clearTourHighlights, clearTourSectionActive } from "./landing-tour-highlights";

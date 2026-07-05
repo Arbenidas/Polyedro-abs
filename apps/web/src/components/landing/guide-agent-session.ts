@@ -18,7 +18,7 @@ export function getGuideSessionOptions() {
     overrides: {
       tts: {
         speed: getGuideTtsSpeed(),
-        stability: 0.55,
+        stability: 0.5,
       },
     },
   };
@@ -73,13 +73,13 @@ export function waitForGuideDisconnect(
 export function tourKickoffMessage(language: GuideLanguage): string {
   if (GUIDE_DEMO_MODE) {
     return language === "es"
-      ? "[MODO DEMO] Recorrido hero→cta. Contrato estricto: no narres una sección hasta que esté visible. Para cada sección: (1) llama scrollToSection, (2) espera el resultado de la tool, (3) narra 1-2 frases cortas SOLO de esa sección, (4) detente; cuando termines de hablar llama scrollToSection de la SIGUIENTE. Nunca mezcles narración y siguiente scroll en el mismo beat. UNA tool a la vez. Parafrasea, no leas la UI."
-      : "[DEMO MODE] Tour hero→cta. Strict contract: never narrate a section until it is visible. For each section: (1) call scrollToSection, (2) wait for the tool result, (3) narrate 1-2 short sentences ONLY about that section, (4) stop; after speaking call scrollToSection for the NEXT. Never mix narration and the next scroll in the same beat. ONE tool at a time. Paraphrase.";
+      ? "[MODO DEMO] Recorrido hero→cta. Contrato estricto: no narres una sección hasta que esté visible. Para cada sección: (1) llama scrollToSection, (2) espera el resultado, (3) narra SOLO esa sección en UNA frase clara de máximo 28 palabras, (4) detente; después llama scrollToSection de la SIGUIENTE. Ritmo ágil, cero relleno, no leas la UI literal y no mezcles narración con scroll."
+      : "[DEMO MODE] Tour hero→cta. Strict contract: never narrate a section until it is visible. For each section: (1) call scrollToSection, (2) wait for the result, (3) narrate ONLY that section in ONE clear sentence, maximum 28 words, (4) stop; then call scrollToSection for the NEXT. Brisk pace, no filler, do not read UI text verbatim, and do not mix narration with scrolling.";
   }
 
   return language === "es"
-    ? "Inicia el recorrido guiado sección por sección. Primero usa scrollToSection, espera a que la sección esté visible, narra esa sección con frases cortas y solo después de terminar la voz pasa a la siguiente."
-    : "Start the guided tour section by section. First use scrollToSection, wait until the section is visible, narrate that section briefly, and only after the voice finishes move to the next one.";
+    ? "Inicia el recorrido guiado sección por sección. Usa scrollToSection, espera a que la sección esté visible y narra una sola frase clara de máximo 28 palabras antes de avanzar."
+    : "Start the guided tour section by section. Use scrollToSection, wait until the section is visible, and narrate one clear sentence of maximum 28 words before advancing.";
 }
 
 function isBrowserEvent(value: unknown): value is Event {

@@ -1,17 +1,17 @@
-/** Pacing for guide tour — short gap between narration beats (default 1s). */
+/** Pacing for guide tour — brisk narration with a short beat between sections. */
 
-const SCROLL_SETTLE_MS = 400;
-const DEFAULT_SECTION_POST_READ_GAP_MS = 0;
-const DEFAULT_SECTION_DWELL_MS = 1_000;
-const DEFAULT_HIGHLIGHT_DWELL_MS = 1_000;
-const DEFAULT_SMOOTH_SCROLL_MS = 1800;
-const MIN_SCROLL_MS = 900;
-const MAX_SCROLL_MS = 3200;
-const SCROLL_DISTANCE_BASE_PX = 650;
-const DEFAULT_TTS_SPEED = 0.86;
+const SCROLL_SETTLE_MS = 260;
+const DEFAULT_SECTION_POST_READ_GAP_MS: number | null = null;
+const DEFAULT_SECTION_DWELL_MS = 300;
+const DEFAULT_HIGHLIGHT_DWELL_MS = 750;
+const DEFAULT_SMOOTH_SCROLL_MS = 1150;
+const MIN_SCROLL_MS = 550;
+const MAX_SCROLL_MS = 2200;
+const SCROLL_DISTANCE_BASE_PX = 700;
+const DEFAULT_TTS_SPEED = 1.08;
 const SPEAKING_POLL_MS = 100;
-const SPEAKING_START_GRACE_MS = 350;
-const SPEAKING_WAIT_MAX_MS = 32_000;
+const SPEAKING_START_GRACE_MS = 250;
+const SPEAKING_WAIT_MAX_MS = 22_000;
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
   if (!value) {
@@ -40,7 +40,7 @@ export function getTourSectionDwellMs(): number {
 }
 
 /** Gap after section narration (0 = continuous flow). */
-export function getTourSectionPostReadGapMs(): number {
+export function getTourSectionPostReadGapMs(): number | null {
   const raw = process.env.NEXT_PUBLIC_ELEVENLABS_GUIDE_SECTION_GAP_MS;
   if (!raw) {
     return DEFAULT_SECTION_POST_READ_GAP_MS;
@@ -66,7 +66,7 @@ export function getScrollSettleMs(): number {
   return SCROLL_SETTLE_MS;
 }
 
-/** Longer jumps get proportionally more time — avoids rushed section-to-section scrolls. */
+/** Longer jumps get proportionally more time while keeping the tour moving. */
 export function resolveScrollDurationMs(distancePx: number): number {
   const baseMs = getTourSmoothScrollMs();
   const scaled = (Math.abs(distancePx) / SCROLL_DISTANCE_BASE_PX) * baseMs;
@@ -89,7 +89,7 @@ export function sleep(ms: number): Promise<void> {
   });
 }
 
-/** Eased scroll — duration scales with distance for a cinematic, relaxed pace. */
+/** Eased scroll — duration scales with distance for a clear but brisk transition. */
 export async function smoothScrollToElement(
   element: HTMLElement,
   durationMs?: number,
@@ -153,7 +153,7 @@ export async function waitForAgentSpeechToFinish(isSpeaking?: () => boolean): Pr
 export async function waitBeforeSectionScroll(isSpeaking?: () => boolean): Promise<void> {
   await waitForAgentSpeechToFinish(isSpeaking);
 
-  const gapMs = getTourSectionPostReadGapMs() || getTourSectionDwellMs();
+  const gapMs = getTourSectionPostReadGapMs() ?? getTourSectionDwellMs();
   if (gapMs > 0) {
     await sleep(gapMs);
   }

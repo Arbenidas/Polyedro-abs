@@ -60,11 +60,11 @@ type GuideAgentInnerProps = {
   onLanguageChange: (language: GuideLanguage) => void;
 };
 
-const RECENT_SPEECH_HOLD_MS = 900;
-const MIN_ESTIMATED_SPEECH_MS = 1_500;
-const MAX_ESTIMATED_SPEECH_MS = 18_000;
-const WORD_MS_AT_NORMAL_SPEED = 430;
-const PUNCTUATION_PAUSE_MS = 120;
+const RECENT_SPEECH_HOLD_MS = 550;
+const MIN_ESTIMATED_SPEECH_MS = 900;
+const MAX_ESTIMATED_SPEECH_MS = 12_000;
+const WORD_MS_AT_NORMAL_SPEED = 340;
+const PUNCTUATION_PAUSE_MS = 80;
 
 function estimateSpeechDurationMs(message: string): number {
   const words = message.trim().split(/\s+/).filter(Boolean).length;
@@ -198,7 +198,7 @@ export default function GuideAgentInner({
       }
 
       await waitForAgentSpeechToFinish(isAgentPresenting);
-      await sleep(450);
+      await sleep(220);
     },
     [isAgentPresenting],
   );
