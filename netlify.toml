@@ -13,5 +13,11 @@
   command = "NEXT_PUBLIC_SERVER_URL=\"${NEXT_PUBLIC_SERVER_URL:-http://localhost:3000}\" NEXT_PUBLIC_SUPABASE_URL=\"${NEXT_PUBLIC_SUPABASE_URL:-https://placeholder.supabase.co}\" NEXT_PUBLIC_SUPABASE_ANON_KEY=\"${NEXT_PUBLIC_SUPABASE_ANON_KEY:-placeholder}\" NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=\"${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-placeholder}\" pnpm build"
   publish = ".next"
 
+# Explicitly enable the Next.js runtime plugin. Auto-detection is unreliable
+# in this pnpm monorepo (base = apps/web), which left the SSR handler out of
+# Git-triggered deploys and served a raw .next folder (404s everywhere).
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
 [build.environment]
   NODE_VERSION = "22"
