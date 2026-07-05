@@ -319,7 +319,7 @@ export async function getCampaignDashboard(campaignId: string): Promise<Campaign
 
 export async function runCampaignAgent(
   campaignId: string,
-  agent: "strategy" | "creative" | "meta-ads" | "video",
+  agent: "strategy" | "creative" | "meta-ads" | "video" | "voice",
 ) {
   const res = await apiFetch(`/api/campaigns/${campaignId}/agents/${agent}`, {
     method: "POST",

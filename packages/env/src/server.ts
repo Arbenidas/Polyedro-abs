@@ -51,6 +51,18 @@ export const env = createEnv({
     OPENAI_API_KEY: z.string().min(1).optional(),
     /** Modelo de OpenAI usado para generar el contenido del brand kit. */
     OPENAI_MODEL: z.string().min(1).default("gpt-5-mini"),
+    /** ElevenLabs API key para el Voice Agent (text-to-speech); sin ella los
+     *  voiceovers se crean en modo fallback (sin audio real, provider="fallback"). */
+    ELEVENLABS_API_KEY: z.string().min(1).optional(),
+    /** Voice id de ElevenLabs usado por defecto (premade "Sarah", disponible en
+     *  todas las cuentas incluidas las free; el modelo multilingüe habla ES y EN
+     *  con la misma voz). Sobreescribible por entorno. */
+    ELEVENLABS_VOICE_ID: z.string().min(1).default("EXAVITQu4vr4xnSDxMaL"),
+    /** Voice id opcional específico para el voiceover en inglés; si no se define
+     *  se usa ELEVENLABS_VOICE_ID para ambos idiomas. */
+    ELEVENLABS_VOICE_ID_EN: z.string().min(1).optional(),
+    /** Modelo de ElevenLabs; el multilingüe soporta ES y EN en una sola voz. */
+    ELEVENLABS_MODEL: z.string().min(1).default("eleven_multilingual_v2"),
     /** Webhook de n8n para el export de campañas a Meta Ads. Trae el default
      *  de producción para que el export real funcione sin config; se puede
      *  sobreescribir por entorno. Si queda vacío, el export cae a simulado. */

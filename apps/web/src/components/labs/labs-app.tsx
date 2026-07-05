@@ -162,9 +162,9 @@ const getRegenerationTargets = (
         ? [{ target: "video_script", id: dashboard.agents.videoScripts[0].id }]
         : [];
     case "voice":
-      return dashboard.agents.voiceovers[0]
-        ? [{ target: "voiceover", id: dashboard.agents.voiceovers[0].id }]
-        : [];
+      // "voice" se maneja antes en regen() (corre el Voice Agent directo), así
+      // que este caso no se alcanza; retorna vacío para mantener exhaustividad.
+      return [];
   }
 };
 
@@ -440,6 +440,24 @@ export default function LabsApp() {
       if (!campaignId || !dashboard) {
         setStatus(id, "generating");
         return true;
+      }
+
+      // El Voice Agent no tiene endpoint de regenerate por-fila: corre el agente
+      // (upsert del par ES/EN) tanto para el primer "Generate" como para regenerar.
+      if (id === "voice") {
+        setStatus("voice", "generating");
+        try {
+          setCampaignError(null);
+          await runCampaignAgent(campaignId, "voice");
+          const nextDashboard = await getCampaignDashboard(campaignId);
+          setDashboard(nextDashboard);
+          setStatuses(statusesFromDashboard(nextDashboard));
+          return true;
+        } catch (err) {
+          setCampaignError(err instanceof Error ? err.message : "Could not generate voiceovers.");
+          setStatuses(statusesFromDashboard(dashboard));
+          return false;
+        }
       }
 
       const targets = getRegenerationTargets(dashboard, id, copyVar);
