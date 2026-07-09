@@ -1,25 +1,13 @@
-import { env } from "@Polyedro-abs/env/web";
+import type { Metadata } from "next";
 
-// Bump cuando cambie public/voice-demo/index.html para evitar cache del navegador.
-const DEMO_VERSION = "3";
+import TakedownPage from "@/components/takedown-page";
+
+export const metadata: Metadata = {
+  title: "Polyedro /abs — Demo offline",
+  description: "This Polyedro demo is no longer available.",
+  robots: { index: false, follow: false },
+};
 
 export default function DemoPage() {
-  const params = new URLSearchParams({ api: env.NEXT_PUBLIC_SERVER_URL, v: DEMO_VERSION });
-  const src = `/voice-demo/index.html?${params.toString()}`;
-
-  return (
-    <main style={{ height: "100dvh", margin: 0, overflow: "hidden" }}>
-      <iframe
-        src={src}
-        title="Polyedro /abs voice campaign demo"
-        allow="microphone; autoplay; clipboard-write"
-        style={{
-          border: 0,
-          display: "block",
-          height: "100%",
-          width: "100%",
-        }}
-      />
-    </main>
-  );
+  return <TakedownPage />;
 }

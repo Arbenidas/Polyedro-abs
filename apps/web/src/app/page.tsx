@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 
-import LandingPage from "@/components/landing/landing-page";
+import TakedownPage from "@/components/takedown-page";
 
 export const metadata: Metadata = {
-  title: "Polyedro /abs — Laboratorio de marketing con IA",
-  description:
-    "Un workspace por marca. Ocho agentes especializados construyen tu brand kit, campañas, copy, creativos y locuciones — tú apruebas, ellos ejecutan.",
+  title: "Polyedro /abs — Demo offline",
+  description: "This Polyedro demo is no longer available.",
+  robots: { index: false, follow: false },
 };
 
 export default function Home() {
-  return <LandingPage />;
+  return <TakedownPage />;
 }

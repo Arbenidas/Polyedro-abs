@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 
-import LabsApp from "@/components/labs/labs-app";
+import TakedownPage from "@/components/takedown-page";
 
 export const metadata: Metadata = {
-  title: "Polyedro /abs — Dashboard",
-  description:
-    "Un workspace por marca. Ocho agentes especializados construyen tu brand kit, campañas, copy, creativos y locuciones — tú apruebas, ellos ejecutan.",
+  title: "Polyedro /abs — Demo offline",
+  description: "This Polyedro demo is no longer available.",
+  robots: { index: false, follow: false },
 };
 
 export default function DashboardPage() {
-  return <LabsApp />;
+  return <TakedownPage />;
 }
