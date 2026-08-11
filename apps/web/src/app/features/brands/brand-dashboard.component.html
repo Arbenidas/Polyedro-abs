@@ -1,0 +1,45 @@
+<poly-app-header section="01 / Proyectos"></poly-app-header>
+<main id="main-content" class="page-shell">
+  <header class="dashboard-hero">
+    <div><span class="eyebrow">ESTUDIO DE CONTENIDO</span><h1>Ideas claras.<br><em>Diseño con carácter.</em></h1><p>{{ brand.description }}</p></div>
+    <div class="hero-actions">
+      <a class="primary-action" [routerLink]="['/brands', brand.id, 'content', 'new']"><span>Nueva publicación<small>Idea, texto o nota completa</small></span><b>→</b></a>
+      <a class="secondary-action" [routerLink]="['/brands', brand.id, 'short-video', 'new']"><span>Guion corto<small>Reels, TikTok o tendencia actual</small></span><b>↗</b></a>
+    </div>
+  </header>
+
+  <section class="workflow-strip" aria-label="Flujo de creación">
+    <article class="active"><b>01</b><div><strong>Pega la idea</strong><span>Idea corta o texto completo</span></div></article>
+    <article><b>02</b><div><strong>Revisá el material</strong><span>Post largo con fuentes</span></div></article>
+    <article><b>03</b><div><strong>Generá propuestas</strong><span>Hook y storyboard sugeridos</span></div></article>
+  </section>
+
+  <section class="content-library">
+    <div class="section-title"><div><span class="eyebrow">TU TRABAJO</span><h2>Proyectos recientes</h2></div><small>{{ projects().length }} PROYECTOS LOCALES</small></div>
+    <div class="empty-state" *ngIf="!projects().length">
+      <span>EMPIEZA SIN CONFIGURAR NADA</span><h3>Pega una idea. Investigamos y desarrollamos el material.</h3><p>La idea se convierte en un post largo con fuentes, lo revisás, y recién después se generan las propuestas visuales.</p><a [routerLink]="['/brands', brand.id, 'content', 'new']">Crear la primera publicación →</a>
+    </div>
+    <div class="project-grid" *ngIf="projects().length">
+      <a class="project-card" *ngFor="let project of projects()" [routerLink]="['/brands', brand.id, 'content', project.id, 'edit']">
+        <span>{{ project.plan.contentType }} · {{ project.plan.recommendedSlideCount }} LÁMINAS</span><h3>{{ project.plan.topic }}</h3><p>{{ project.plan.hookCandidates[0].text }}</p><b>Continuar editando →</b>
+      </a>
+    </div>
+  </section>
+
+  <section class="identity-grid">
+    <article class="board brand-card">
+      <div class="board-head"><span>BRAND KIT</span><b>APROBADO</b></div>
+      <h2>{{ brand.name }}</h2><p>Técnico con punchline. Serio con la evidencia, irónico con el hype.</p>
+      <div class="swatches"><i *ngFor="let color of brand.palette" [style.background]="color" [title]="color"></i></div>
+      <div class="type-pair"><strong>Space Grotesk</strong><small>Merriweather + Share Tech Mono</small></div>
+    </article>
+    <article class="brand-poster">
+      <small>ASÍ SUENA TU VOZ</small><h2>APRENDÉ<br><mark>ALGO ÚTIL.</mark></h2><p>noticia fresca → take con postura</p><b>@arbe.blog</b>
+    </article>
+    <article class="board principles">
+      <span>REGLAS EDITORIALES</span>
+      <ol><li><b>01</b> Valor primero, chiste después.</li><li><b>02</b> Evidencia antes que opinión.</li><li><b>03</b> Postura sí, humo no.</li></ol>
+    </article>
+  </section>
+
+</main>

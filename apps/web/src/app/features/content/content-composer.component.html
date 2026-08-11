@@ -1,0 +1,57 @@
+<poly-app-header section="02 / Brief"></poly-app-header>
+<main id="main-content" class="page-shell composer-page">
+  <section class="composer-head"><span class="eyebrow">NUEVA PUBLICACIÓN</span><h1>Empieza con el tema.<br><em>Desarrollamos el material, después las propuestas.</em></h1><p>Escribe una idea corta (la investigamos y desarrollamos un post largo) o pega tu texto completo. El material se revisa contigo antes de generar las propuestas de publicación.</p></section>
+  <section class="composer-layout">
+  <section class="composer-card">
+    <div class="source-mode-picker" aria-label="Tipo de entrada">
+      <button [class.active]="sourceMode==='idea'" (click)="sourceMode='idea'">💡 Tengo la idea</button>
+      <button [class.active]="sourceMode==='text'" (click)="sourceMode='text'">📄 Tengo el texto</button>
+    </div>
+    <label for="source">{{ sourceMode === 'idea' ? 'IDEA DEL TEMA' : 'TEXTO COMPLETO' }}</label>
+    <textarea id="source" [(ngModel)]="sourceText" (ngModelChange)="onSourceChange($event)" [placeholder]="sourceMode === 'idea' ? 'Ej. Ley de Hick y Fitts aplicadas a interfaces móviles' : 'Pega aquí tu nota o artículo completo…'" [disabled]="phase() !== 'idle' && phase() !== 'error'"></textarea>
+    <div class="composer-footer">
+      <div class="channel-picker" aria-label="Canal de publicación"><button *ngFor="let item of channels" [class.active]="channel===item.id" (click)="channel=item.id">{{ item.label }}</button></div>
+      <small>{{ sourceText.length }} caracteres</small>
+    </div>
+    <div class="category-row">
+      <span>CATEGORÍA <em>OPCIONAL</em></span>
+      <div class="category-picker">
+        <button [class.active]="category===''" (click)="category=''">Auto</button>
+        <button *ngFor="let item of categories" [class.active]="category===item.id" (click)="category=item.id">{{ item.label }}</button>
+      </div>
+    </div>
+    <div class="rewrite-toggle" *ngIf="sourceMode==='text'">
+      <label><input type="checkbox" [(ngModel)]="keepAsIs"><span><b>Usar el texto tal cual</b><small>Sin reescribir: tu material es el post final.</small></span></label>
+      <p *ngIf="!keepAsIs">Sin marcar, la IA reorganiza y pule tu texto (intro, secciones, cierre) conservando tus ideas.</p>
+    </div>
+    <div class="quick-settings">
+      <section><span>FORMATO</span><div class="format-picker"><button [class.active]="format==='auto'" (click)="setFormat('auto')">Auto</button><button [class.active]="format==='single'" (click)="setFormat('single')">Individual</button><button [class.active]="format==='carousel'" (click)="setFormat('carousel')">Carrusel</button></div></section>
+      <section><span>NÚMERO DE CARDS</span><div class="count-picker"><button (click)="changeSlideCount(-1)" [disabled]="slideCount===1">−</button><button class="count-value" [class.auto]="slideCount==='auto'" (click)="setSlideCount(slideCount==='auto'?5:'auto')">{{ slideCount==='auto' ? 'AUTO' : slideCount }}</button><button (click)="changeSlideCount(1)" [disabled]="slideCount===10">+</button></div><small>{{ slideCount==='auto' ? 'Polyedro decide entre 1 y 10' : slideCount===1 ? 'Una publicación individual' : 'Carrusel de '+slideCount+' cards' }}</small></section>
+    </div>
+    <section class="editorial-intent">
+      <div><span>QUÉ DEBE LOGRAR</span><div class="goal-picker"><button [class.active]="goal==='teach'" (click)="goal='teach'">Enseñar</button><button [class.active]="goal==='save'" (click)="goal='save'">Ser guardado</button><button [class.active]="goal==='discuss'" (click)="goal='discuss'">Conversación</button><button [class.active]="goal==='act'" (click)="goal='act'">Mover a la acción</button></div></div>
+      <label>PARA QUIÉN <span>OPCIONAL</span><input maxlength="120" [(ngModel)]="audience" placeholder="Ej. diseñadores junior, founders, developers Flutter"></label>
+    </section>
+    <details class="preferences">
+      <summary>Dirección visual avanzada <span>OPCIONAL</span></summary>
+      <div class="preference-grid">
+        <label>DIRECCIÓN<select [(ngModel)]="visualDirection"><option value="auto">Automática</option><option value="clean">Limpia</option><option value="annotated">Anotada</option><option value="technical">Técnica</option><option value="image-led">Imagen protagonista</option></select></label>
+      </div>
+    </details>
+    <button class="create-button" [disabled]="sourceText.trim().length < 12 || (phase() !== 'idle' && phase() !== 'error')" (click)="startTopicFlow()"><span>{{ phase()==='idle'||phase()==='error' ? (sourceMode==='idea' ? 'Desarrollar tema →' : 'Preparar material →') : 'Investigando y redactando' }}</span><b>→</b></button>
+  </section>
+  <aside class="composer-guide">
+    <span>QUÉ PASARÁ AHORA</span>
+    <ol><li><b>01</b><div><strong>Investigamos el tema</strong><small>{{ sourceMode==='idea' ? 'Web search + contexto actual' : 'Tu texto es la fuente' }}</small></div></li><li><b>02</b><div><strong>Redactamos el post largo</strong><small>Material completo, con fuentes</small></div></li><li><b>03</b><div><strong>Lo revisás y aprobás</strong><small>Después vienen las propuestas</small></div></li></ol>
+    <p><b>Consejo:</b> una audiencia concreta produce mejores hooks que “para todo el mundo”.</p>
+  </aside>
+  </section>
+  <section class="progress" *ngIf="phase() !== 'idle' && phase() !== 'error'" aria-live="polite">
+    <div [class.done]="['researching','narrative','assets','scenes'].includes(phase())" [class.current]="phase()==='researching'"><b>01</b><span>Investigar + redactar</span></div>
+    <div [class.done]="['assets','scenes'].includes(phase())" [class.current]="phase()==='narrative'"><b>02</b><span>Construir narrativa</span></div>
+    <div [class.done]="phase()==='scenes'" [class.current]="phase()==='assets'"><b>03</b><span>Buscar assets</span></div>
+    <div [class.current]="phase()==='scenes'"><b>04</b><span>Preparar escenas</span></div>
+  </section>
+  <section class="error-state" *ngIf="phase()==='error'" aria-live="assertive"><b>No pudimos desarrollar el tema.</b><p>{{ error() }} Tu texto sigue aquí; puedes reintentar.</p><div><button (click)="startTopicFlow()">Reintentar</button></div></section>
+  <section class="ai-warning" *ngIf="aiWarning() && phase() === 'scenes'" aria-live="polite"><b>IA no disponible — usando planner local.</b><p>La generación con DeepSeek falló (<code>{{ aiWarning() }}</code>). Arranca el server con <code>pnpm run dev:server</code> y revisa <code>DEEPSEEK_API_KEY</code> / <code>DEEPSEEK_MODEL</code> en <code>apps/server/.env</code>. Lo que ves ahora es una propuesta determinística sin IA.</p></section>
+</main>

@@ -1,24 +1,25 @@
 packages:
   - apps/*
   - packages/*
-allowBuilds:
-  esbuild: true
-  sharp: true
 catalog:
+  '@tailwindcss/postcss': ^4.3.1
+  '@types/react': ^19.2.17
+  '@types/react-dom': ^19.2.3
   dotenv: ^17.2.2
-  zod: ^4.1.13
-  typescript: ^6
   lucide-react: ^1.21.0
   next-themes: ^0.4.6
   react: ^19.2.7
   react-dom: ^19.2.7
   sonner: ^2.0.7
-  "@tailwindcss/postcss": ^4.3.1
-  "@types/react": ^19.2.17
-  "@types/react-dom": ^19.2.3
   tailwindcss: ^4.3.1
-minimumReleaseAgeExclude:
-  - '@ai-sdk/gateway@4.0.12'
-  - ai@7.0.15
-patchedDependencies:
-  '@elevenlabs/client@1.14.0': patches/@elevenlabs__client@1.14.0.patch
+  typescript: ^6
+  zod: ^4.1.13
+allowBuilds:
+  '@parcel/watcher': true
+  canvas: false
+  esbuild: true
+  lmdb: true
+  msgpackr-extract: true
+  onnxruntime-node: true
+  protobufjs: true
+  sharp: true

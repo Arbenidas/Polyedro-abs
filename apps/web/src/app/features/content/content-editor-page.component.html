@@ -1,0 +1,31 @@
+<poly-app-header section="03 / Storyboard + editor" [wide]="true"></poly-app-header>
+<main id="main-content" class="editor-page" *ngIf="project() as current">
+  <header class="project-head page-width">
+    <div><span class="eyebrow">STORYBOARD EDITABLE</span><h1>{{ current.plan.topic }}</h1><p>{{ current.plan.recommendedSlideCount }} lámina{{current.plan.recommendedSlideCount===1?'':'s'}} · {{ current.preferences.channel }} · {{ current.plan.contentType }}</p></div>
+    <div class="project-actions">
+      <div class="head-state"><i></i><span>Guardado automático</span><small>{{ current.generationMode==='ai'?'Propuesta asistida':'Borrador local' }}</small></div>
+      <a class="publish-link" [routerLink]="['/brands', brandId, 'content', current.id, 'publish']">Publicar →</a>
+      <button (click)="exportCarousel('zip')" [disabled]="exporting() !== null">{{ exporting()==='zip'?'Preparando…':'Instagram · ZIP' }}</button>
+      <button (click)="exportCarousel('pdf')" [disabled]="exporting() !== null">{{ exporting()==='pdf'?'Preparando…':'LinkedIn · PDF' }}</button>
+    </div>
+  </header>
+  <section class="hook-switcher page-width">
+    <div><span>HOOK ACTIVO</span><strong>{{ activeHook()?.text }}</strong></div>
+    <details><summary>Cambiar hook</summary><button *ngFor="let hook of current.plan.hookCandidates" [class.active]="hook.id===current.plan.selectedHookId" (click)="changeHook(hook)"><small>{{hook.angle}}</small>{{hook.text}}</button></details>
+  </section>
+  <section class="storyboard-shell">
+    <div class="storyboard-head page-width"><div><span>1. ELIGE UNA LÁMINA</span><p>Reordena, duplica o elimina antes de diseñar.</p></div><small>STORYBOARD EDITABLE</small></div>
+    <div class="storyboard-rail">
+      <article *ngFor="let id of current.slideOrder;let i=index" [class.active]="id===current.selectedSlideId">
+        <button class="thumb-button" (click)="selectSlide(id)" [attr.aria-label]="'Editar lámina '+(i+1)"><poly-scene-thumbnail *ngIf="scenes()[id] as scene" [scene]="scene"></poly-scene-thumbnail><b>{{i+1}}</b></button>
+        <div class="slide-actions"><button (click)="move(id,-1)" [disabled]="i===0" title="Mover a la izquierda">←</button><button (click)="duplicate(id)" title="Duplicar">⧉</button><button (click)="remove(id)" [disabled]="current.slideOrder.length===1" title="Eliminar">×</button><button (click)="move(id,1)" [disabled]="i===current.slideOrder.length-1" title="Mover a la derecha">→</button></div>
+        <small>{{planSlide(id)?.role}} · {{planSlide(id)?.recipeId}}</small>
+      </article>
+    </div>
+  </section>
+  <p class="notice page-width" *ngIf="notice()">{{notice()}}</p>
+  <section class="editor-wrap page-width" *ngIf="selectedSlide() as slide">
+    <poly-editor-workspace [slide]="slide" [brand]="brand" [channel]="current.preferences.channel" (sceneChanged)="onSceneChanged($event)"></poly-editor-workspace>
+  </section>
+</main>
+<main class="loading" *ngIf="loading()">Preparando el storyboard…</main>

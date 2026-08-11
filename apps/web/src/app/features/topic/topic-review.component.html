@@ -1,0 +1,79 @@
+<poly-app-header section="02 / Tema"></poly-app-header>
+<main id="main-content" class="page-shell review-page">
+  <ng-container *ngIf="draft() as draft; else loadingState">
+    <header class="review-head">
+      <div>
+        <span class="eyebrow">POST LARGO · REVISIÓN HUMANA</span>
+        <h1>Ajustá el material.<br><em>Después generamos las propuestas.</em></h1>
+        <p>Este es el post largo que alimentará tus publicaciones. Editalo libremente, revisá las fuentes y los takeaways. Solo cuando esté bien, aprobá y pasamos a generar las propuestas.</p>
+      </div>
+      <div class="review-meta">
+        <span>CATEGORÍA</span>
+        <b>{{ draft.category }}</b>
+        <small>{{ wordCount }} PALABRAS · {{ sources.length }} FUENTES</small>
+      </div>
+    </header>
+
+    <section class="review-layout">
+      <section class="review-editor-card">
+        <label for="draft-title">TÍTULO</label>
+        <input id="draft-title" maxlength="120" [ngModel]="title()" (ngModelChange)="title.set($event)" placeholder="Título con postura">
+        <label for="draft-body">CONTENIDO DEL POST <span>EDITABLE · MARKDOWN LIGERO</span></label>
+        <textarea id="draft-body" [ngModel]="body()" (ngModelChange)="body.set($event)" spellcheck="false"></textarea>
+        <div class="review-footer">
+          <small>El body aprobado se convierte en el sourceText del plan editorial.</small>
+          <button class="save-button" (click)="saveChanges()">{{ savedNotice() ?? 'Guardar cambios' }}</button>
+        </div>
+      </section>
+
+      <aside class="review-aside">
+        <section class="aside-block">
+          <div class="aside-head"><span>FUENTES DE INVESTIGACIÓN</span><small>{{ sources.length }}</small></div>
+          <div class="source-list" *ngIf="sources.length; else noSources">
+            <a *ngFor="let source of sources" [href]="source.url" target="_blank" rel="noopener noreferrer">
+              <b>{{ source.title }}</b>
+              <small>{{ source.url }}</small>
+              <p>{{ source.snippet }}</p>
+            </a>
+          </div>
+          <ng-template #noSources>
+            <p class="aside-empty">Sin fuentes externas: este draft se redactó con conocimiento técnico general.</p>
+          </ng-template>
+        </section>
+
+        <section class="aside-block">
+          <div class="aside-head"><span>KEY TAKEAWAYS</span><small>ALIMENTAN LAS PROPUESTAS</small></div>
+          <div class="takeaway-list">
+            <div class="takeaway-row" *ngFor="let item of takeaways(); let index = index">
+              <input [ngModel]="item" (ngModelChange)="updateTakeaway(index, $event)" placeholder="Takeaway {{ index + 1 }}">
+              <button (click)="removeTakeaway(index)" title="Quitar">×</button>
+            </div>
+            <button class="add-takeaway" (click)="addTakeaway()">+ Añadir takeaway</button>
+          </div>
+        </section>
+
+        <section class="approve-block">
+          <div>
+            <b>¿El tema está listo?</b>
+            <small>Al aprobar, generamos las propuestas de publicación desde este material.</small>
+          </div>
+          <button class="approve-button" [disabled]="building()" (click)="approveAndBuild()">
+            <span>{{ building() ? 'Construyendo propuestas…' : 'Aprobar y generar propuestas' }}</span>
+            <b>→</b>
+          </button>
+        </section>
+
+        <p class="error-line" *ngIf="error()">{{ error() }}</p>
+      </aside>
+    </section>
+  </ng-container>
+
+  <ng-template #loadingState>
+    <main class="loading" *ngIf="loading()">Cargando el tema…</main>
+    <section class="missing-state" *ngIf="missing()">
+      <h2>No encontramos este tema.</h2>
+      <p>El draft pudo haber sido eliminado. Volvé al inicio y creá uno nuevo.</p>
+      <a [routerLink]="['/brands', brandId]">Volver a proyectos →</a>
+    </section>
+  </ng-template>
+</main>

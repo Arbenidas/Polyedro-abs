@@ -1,0 +1,16 @@
+project_id = "polyedro-abs"
+
+[functions.generate-editorial-scene]
+verify_jwt = false
+
+[functions.generate-editorial-asset]
+verify_jwt = false
+
+[functions.generate-contextual-visual-spec]
+verify_jwt = false
+
+[functions.inspect-repository]
+verify_jwt = false
+
+[functions.polish-render]
+verify_jwt = false
