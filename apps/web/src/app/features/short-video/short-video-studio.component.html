@@ -1,0 +1,74 @@
+<poly-app-header section="02 / Guion corto"></poly-app-header>
+<main id="main-content" class="page-shell video-studio">
+  <header class="studio-head">
+    <div>
+      <span class="eyebrow">REELS · TIKTOK · 15–60 SEG</span>
+      <h1>Una idea.<br><em>Una tensión. Una prueba.</em></h1>
+    </div>
+    <p>Guiones breves que informan sin disfrazarse de clickbait. Las tendencias conservan su fuente y la puntuación mide calidad editorial, no “viralidad garantizada”.</p>
+  </header>
+
+  <section class="source-rail" aria-label="Origen del guion">
+    <button [class.active]="sourceMode==='topic'" (click)="setSourceMode('topic')"><b>01</b><span>Tema concreto<small>Escribe la idea que quieres explicar</small></span></button>
+    <button [class.active]="sourceMode==='day'" (click)="setSourceMode('day')"><b>02</b><span>Top de hoy<small>Fuentes de las últimas 24 horas</small></span></button>
+    <button [class.active]="sourceMode==='week'" (click)="setSourceMode('week')"><b>03</b><span>Top semanal<small>Cobertura de los últimos 7 días</small></span></button>
+  </section>
+
+  <section class="trend-browser" *ngIf="sourceMode!=='topic'">
+    <div class="trend-toolbar">
+      <label>ENFOQUE <input [(ngModel)]="focus" placeholder="IA, diseño, negocios…"></label>
+      <button (click)="loadTrends()" [disabled]="phase()!=='idle'">{{ phase()==='trends' ? 'Consultando fuentes…' : 'Actualizar temas' }}</button>
+    </div>
+    <div class="trend-grid" *ngIf="trends().length">
+      <button *ngFor="let trend of trends(); let i=index" class="trend-item" [class.selected]="selectedTrend()?.id===trend.id" (click)="chooseTrend(trend)">
+        <span class="trend-rank">{{ (i+1).toString().padStart(2,'0') }}</span>
+        <span class="trend-copy"><b>{{ trend.title }}</b><small>{{ trend.summary }}</small><i>{{ trend.sourceName }} · {{ trend.whyNow }}</i></span>
+        <span class="trend-score">{{ trend.score }}</span>
+      </button>
+    </div>
+    <div class="trend-skeleton" *ngIf="phase()==='trends'"><i></i><i></i><i></i></div>
+  </section>
+
+  <section class="brief-grid">
+    <div class="brief-main">
+      <label for="video-topic">TEMA / TITULAR</label>
+      <textarea id="video-topic" [(ngModel)]="topic" [placeholder]="sourceMode==='topic' ? 'Ej. Por qué un agente necesita guardrails antes que más prompts' : 'Selecciona un tema de la lista o edita aquí el enfoque'"></textarea>
+    </div>
+    <div class="brief-controls">
+      <label>DURACIÓN <select [(ngModel)]="durationSeconds"><option [ngValue]="15">15 segundos</option><option [ngValue]="30">30 segundos</option><option [ngValue]="45">45 segundos</option><option [ngValue]="60">60 segundos</option></select></label>
+      <label>PLATAFORMA <select [(ngModel)]="platform"><option value="both">Reels + TikTok</option><option value="reels">Instagram Reels</option><option value="tiktok">TikTok</option></select></label>
+      <label>TONO <select [(ngModel)]="tone"><option value="direct">Directo</option><option value="curious">Curioso</option><option value="contrarian">Contraste</option><option value="story">Mini historia</option></select></label>
+      <label>AUDIENCIA <input [(ngModel)]="audience"></label>
+    </div>
+  </section>
+
+  <div class="error-state" *ngIf="error()" role="alert"><b>La fuente respondió con un problema.</b><p>{{ error() }}</p></div>
+  <button class="generate-action" (click)="generate()" [disabled]="topic.trim().length<3 || phase()!=='idle'">
+    <span>{{ phase()==='script' ? 'Construyendo la progresión…' : 'Crear guion editorial' }}<small>Hook → contexto → evidencia → consecuencia → cierre</small></span><b>→</b>
+  </button>
+
+  <section class="script-result" *ngIf="script() as result">
+    <header class="result-head">
+      <div><span class="eyebrow">GUION / {{ result.durationSeconds }}S</span><h2>{{ result.hook }}</h2><p>{{ result.promise }}</p></div>
+      <div class="retention"><b>{{ result.retentionScore }}</b><span>CALIDAD<br>EDITORIAL</span></div>
+    </header>
+    <div class="timeline">
+      <article *ngFor="let beat of result.beats; let i=index" [attr.data-purpose]="beat.purpose">
+        <div class="time"><b>{{ beat.startSecond }}–{{ beat.endSecond }}s</b><span>{{ beatLabel(beat.purpose) }}</span></div>
+        <div class="voice"><small>VOZ</small><p>{{ beat.voiceover }}</p></div>
+        <div class="screen"><small>EN PANTALLA</small><strong>{{ beat.onScreenText }}</strong><p>{{ beat.visualDirection }}</p></div>
+        <div class="edit"><small>CORTE {{ (i+1).toString().padStart(2,'0') }}</small><p>{{ beat.editCue }}</p></div>
+      </article>
+    </div>
+    <div class="result-notes">
+      <article><span>PATRÓN DE INTERRUPCIÓN</span><p>{{ result.patternInterrupt }}</p></article>
+      <article><span>CAPTION</span><p>{{ result.caption }}</p><small>{{ result.hashtags.join(' ') }}</small></article>
+      <article *ngIf="result.sources.length"><span>FUENTES</span><a *ngFor="let source of result.sources" [href]="source.url" target="_blank" rel="noopener">{{ source.title }} ↗</a></article>
+      <article *ngIf="result.verificationNotes.length"><span>ANTES DE PUBLICAR</span><p *ngFor="let note of result.verificationNotes">— {{ note }}</p></article>
+    </div>
+    <footer class="result-actions">
+      <button (click)="copyScript()">{{ copied() ? 'Copiado' : 'Copiar guion' }}</button>
+      <button class="primary" (click)="convertToPublication()">Convertir en publicación o carrusel →</button>
+    </footer>
+  </section>
+</main>

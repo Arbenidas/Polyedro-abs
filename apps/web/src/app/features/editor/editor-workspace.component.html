@@ -1,0 +1,400 @@
+<section class="editor-shell">
+  <header class="editor-header">
+    <div>
+      <span>2. DISEÑA LA LÁMINA</span>
+      <h2>Selecciona, ajusta y exporta.</h2>
+      <p>{{ scene()?.width }} × {{ scene()?.height }} · {{ scene()?.channel }}</p>
+    </div>
+    <div class="document-state">
+      <i></i>
+      <div><b>AUTOSAVE LOCAL</b><small>{{ status() }}</small></div>
+    </div>
+  </header>
+
+  <nav class="toolbelt" aria-label="Herramientas del editor">
+    <div class="tool-group">
+      <button title="Explorar diseños" (click)="setPanel('templates')"><b>▤</b><span>Diseño</span></button>
+      <button title="Añadir texto" (click)="addText('body')"><b>T</b><span>Texto</span></button>
+      <button title="Abrir herramientas de collage y stickers" (click)="setPanel('collage')"><b>✂</b><span>Collage</span></button>
+      <button title="Añadir una forma" (click)="addShape('rect')"><b>□</b><span>Forma</span></button>
+      <button title="Subir o pegar imagen" (click)="uploadImage()"><b>↑</b><span>Subir</span></button>
+      <button title="Subir una imagen a página completa" (click)="uploadBackgroundImage()"><b>▧</b><span>Fondo</span></button>
+      <button title="Importar video y convertirlo a GIF animado" (click)="importVideo()"><b>▶</b><span>Video → GIF</span></button>
+      <button class="vector-tool" title="Dibuja y guarda tu propio asset SVG" (click)="openAssetBuilder()"><b>✎</b><span>Crear SVG</span></button>
+    </div>
+    <div class="tool-group compact">
+      <button title="Deshacer" [disabled]="!canUndo()" (click)="undo()"><b>↶</b></button>
+      <button title="Rehacer" [disabled]="!canRedo()" (click)="redo()"><b>↷</b></button>
+      <button title="Duplicar" [disabled]="!selectedIds().length" (click)="duplicateSelected()"><b>⧉</b></button>
+      <button title="Regenerar contenido del slide con IA" class="ai-action" [disabled]="regenerating()" (click)="regenerateSlideContent()"><b>↻</b><span *ngIf="regenerating()">…</span></button>
+      <button title="Agrupar selección" [disabled]="selectedIds().length < 2" (click)="groupSelected()"><b>⌘</b></button>
+      <button title="Seleccionar todas las capas del visual" [disabled]="!hasGeneratedVisualSelection()" (click)="selectGeneratedVisual()"><b>◎</b></button>
+      <button title="Separar las capas generadas" [disabled]="!hasGeneratedVisualSelection()" (click)="detachGeneratedVisual()"><b>≋</b></button>
+      <button title="Eliminar" class="danger" [disabled]="!selectedIds().length" (click)="removeSelected()"><b>×</b></button>
+    </div>
+  </nav>
+
+  <aside class="asset-builder-drawer" *ngIf="assetBuilderOpen()" aria-label="Editor de assets SVG">
+    <header class="builder-topbar">
+      <div class="builder-brand"><b>POLYEDRO</b><span>VECTOR LAB</span></div>
+      <label class="builder-name"><span>Documento</span><input maxlength="60" [ngModel]="manualAssetName()" (ngModelChange)="setManualAssetName($event)"></label>
+      <div class="builder-size-switch" aria-label="Tamaño del lienzo">
+        <button [class.active]="manualAsset().width === 320 && manualAsset().height === 320" (click)="setManualAssetSize(320,320)">1:1</button>
+        <button [class.active]="manualAsset().width === 480 && manualAsset().height === 320" (click)="setManualAssetSize(480,320)">3:2</button>
+        <button [class.active]="manualAsset().width === 320 && manualAsset().height === 480" (click)="setManualAssetSize(320,480)">2:3</button>
+      </div>
+      <div class="builder-history">
+        <button title="Deshacer (⌘Z)" [disabled]="!manualAssetCanUndo()" (click)="undoManualAsset()">↶</button>
+        <button title="Rehacer (⇧⌘Z)" [disabled]="!manualAssetCanRedo()" (click)="redoManualAsset()">↷</button>
+        <button class="builder-close" title="Cerrar editor" (click)="closeAssetBuilder()">×</button>
+      </div>
+    </header>
+
+    <div class="builder-app-shell">
+      <nav class="builder-tools" aria-label="Herramientas vectoriales">
+        <button title="Seleccionar (V)" [class.active]="manualAssetTool() === 'select'" (click)="setManualAssetTool('select')"><b>↖</b><span>V</span></button>
+        <button title="Pluma libre (P)" [class.active]="manualAssetTool() === 'pen'" (click)="setManualAssetTool('pen')"><b>✎</b><span>P</span></button>
+        <button title="Línea (L)" [class.active]="manualAssetTool() === 'line'" (click)="setManualAssetTool('line')"><b>╱</b><span>L</span></button>
+        <button title="Rectángulo (R)" [class.active]="manualAssetTool() === 'rect'" (click)="setManualAssetTool('rect')"><b>□</b><span>R</span></button>
+        <button title="Elipse (O)" [class.active]="manualAssetTool() === 'circle'" (click)="setManualAssetTool('circle')"><b>○</b><span>O</span></button>
+        <button title="Flecha (A)" [class.active]="manualAssetTool() === 'arrow'" (click)="setManualAssetTool('arrow')"><b>→</b><span>A</span></button>
+        <button title="Estrella (S)" [class.active]="manualAssetTool() === 'star'" (click)="setManualAssetTool('star')"><b>★</b><span>S</span></button>
+        <button title="Texto (T)" [class.active]="manualAssetTool() === 'text'" (click)="setManualAssetTool('text')"><b>T</b><span>T</span></button>
+        <i></i>
+        <button title="Acercar" (click)="setManualAssetZoom(manualAssetZoom()+10)"><b>＋</b></button>
+        <button title="Alejar" (click)="setManualAssetZoom(manualAssetZoom()-10)"><b>−</b></button>
+      </nav>
+
+      <main class="builder-workspace">
+        <div class="builder-ruler builder-ruler-x"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+        <div class="builder-stage" (wheel)="zoomManualAssetWithWheel($event)">
+          <div class="builder-ruler builder-ruler-y"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+          <div class="builder-canvas-scroll">
+            <div class="builder-preview" [style.width.px]="manualAsset().width * manualAssetZoom() / 100" [style.height.px]="manualAsset().height * manualAssetZoom() / 100">
+              <svg #manualAssetSvgElement class="builder-svg" [attr.viewBox]="'0 0 ' + manualAsset().width + ' ' + manualAsset().height" role="img" aria-label="Lienzo vectorial editable" [style.cursor]="manualAssetTool() === 'select' ? 'default' : 'crosshair'" (pointerdown)="beginManualAssetCanvas($event)">
+                <rect class="builder-canvas-hit" x="0" y="0" [attr.width]="manualAsset().width" [attr.height]="manualAsset().height" fill="transparent"></rect>
+          <defs>
+            <ng-container *ngFor="let element of manualAsset().elements">
+              <pattern *ngIf="element.pattern === 'halftone'" [attr.id]="manualAssetPatternId(element)" [attr.width]="element.patternScale" [attr.height]="element.patternScale" patternUnits="userSpaceOnUse"><circle [attr.cx]="element.patternScale/2" [attr.cy]="element.patternScale/2" [attr.r]="element.patternScale*.28" [attr.fill]="element.fill"></circle></pattern>
+              <pattern *ngIf="element.pattern === 'lines'" [attr.id]="manualAssetPatternId(element)" [attr.width]="element.patternScale" [attr.height]="element.patternScale" patternUnits="userSpaceOnUse" patternTransform="rotate(32)"><line x1="0" y1="0" x2="0" [attr.y2]="element.patternScale" [attr.stroke]="element.fill" [attr.stroke-width]="element.patternScale*.28"></line></pattern>
+              <pattern *ngIf="element.pattern === 'cross-stitch'" [attr.id]="manualAssetPatternId(element)" [attr.width]="element.patternScale" [attr.height]="element.patternScale" patternUnits="userSpaceOnUse"><path [attr.d]="'M2 2L'+(element.patternScale-2)+' '+(element.patternScale-2)+'M'+(element.patternScale-2)+' 2L2 '+(element.patternScale-2)" [attr.stroke]="element.fill" [attr.stroke-width]="element.patternScale*.18" stroke-linecap="round"></path></pattern>
+              <pattern *ngIf="element.pattern === 'mosaic'" [attr.id]="manualAssetPatternId(element)" [attr.width]="element.patternScale" [attr.height]="element.patternScale" patternUnits="userSpaceOnUse"><rect [attr.width]="element.patternScale/2" [attr.height]="element.patternScale/2" [attr.fill]="element.fill"></rect><rect [attr.x]="element.patternScale/2" [attr.width]="element.patternScale/2" [attr.height]="element.patternScale/2" [attr.fill]="element.stroke"></rect><rect [attr.y]="element.patternScale/2" [attr.width]="element.patternScale/2" [attr.height]="element.patternScale/2" [attr.fill]="element.stroke" opacity=".42"></rect><rect [attr.x]="element.patternScale/2" [attr.y]="element.patternScale/2" [attr.width]="element.patternScale/2" [attr.height]="element.patternScale/2" [attr.fill]="element.fill" opacity=".62"></rect></pattern>
+            </ng-container>
+          </defs>
+          <ng-container *ngFor="let element of manualAsset().elements">
+            <rect *ngIf="element.type === 'rect'" class="builder-object" [attr.display]="element.visible === false ? 'none' : null" [attr.data-builder-id]="element.id" [attr.x]="element.x" [attr.y]="element.y" [attr.width]="element.width" [attr.height]="element.height" [attr.rx]="element.radius" [attr.fill]="manualAssetPaint(element)" [attr.stroke]="element.stroke" [attr.stroke-width]="element.strokeWidth" [attr.transform]="manualAssetRotation(element)" (pointerdown)="beginManualAssetDrag($event,element)"></rect>
+            <ellipse *ngIf="element.type === 'circle'" class="builder-object" [attr.display]="element.visible === false ? 'none' : null" [attr.data-builder-id]="element.id" [attr.cx]="element.x+element.width/2" [attr.cy]="element.y+element.height/2" [attr.rx]="element.width/2" [attr.ry]="element.height/2" [attr.fill]="manualAssetPaint(element)" [attr.stroke]="element.stroke" [attr.stroke-width]="element.strokeWidth" [attr.transform]="manualAssetRotation(element)" (pointerdown)="beginManualAssetDrag($event,element)"></ellipse>
+            <line *ngIf="element.type === 'line'" class="builder-object" [attr.display]="element.visible === false ? 'none' : null" [attr.data-builder-id]="element.id" [attr.x1]="element.x" [attr.y1]="manualAssetCenterY(element)" [attr.x2]="element.x+element.width" [attr.y2]="manualAssetCenterY(element)" [attr.stroke]="manualAssetLinePaint(element)" [attr.stroke-width]="element.strokeWidth" stroke-linecap="round" [attr.transform]="manualAssetRotation(element)" (pointerdown)="beginManualAssetDrag($event,element)"></line>
+            <g *ngIf="element.type === 'arrow'" class="builder-object" [attr.display]="element.visible === false ? 'none' : null" [attr.data-builder-id]="element.id" [attr.transform]="manualAssetRotation(element)" (pointerdown)="beginManualAssetDrag($event,element)"><line [attr.x1]="element.x" [attr.y1]="manualAssetCenterY(element)" [attr.x2]="manualAssetArrowBodyEnd(element)+2" [attr.y2]="manualAssetCenterY(element)" [attr.stroke]="element.stroke" [attr.stroke-width]="element.strokeWidth+8" stroke-linecap="round"></line><line [attr.x1]="element.x" [attr.y1]="manualAssetCenterY(element)" [attr.x2]="manualAssetArrowBodyEnd(element)+2" [attr.y2]="manualAssetCenterY(element)" [attr.stroke]="manualAssetPaint(element)" [attr.stroke-width]="element.strokeWidth" stroke-linecap="round"></line><polygon [attr.points]="manualAssetArrowPoints(element)" [attr.fill]="manualAssetPaint(element)" [attr.stroke]="element.stroke" [attr.stroke-width]="element.strokeWidth*.65" stroke-linejoin="round"></polygon></g>
+            <polygon *ngIf="element.type === 'star'" class="builder-object" [attr.display]="element.visible === false ? 'none' : null" [attr.data-builder-id]="element.id" [attr.points]="manualAssetStarPoints(element)" [attr.fill]="manualAssetPaint(element)" [attr.stroke]="element.stroke" [attr.stroke-width]="element.strokeWidth" stroke-linejoin="round" [attr.transform]="manualAssetRotation(element)" (pointerdown)="beginManualAssetDrag($event,element)"></polygon>
+            <path *ngIf="element.type === 'path'" class="builder-object" [attr.display]="element.visible === false ? 'none' : null" [attr.data-builder-id]="element.id" [attr.d]="manualAssetPathData(element)" fill="none" [attr.stroke]="manualAssetLinePaint(element)" [attr.stroke-width]="element.strokeWidth" stroke-linecap="round" stroke-linejoin="round" [attr.transform]="manualAssetRotation(element)" (pointerdown)="beginManualAssetDrag($event,element)"></path>
+            <text *ngIf="element.type === 'text'" class="builder-object" [attr.display]="element.visible === false ? 'none' : null" [attr.data-builder-id]="element.id" [attr.x]="element.x" [attr.y]="element.y+(element.fontSize || 42)" [attr.fill]="manualAssetPaint(element)" [attr.stroke]="element.pattern === 'outline' ? element.stroke : 'none'" [attr.stroke-width]="element.pattern === 'outline' ? element.strokeWidth*.35 : 0" font-family="Arial, sans-serif" [attr.font-size]="element.fontSize || 42" [attr.font-weight]="element.fontWeight || 900" [attr.transform]="manualAssetRotation(element)" (pointerdown)="beginManualAssetDrag($event,element)">{{ element.text }}</text>
+          </ng-container>
+          <g class="builder-selection" *ngIf="selectedManualAsset() as selected" [attr.display]="selected.visible === false || selected.locked ? 'none' : null">
+            <rect class="builder-selection-box" [attr.x]="selected.x" [attr.y]="selected.y" [attr.width]="selected.width" [attr.height]="selected.height"></rect>
+            <rect class="builder-handle nw" [attr.x]="selected.x-6" [attr.y]="selected.y-6" width="12" height="12" (pointerdown)="beginManualAssetResize($event,'nw',selected)"></rect>
+            <rect class="builder-handle ne" [attr.x]="selected.x+selected.width-6" [attr.y]="selected.y-6" width="12" height="12" (pointerdown)="beginManualAssetResize($event,'ne',selected)"></rect>
+            <rect class="builder-handle sw" [attr.x]="selected.x-6" [attr.y]="selected.y+selected.height-6" width="12" height="12" (pointerdown)="beginManualAssetResize($event,'sw',selected)"></rect>
+            <rect class="builder-handle se" [attr.x]="selected.x+selected.width-6" [attr.y]="selected.y+selected.height-6" width="12" height="12" (pointerdown)="beginManualAssetResize($event,'se',selected)"></rect>
+          </g>
+              </svg>
+              <div class="builder-empty" *ngIf="!manualAsset().elements.length"><b>Elige una herramienta</b><span>y dibuja directamente sobre el lienzo.</span></div>
+            </div>
+          </div>
+        </div>
+        <footer class="builder-stage-footer">
+          <span>{{ manualAsset().width }} × {{ manualAsset().height }} · SVG TRANSPARENTE</span>
+          <span>V seleccionar · P pluma · ⌘Z deshacer · ⇧ mover 10px</span>
+          <label><button (click)="setManualAssetZoom(manualAssetZoom()-10)">−</button><input type="range" min="25" max="240" step="5" [ngModel]="manualAssetZoom()" (ngModelChange)="setManualAssetZoom($event)"><button (click)="setManualAssetZoom(manualAssetZoom()+10)">+</button><b>{{ manualAssetZoom() }}%</b></label>
+        </footer>
+      </main>
+
+      <aside class="builder-sidepanel">
+        <section class="builder-canvas-inspector" *ngIf="!selectedManualAsset()">
+          <span>LIENZO</span><h3>{{ manualAssetName() }}</h3><p>Selecciona un objeto o dibuja uno nuevo. El fondo de exportación será transparente.</p>
+          <div class="builder-field-grid two">
+            <label>ANCHO<input type="number" min="120" max="1200" [ngModel]="manualAsset().width" (ngModelChange)="setManualAssetSize($event,manualAsset().height)"></label>
+            <label>ALTO<input type="number" min="120" max="1200" [ngModel]="manualAsset().height" (ngModelChange)="setManualAssetSize(manualAsset().width,$event)"></label>
+          </div>
+        </section>
+
+        <section class="builder-inspector" *ngIf="selectedManualAsset() as element">
+          <div class="builder-inspector-head"><div><span>OBJETO</span><input [ngModel]="element.name" (ngModelChange)="updateManualAssetElement('name',$event)"></div><b>{{ manualAssetTypeIcon(element.type) }}</b></div>
+          <label *ngIf="element.type === 'text'">TEXTO<input [ngModel]="element.text" (ngModelChange)="updateManualAssetElement('text',$event)"></label>
+          <div class="builder-field-grid">
+            <label>X<input type="number" [ngModel]="element.x | number:'1.0-0'" (ngModelChange)="updateManualAssetElement('x',$event)"></label>
+            <label>Y<input type="number" [ngModel]="element.y | number:'1.0-0'" (ngModelChange)="updateManualAssetElement('y',$event)"></label>
+            <label>ANCHO<input type="number" min="1" [ngModel]="element.width | number:'1.0-0'" (ngModelChange)="updateManualAssetElement('width',$event)"></label>
+            <label>ALTO<input type="number" min="1" [ngModel]="element.height | number:'1.0-0'" (ngModelChange)="updateManualAssetElement('height',$event)"></label>
+          </div>
+          <div class="builder-color-grid">
+            <label>RELLENO<input type="color" [ngModel]="element.fill === 'transparent' ? '#ffffff' : element.fill" (ngModelChange)="updateManualAssetElement('fill',$event)"></label>
+            <label>TRAZO<input type="color" [ngModel]="element.stroke === 'transparent' ? '#10251E' : element.stroke" (ngModelChange)="updateManualAssetElement('stroke',$event)"></label>
+            <label>GROSOR<input type="number" min="0" max="60" [ngModel]="element.strokeWidth" (ngModelChange)="updateManualAssetElement('strokeWidth',$event)"></label>
+            <label>GIRO<input type="number" min="-360" max="360" [ngModel]="element.rotation | number:'1.0-0'" (ngModelChange)="updateManualAssetElement('rotation',$event)"></label>
+          </div>
+          <div class="builder-pattern-title"><span>COMPOSICIÓN</span><small>ACABADO VECTORIAL</small></div>
+          <div class="builder-patterns" aria-label="Estilo de composición del elemento">
+            <button [class.active]="element.pattern === 'solid'" (click)="setManualAssetPattern('solid')"><i class="pattern-solid"></i><span>Sólido</span></button>
+            <button [class.active]="element.pattern === 'outline'" (click)="setManualAssetPattern('outline')"><i class="pattern-outline"></i><span>Contorno</span></button>
+            <button [class.active]="element.pattern === 'halftone'" (click)="setManualAssetPattern('halftone')"><i class="pattern-halftone"></i><span>Halftone</span></button>
+            <button [class.active]="element.pattern === 'lines'" (click)="setManualAssetPattern('lines')"><i class="pattern-lines"></i><span>Líneas</span></button>
+            <button [class.active]="element.pattern === 'mosaic'" (click)="setManualAssetPattern('mosaic')"><i class="pattern-mosaic"></i><span>Mosaico</span></button>
+            <button [class.active]="element.pattern === 'cross-stitch'" (click)="setManualAssetPattern('cross-stitch')"><i class="pattern-cross"></i><span>Punto X</span></button>
+          </div>
+          <label class="builder-density" *ngIf="!['solid','outline'].includes(element.pattern)"><span>DENSIDAD</span><b>{{ element.patternScale }}px</b><input type="range" min="4" max="32" step="1" [ngModel]="element.patternScale" (ngModelChange)="updateManualAssetElement('patternScale',$event)"></label>
+          <div class="builder-object-actions"><button (click)="duplicateManualAssetElement()">Duplicar</button><button class="danger" (click)="removeManualAssetElement()">Eliminar</button></div>
+        </section>
+
+        <section class="builder-layer-panel">
+          <header><span>CAPAS</span><b>{{ manualAsset().elements.length }}</b></header>
+          <div class="builder-layer-list">
+            <div class="builder-layer-row" *ngFor="let element of manualAssetLayers()" [class.active]="selectedManualAssetId() === element.id" [class.muted]="element.visible === false" (click)="selectManualAssetElement(element.id)">
+              <i>{{ manualAssetTypeIcon(element.type) }}</i><span>{{ element.name }}</span>
+              <button title="Mostrar u ocultar" (click)="$event.stopPropagation(); toggleManualAssetVisibility(element.id)">{{ element.visible === false ? '○' : '●' }}</button>
+              <button title="Bloquear" (click)="$event.stopPropagation(); toggleManualAssetLock(element.id)">{{ element.locked ? '▣' : '□' }}</button>
+              <button title="Subir capa" (click)="$event.stopPropagation(); moveManualAssetLayer(element.id,1)">↑</button>
+              <button title="Bajar capa" (click)="$event.stopPropagation(); moveManualAssetLayer(element.id,-1)">↓</button>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <footer class="builder-bottom-bar">
+      <div class="builder-palette"><span>RELLENO</span><button *ngFor="let color of manualAssetSwatches()" [style.background]="color" [title]="color + ' · clic: relleno / clic derecho: trazo'" (click)="applyManualAssetColor(color,'fill')" (contextmenu)="$event.preventDefault(); applyManualAssetColor(color,'stroke')"></button></div>
+      <div class="builder-save-actions"><button (click)="saveManualAsset(false)">Guardar en biblioteca</button><button class="accent" (click)="saveManualAsset(true)">Guardar + insertar →</button></div>
+    </footer>
+  </aside>
+
+  <div class="editor-grid">
+    <aside class="resource-panel">
+      <nav class="panel-tabs">
+        <button [class.active]="panel() === 'templates'" (click)="setPanel('templates')">DISEÑO</button>
+        <button [class.active]="panel() === 'collage'" (click)="setPanel('collage')">COLLAGE</button>
+        <button [class.active]="panel() === 'layers'" (click)="setPanel('layers')">CAPAS</button>
+      </nav>
+
+      <div class="panel-scroll" *ngIf="panel() === 'layers'">
+        <div class="panel-heading"><span>{{ layers().length }} OBJETOS</span><small>ARRIBA = FRENTE</small></div>
+        <button class="layer-row" *ngFor="let element of layers()" [class.selected]="selectedIds().includes(element.id)" (click)="selectLayer(element)">
+          <i>{{ element.type === 'text' ? 'T' : element.type === 'image' ? '▧' : element.type === 'svg' ? '◇' : element.type === 'arrow' ? '↗' : element.type === 'ellipse' || element.type === 'circle' ? '○' : element.type === 'line' ? '—' : '□' }}</i>
+          <b>{{ element.name }}<small *ngIf="element.isBackground">FONDO</small></b>
+          <span class="layer-actions">
+            <em (click)="$event.stopPropagation(); toggleVisible(element)" [title]="element.visible ? 'Ocultar' : 'Mostrar'">{{ element.visible ? '●' : '○' }}</em>
+            <em (click)="$event.stopPropagation(); toggleLocked(element)" [title]="element.locked ? 'Desbloquear' : 'Bloquear'">{{ element.locked ? '▣' : '▢' }}</em>
+          </span>
+        </button>
+      </div>
+
+      <div class="panel-scroll collage-panel" *ngIf="panel() === 'collage'">
+        <section class="collage-intro">
+          <span>COLLAGE / CUTOUT LAB</span>
+          <h3>Recorta, pega y rompe la retícula.</h3>
+          <p>Pega una foto con <kbd>⌘V</kbd> o súbela. Después conviértela en un sticker reusable con borde y sombra.</p>
+          <button class="collage-upload" (click)="uploadImage()">＋ Subir imagen</button>
+          <button class="collage-cutout" [disabled]="!canCreateSticker()" (click)="openCutoutEditor()">✂ {{ selected()?.imageFrame === 'sticker' ? 'Editar sticker' : 'Convertir selección en sticker' }}</button>
+        </section>
+        <div class="panel-heading"><span>MIS STICKERS</span><small>{{ stickerAssets().length }} GUARDADOS</small></div>
+        <div class="sticker-library" *ngIf="stickerAssets().length; else emptyStickers">
+          <div class="asset-entry" *ngFor="let asset of stickerAssets()">
+            <button class="asset-card" (click)="insertAsset(asset)" [title]="asset.name">
+              <span class="asset-visual sticker-preview"><img *ngIf="assetVisualUrl(asset) as preview" [src]="preview" [alt]="asset.name"></span>
+              <b>{{ asset.name }}</b><small>STICKER REUTILIZABLE</small>
+            </button>
+            <button class="asset-delete" (click)="deleteLibraryAsset(asset,$event)" [attr.aria-label]="'Eliminar ' + asset.name">×</button>
+          </div>
+        </div>
+        <ng-template #emptyStickers><div class="empty-stickers"><b>Aún no hay recortes.</b><p>Selecciona una fotografía del canvas y usa “Convertir selección en sticker”.</p></div></ng-template>
+        <section class="collage-tips"><span>COMPOSICIÓN</span><p>Combina una foto grande, un recorte que invada el margen y una anotación pequeña. Tres gestos bastan.</p><div><button [disabled]="!selectedIds().length" (click)="duplicateSelected()">Duplicar</button><button [disabled]="selectedIds().length < 2" (click)="groupSelected()">Agrupar</button></div></section>
+      </div>
+
+      <div class="panel-scroll template-panel" *ngIf="panel() === 'templates'">
+        <section class="palette-library">
+          <div class="palette-library-head"><span>01 · ELIGE EL COLOR</span><small>{{ paletteLibrary.length }} PALETAS</small></div>
+          <p>La paleta recolorea la composición completa y también guía los nuevos elementos.</p>
+          <div class="palette-grid">
+            <button *ngFor="let palette of paletteLibrary" [class.active]="activePaletteId() === palette.id" (click)="selectPalette(palette)" [title]="palette.mood">
+              <i><em *ngFor="let color of palette.colors" [style.background]="color"></em></i>
+              <b>{{ palette.name }}</b><small>{{ palette.mood }}</small>
+            </button>
+          </div>
+          <div class="custom-palette">
+            <span>PERSONALIZAR</span>
+            <label *ngFor="let color of activePalette(); let index = index" [title]="color"><input type="color" [ngModel]="color" (ngModelChange)="updatePaletteColor(index, $event)"></label>
+          </div>
+        </section>
+        <div class="panel-heading recommendation-heading"><span>RECOMENDADAS AHORA</span><small>POR CONTEXTO</small></div>
+        <p class="recommendation-note">Rol, intención, densidad y señales del copy. Las plantillas guardadas aparecen aquí cuando su perfil coincide.</p>
+        <button class="template-card recommended" *ngFor="let template of recommendedTemplates().slice(0,4)" (click)="applyTemplate(template)">
+          <span class="template-preview"><poly-scene-thumbnail [scene]="templatePreview(template)"></poly-scene-thumbnail></span>
+          <span><b>{{ template.name }}</b><small>{{ template.selection?.intent || (template.assetRequirement + ' · ' + template.style) }}</small></span><em>↗</em>
+        </button>
+        <div class="panel-heading"><span>COLECCIÓN ARBE</span><small>{{ builtinTemplates().length }} SISTEMAS</small></div>
+        <button class="template-card" *ngFor="let template of builtinTemplates()" (click)="applyTemplate(template)">
+          <span class="template-preview"><poly-scene-thumbnail [scene]="templatePreview(template)"></poly-scene-thumbnail></span>
+          <span><b>{{ template.name }}</b><small>{{ template.assetRequirement }} · {{ template.style }}</small></span><em *ngIf="template.favorite">★</em>
+        </button>
+        <ng-container *ngIf="userTemplates().length">
+          <div class="panel-heading"><span>MIS PLANTILLAS</span><small>{{ userTemplates().length }}</small></div>
+          <button class="template-card" *ngFor="let template of userTemplates()" (click)="applyTemplate(template)">
+            <span class="template-preview"><poly-scene-thumbnail [scene]="templatePreview(template)"></poly-scene-thumbnail></span>
+            <span><b>{{ template.name }}</b><small>Guardada por ti</small></span>
+          </button>
+        </ng-container>
+        <button class="wide accent" *ngIf="!templateSaveOpen()" (click)="openTemplateSave()">Guardar como sistema reutilizable</button>
+        <section class="template-save-card" *ngIf="templateSaveOpen()">
+          <header><span>GUARDAR SISTEMA</span><button (click)="templateSaveOpen.set(false)" aria-label="Cerrar">×</button></header>
+          <p>Se conserva la composición real del canvas. El formato se detecta automáticamente y el copy se reemplaza al reutilizarla.</p>
+          <label><span>NOMBRE</span><input [ngModel]="templateName()" (ngModelChange)="templateName.set($event)" maxlength="80"></label>
+          <div class="template-save-grid">
+            <label><span>MOMENTO</span><select [ngModel]="templateRole()" (ngModelChange)="templateRole.set($event)"><option value="cover">Portada</option><option value="intro">Introducción</option><option value="step">Desarrollo</option><option value="comparison">Comparación</option><option value="summary">Resumen</option><option value="cta">Cierre / CTA</option></select></label>
+            <div class="template-auto-format"><span>LIENZO</span><b>{{ templateChannelLabel() }}</b><small>detectado del canvas</small></div>
+          </div>
+          <label><span>ÚSALA CUANDO…</span><textarea [ngModel]="templateUsageNote()" (ngModelChange)="templateUsageNote.set($event)" maxlength="240" placeholder="Opcional: describe la intención; la IA completa el perfil con el contenido actual."></textarea></label>
+          <div class="template-ai-profile" *ngIf="inferredTemplateUsage() as usage">
+            <span>PERFIL PARA LA IA</span><p>{{ usage.intent }}</p><div><em *ngFor="let type of usage.contentTypes">{{ type }}</em><em *ngFor="let keyword of usage.keywords.slice(0,3)">{{ keyword }}</em></div>
+          </div>
+          <div class="template-save-actions"><button (click)="templateSaveOpen.set(false)">Cancelar</button><button class="accent" (click)="saveCurrentAsTemplate()">Guardar sistema</button></div>
+        </section>
+      </div>
+    </aside>
+
+    <main class="canvas-stage" #stage>
+      <div class="stage-ruler top"><span *ngFor="let point of [0, 25, 50, 75, 100]">{{ point }}</span></div>
+      <div class="canvas-scroll">
+        <div #canvasFrame class="canvas-frame">
+          <canvas #canvasElement aria-label="Canvas editable de la publicación"></canvas>
+        </div>
+      </div>
+      <footer class="stage-footer">
+        <div class="zoom-control"><button (click)="setZoom(75)">−</button><input type="range" min="50" max="160" [ngModel]="zoom()" (ngModelChange)="setZoom($event)"><button (click)="setZoom(125)">+</button><b>{{ zoom() }}%</b></div>
+        <small>SHIFT: selección múltiple · ⌘D: duplicar · ⌫: eliminar</small>
+      </footer>
+    </main>
+
+    <aside class="properties-panel">
+      <div class="properties-title"><span>PROPIEDADES</span><b>{{ selected()?.name || 'SIN SELECCIÓN' }}</b></div>
+
+      <ng-container *ngIf="selected() as item; else noSelection">
+        <details class="property-section advanced-properties">
+          <summary>POSICIÓN AVANZADA</summary>
+          <div class="field-grid four">
+            <label>X<input type="number" [ngModel]="item.x | number:'1.0-0'" (ngModelChange)="updateSelected('x', $event)"></label>
+            <label>Y<input type="number" [ngModel]="item.y | number:'1.0-0'" (ngModelChange)="updateSelected('y', $event)"></label>
+            <label>W<input type="number" [value]="item.width * item.scaleX | number:'1.0-0'" disabled></label>
+            <label>H<input type="number" [value]="item.height * item.scaleY | number:'1.0-0'" disabled></label>
+          </div>
+          <div class="field-grid two">
+            <label>ROTACIÓN<input type="number" [ngModel]="item.rotation" (ngModelChange)="updateSelected('rotation', $event)"></label>
+            <label>OPACIDAD<input type="range" min="0" max="1" step=".05" [ngModel]="item.opacity" (ngModelChange)="updateSelected('opacity', $event)"></label>
+          </div>
+        </details>
+
+        <section class="property-section" *ngIf="item.type === 'text'">
+          <span>TIPOGRAFÍA</span>
+          <textarea [ngModel]="item.content" (ngModelChange)="updateSelected('content', $event)"></textarea>
+          <select [ngModel]="item.fontFamily" (ngModelChange)="updateSelected('fontFamily', $event)">
+            <option>Arial</option><option>Georgia</option><option>Space Grotesk</option><option>Share Tech Mono</option><option>Courier New</option>
+          </select>
+          <div class="field-grid two">
+            <label>TAMAÑO<input type="number" min="8" max="300" [ngModel]="item.fontSize" (ngModelChange)="updateSelected('fontSize', $event)"></label>
+            <label>PESO<select [ngModel]="item.fontWeight" (ngModelChange)="updateSelected('fontWeight', $event)"><option [ngValue]="400">Regular</option><option [ngValue]="600">Semibold</option><option [ngValue]="800">Bold</option><option [ngValue]="900">Black</option></select></label>
+          </div>
+          <div class="field-grid two">
+            <label>INTERLÍNEA<input type="number" min=".7" max="2" step=".05" [ngModel]="item.lineHeight" (ngModelChange)="updateSelected('lineHeight', $event)"></label>
+            <label>ESPACIADO<input type="number" min="-100" max="500" [ngModel]="item.charSpacing" (ngModelChange)="updateSelected('charSpacing', $event)"></label>
+          </div>
+        </section>
+
+        <section class="property-section image-properties" *ngIf="item.type === 'image'">
+          <div class="property-heading"><span>{{ item.isBackground ? 'FONDO VISUAL' : 'IMAGEN' }}</span><small>NO DESTRUCTIVO</small></div>
+          <p class="property-help">Elige un look, ajusta la luz y decide si la imagen vive como objeto o cubre toda la lámina.</p>
+          <button class="background-action" [class.active]="item.isBackground" (click)="toggleSelectedImageBackground()">{{ item.isBackground ? '↗ Convertir en objeto libre' : '▧ Usar como fondo de página' }}</button>
+          <button class="cutout-action" *ngIf="!item.isBackground" (click)="openCutoutEditor()">✂ {{ item.imageFrame === 'sticker' ? 'Editar máscara del sticker' : 'Convertir en sticker' }}</button>
+          <div class="look-presets" aria-label="Looks rápidos de imagen">
+            <button (click)="applyImageEffectPreset('original')"><i class="look-original"></i><span>Original</span></button>
+            <button (click)="applyImageEffectPreset('dark')"><i class="look-dark"></i><span>Oscuro</span></button>
+            <button (click)="applyImageEffectPreset('soft')"><i class="look-soft"></i><span>Suave</span></button>
+            <button (click)="applyImageEffectPreset('vivid')"><i class="look-vivid"></i><span>Vivo</span></button>
+            <button (click)="applyImageEffectPreset('mono')"><i class="look-mono"></i><span>Mono</span></button>
+            <button [class.active]="item.imageFilterMode === 'bitmap'" (click)="applyImageEffectPreset('bitmap')"><i class="look-bitmap"></i><span>Bitmap</span></button>
+            <button [class.active]="item.imageFilterMode === 'halftone'" (click)="applyImageEffectPreset('halftone')"><i class="look-halftone"></i><span>Halftone</span></button>
+            <button [class.active]="item.imageFilterMode === 'mosaic'" (click)="applyImageEffectPreset('mosaic')"><i class="look-mosaic"></i><span>Mosaico</span></button>
+            <button [class.active]="item.imageFilterMode === 'cross-stitch'" (click)="applyImageEffectPreset('cross-stitch')"><i class="look-cross"></i><span>Punto X</span></button>
+            <button (click)="applyImageEffectPreset('grain')"><i class="look-grain"></i><span>Grano</span></button>
+            <button (click)="applyImageEffectPreset('sepia')"><i class="look-sepia"></i><span>Sepia</span></button>
+          </div>
+          <div class="property-heading subsection-heading"><span>MARCO</span><small *ngIf="item.isBackground">NO APLICA AL FONDO</small></div>
+          <div class="frame-presets" aria-label="Marcos de imagen">
+            <button [disabled]="item.isBackground" [class.active]="(item.imageFrame || 'none') === 'none'" (click)="applyImageFrame('none')"><i class="frame-none"></i><span>Libre</span></button>
+            <button [disabled]="item.isBackground" [class.active]="item.imageFrame === 'clean'" (click)="applyImageFrame('clean')"><i class="frame-clean"></i><span>Clean</span></button>
+            <button [disabled]="item.isBackground" [class.active]="item.imageFrame === 'window'" (click)="applyImageFrame('window')"><i class="frame-window"></i><span>Ventana</span></button>
+            <button [disabled]="item.isBackground" [class.active]="item.imageFrame === 'soft'" (click)="applyImageFrame('soft')"><i class="frame-soft"></i><span>Soft</span></button>
+            <button [disabled]="item.isBackground" [class.active]="item.imageFrame === 'polaroid'" (click)="applyImageFrame('polaroid')"><i class="frame-polaroid"></i><span>Print</span></button>
+            <button [disabled]="item.isBackground" [class.active]="item.imageFrame === 'glass'" (click)="applyImageFrame('glass')"><i class="frame-glass"></i><span>Glass</span></button>
+            <button [disabled]="item.isBackground" [class.active]="item.imageFrame === 'tape'" (click)="applyImageFrame('tape')"><i class="frame-tape"></i><span>Cinta</span></button>
+            <button [disabled]="item.isBackground" [class.active]="item.imageFrame === 'sticker'" (click)="applyImageFrame('sticker')"><i class="frame-sticker"></i><span>Sticker</span></button>
+          </div>
+          <div class="property-heading subsection-heading"><span>AJUSTES</span><small>AFINA EL LOOK</small></div>
+          <div class="effect-control"><label><span>BLUR</span><b>{{ (item.imageBlur || 0) * 100 | number:'1.0-0' }}%</b></label><input type="range" min="0" max="0.5" step="0.01" [ngModel]="item.imageBlur || 0" (ngModelChange)="updateImageEffect('imageBlur', $event)"></div>
+          <div class="effect-control"><label><span>CONTRASTE</span><b>{{ (item.imageContrast || 0) * 100 | number:'1.0-0' }}</b></label><input type="range" min="-0.5" max="0.5" step="0.02" [ngModel]="item.imageContrast || 0" (ngModelChange)="updateImageEffect('imageContrast', $event)"></div>
+          <div class="effect-control"><label><span>BRILLO</span><b>{{ (item.imageBrightness || 0) * 100 | number:'1.0-0' }}</b></label><input type="range" min="-0.3" max="0.3" step="0.02" [ngModel]="item.imageBrightness || 0" (ngModelChange)="updateImageEffect('imageBrightness', $event)"></div>
+          <div class="effect-control"><label><span>SATURACIÓN</span><b>{{ (item.imageSaturation || 0) * 100 | number:'1.0-0' }}</b></label><input type="range" min="-0.8" max="0.8" step="0.04" [ngModel]="item.imageSaturation || 0" (ngModelChange)="updateImageEffect('imageSaturation', $event)"></div>
+          <div class="effect-control"><label><span>TAMAÑO DE TRAMA</span><b>{{ item.imagePixelate || 7 }}px</b></label><input type="range" min="3" max="24" step="1" [ngModel]="item.imagePixelate || 7" (ngModelChange)="updateImageEffect('imagePixelate', $event)"></div>
+          <div class="effect-control"><label><span>GRANO</span><b>{{ item.imageNoise || 0 }}</b></label><input type="range" min="0" max="180" step="4" [ngModel]="item.imageNoise || 0" (ngModelChange)="updateImageEffect('imageNoise', $event)"></div>
+          <div class="effect-control"><label><span>OPACIDAD</span><b>{{ item.opacity * 100 | number:'1.0-0' }}%</b></label><input type="range" min="0.1" max="1" step="0.02" [ngModel]="item.opacity" (ngModelChange)="updateSelected('opacity', $event)"></div>
+          <div class="effect-control"><label><span>ESQUINAS</span><b>{{ (item.radius || 0) | number:'1.0-0' }}px</b></label><input type="range" min="0" max="80" step="2" [ngModel]="item.radius || 0" (ngModelChange)="updateImageEffect('radius', $event)"></div>
+          <button class="reset-effects" (click)="resetImageEffects()">Restablecer imagen</button>
+        </section>
+
+        <section class="property-section">
+          <span>APARIENCIA</span>
+          <label class="color-row">RELLENO<input type="color" [ngModel]="item.fill || '#1A1A1A'" (ngModelChange)="updateSelected('fill', $event)"><b>{{ item.fill }}</b></label>
+          <div class="stack-actions"><button (click)="bringForward()">Traer al frente</button><button (click)="sendBackward()">Enviar al fondo</button></div>
+          <div class="visual-group-actions" *ngIf="item.generatedVisualId"><button (click)="selectGeneratedVisual()">Seleccionar conjunto</button><button (click)="detachGeneratedVisual()">Separar capas</button></div>
+        </section>
+      </ng-container>
+
+      <ng-template #noSelection>
+        <div class="visual-group-actions standalone" *ngIf="hasGeneratedVisualSelection()"><button (click)="selectGeneratedVisual()">Seleccionar conjunto</button><button (click)="detachGeneratedVisual()">Separar capas</button></div>
+        <div class="no-selection">
+          <b>Selecciona un objeto</b>
+          <p>Haz clic en el canvas. Si eliges una imagen verás aquí marcos, blur y ajustes; si eliges texto podrás editarlo.</p>
+        </div>
+        <section class="property-section">
+          <span>FONDO DE ESCENA</span>
+          <div class="palette-picks"><button *ngFor="let color of activePalette()" [style.background]="color" (click)="setBackground(color)" [title]="color"></button></div>
+          <button class="background-action" (click)="uploadBackgroundImage()">▧ Subir imagen de fondo</button>
+        </section>
+      </ng-template>
+    </aside>
+  </div>
+
+  <footer class="export-bar">
+    <div class="storage-meter" *ngIf="convertingVideo() === null">
+      <span>ALMACENAMIENTO {{ storage().persistent ? 'PERSISTENTE' : 'LOCAL' }}</span>
+      <div><i [style.width.%]="storagePercent()"></i></div>
+      <small>{{ formatBytes(storage().usage) }} / {{ formatBytes(storage().quota) }} · {{ storagePercent() }}%</small>
+    </div>
+    <div class="video-progress" *ngIf="convertingVideo() !== null">
+      <span>CONVIRTIENDO VIDEO → GIF</span>
+      <div><i [style.width.%]="convertingVideo()"></i></div>
+      <small>{{ convertingVideo() }}%</small>
+    </div>
+    <div class="export-actions">
+      <button class="primary-export" (click)="exportPng()">Exportar PNG →</button>
+      <button class="motion-export" [disabled]="exportingGif()" (click)="exportGif()">{{ exportingGif() ? 'Creando GIF…' : 'GIF animado' }}</button>
+      <details class="more-exports">
+        <summary>Proyecto y respaldo</summary>
+        <div><button (click)="exportSvg()">SVG</button><button (click)="exportJson()">JSON editable</button><button (click)="exportPack()">Backup .pack</button><button (click)="openPack()">Restaurar</button></div>
+      </details>
+    </div>
+  </footer>
+
+  <input #imageInput class="hidden-input" type="file" accept="image/png,image/jpeg,image/webp" (change)="handleImageUpload($event)">
+  <input #backgroundInput class="hidden-input" type="file" accept="image/png,image/jpeg,image/webp" (change)="handleBackgroundUpload($event)">
+  <input #videoInput class="hidden-input" type="file" accept="video/mp4,video/webm,video/quicktime" (change)="handleVideoUpload($event)">
+  <input #packInput class="hidden-input" type="file" accept=".polyedro-pack,application/zip" (change)="importPack($event)">
+  <poly-cutout-editor *ngIf="cutoutSource() as source" [source]="source" (closed)="closeCutoutEditor()" (saved)="saveCutout($event)"></poly-cutout-editor>
+</section>

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <title>Polyedro — Arbe Editorial Studio</title>
+    <base href="/">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Convierte ideas técnicas en publicaciones editoriales para Instagram y LinkedIn.">
+    <meta name="theme-color" content="#18181b">
+    <script>
+      (() => {
+        try {
+          const saved = localStorage.getItem("polyedro-theme");
+          document.documentElement.dataset.theme = saved === "light" ? "light" : "dark";
+        } catch {
+          document.documentElement.dataset.theme = "dark";
+        }
+      })();
+    </script>
+  </head>
+  <body><poly-root></poly-root></body>
+</html>

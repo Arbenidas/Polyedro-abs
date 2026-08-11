@@ -1,0 +1,58 @@
+{
+  "$schema": "./node_modules/@angular/cli/lib/config/schema.json",
+  "version": 1,
+  "newProjectRoot": "projects",
+  "projects": {
+    "web": {
+      "projectType": "application",
+      "root": "",
+      "sourceRoot": "src",
+      "prefix": "poly",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "index": "src/index.html",
+            "browser": "src/main.ts",
+            "tsConfig": "tsconfig.app.json",
+            "assets": [
+              { "glob": "**/*", "input": "public" },
+              {
+                "glob": "space-grotesk-latin-wght-normal.woff2",
+                "input": "node_modules/@fontsource-variable/space-grotesk/files",
+                "output": "fonts"
+              },
+              {
+                "glob": "share-tech-mono-latin-400-normal.woff2",
+                "input": "node_modules/@fontsource/share-tech-mono/files",
+                "output": "fonts"
+              },
+              {
+                "glob": "merriweather-latin-400-normal.woff2",
+                "input": "node_modules/@fontsource/merriweather/files",
+                "output": "fonts"
+              },
+              {
+                "glob": "merriweather-latin-700-normal.woff2",
+                "input": "node_modules/@fontsource/merriweather/files",
+                "output": "fonts"
+              }
+            ],
+            "allowedCommonJsDependencies": ["gifenc", "pako"],
+            "styles": ["src/styles.css"],
+            "outputPath": "dist/web"
+          },
+          "configurations": {
+            "production": { "optimization": true, "outputHashing": "all" },
+            "development": { "optimization": false, "sourceMap": true }
+          }
+        },
+        "serve": { "builder": "@angular/build:dev-server", "configurations": { "production": { "buildTarget": "web:build:production" }, "development": { "buildTarget": "web:build" } }, "defaultConfiguration": "development" }
+      }
+    }
+  },
+  "cli": {
+    "cache": { "enabled": false },
+    "analytics": "e3d19ae6-37ac-4ecd-9d06-5918d8ea3f35"
+  }
+}

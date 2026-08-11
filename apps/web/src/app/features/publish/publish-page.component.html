@@ -1,0 +1,114 @@
+<poly-app-header section="04 / Publicar" [wide]="true"></poly-app-header>
+<main id="main-content" class="page-shell publish-page" *ngIf="project() as current">
+  <header class="publish-head page-width">
+    <div>
+      <span class="eyebrow">LISTO PARA PUBLICAR</span>
+      <h1>{{ current.plan.topic }}</h1>
+      <p>{{ current.plan.recommendedSlideCount }} lámina{{ current.plan.recommendedSlideCount === 1 ? '' : 's' }} · {{ current.preferences.channel }} · {{ current.plan.contentType }}</p>
+    </div>
+    <div class="publish-actions">
+      <a class="back-link" [routerLink]="['/brands', brandId, 'content', current.id, 'edit']">← Volver al editor</a>
+    </div>
+  </header>
+
+  <section class="summary-card page-width">
+    <div class="summary-row">
+      <span class="label">CATEGORÍA</span><b>{{ current.plan.contentType }}</b>
+      <span class="label">GOAL</span><b>{{ current.preferences.goal }}</b>
+      <span class="label">HOOK</span><b>{{ activeHook()?.text }}</b>
+    </div>
+  </section>
+
+  <section class="storyboard-section page-width">
+    <div class="section-title"><span class="eyebrow">STORYBOARD</span><small>{{ slides().length }} LÁMINAS</small></div>
+    <div class="storyboard-grid">
+      <article *ngFor="let item of slides()" class="slide-card">
+        <div class="slide-thumb">
+          <poly-scene-thumbnail *ngIf="item.scene" [scene]="item.scene"></poly-scene-thumbnail>
+        </div>
+        <span class="slide-num">{{ item.index }}</span>
+        <small class="slide-role">{{ item.plan?.role }} · {{ item.plan?.recipeId }}</small>
+      </article>
+    </div>
+  </section>
+
+  <section class="copies-section page-width">
+    <div class="section-title"><span class="eyebrow">COPY POR LÁMINA</span><small>PARA REDES</small></div>
+    <div class="copies-list">
+      <ng-container *ngFor="let item of slides()">
+      <article class="copy-row" *ngIf="item.plan as plan">
+        <div class="copy-head">
+          <b>{{ item.index }}. {{ plan.role | uppercase }}</b>
+          <button (click)="copySlideCopy(item.index, slideCopy(plan, item.index - 1))">
+            {{ slideCopied() === item.index ? '✓ Copiado' : 'Copiar' }}
+          </button>
+        </div>
+        <p class="copy-headline">{{ item.index === 1 ? (activeHook()?.text ?? plan.headline) : plan.headline }}</p>
+        <p class="copy-body" *ngIf="plan.body">{{ plan.body }}</p>
+      </article>
+      </ng-container>
+    </div>
+  </section>
+
+  <section class="caption-section page-width">
+    <div class="section-title">
+      <span class="eyebrow">COPY PARA REDES SOCIALES</span>
+      <small>INSTAGRAM · LINKEDIN · TIKTOK</small>
+    </div>
+    <div class="copy-toolbar">
+      <div class="copy-mode-picker" aria-label="Extensión del copy">
+        <button [class.active]="copyMode()==='short'" (click)="copyMode.set('short')">Corto · caption</button>
+        <button [class.active]="copyMode()==='long'" (click)="copyMode.set('long')">Largo · post completo</button>
+      </div>
+      <button class="generate-copy" [disabled]="copyGenerating()" (click)="generateCopyForNetworks()">
+        {{ copyGenerating() ? 'Generando…' : '✦ Generar con IA' }}
+      </button>
+    </div>
+    <div class="copy-hint" *ngIf="copyMode()==='short'">
+      Caption corto: 2-4 líneas con hook, dato y CTA. Ideal para acompañar el carrusel.
+    </div>
+    <div class="copy-hint" *ngIf="copyMode()==='long'">
+      Post largo tipo LinkedIn: hook, secciones numeradas, regla de oro y pregunta de engagement. Listo para pegar en redes.
+    </div>
+    <textarea class="copy-editor" [(ngModel)]="copyText" (ngModelChange)="copyText.set($event)" [placeholder]="copyMode()==='short' ? captionText : 'Generá un post largo con la IA o escribilo vos…'" spellcheck="false"></textarea>
+    <p class="copy-error" *ngIf="copyError()">{{ copyError() }}</p>
+    <div class="caption-actions">
+      <button class="copy-caption" (click)="copyNetworkCopy()">
+        {{ captionCopied() ? '✓ Copiado' : 'Copiar copy' }}
+      </button>
+      <small>{{ copyForMode().length }} caracteres</small>
+    </div>
+  </section>
+
+  <section class="article-section page-width" *ngIf="article() as draft">
+    <div class="section-title">
+      <span class="eyebrow">BORRADOR DEL ARTÍCULO</span>
+      <small>PARA EL BLOG · {{ draft.sources.length }} FUENTES</small>
+    </div>
+    <div class="article-box">
+      <h2>{{ draft.title }}</h2>
+      <pre>{{ draft.body }}</pre>
+      <div class="article-sources" *ngIf="draft.sources.length">
+        <span class="label">FUENTES</span>
+        <ul><li *ngFor="let source of draft.sources"><a [href]="source.url" target="_blank" rel="noopener noreferrer">{{ source.title }}</a></li></ul>
+      </div>
+    </div>
+    <button class="copy-caption" (click)="copyArticle()">
+      {{ articleCopied() ? '✓ Artículo copiado' : 'Copiar artículo (markdown)' }}
+    </button>
+  </section>
+
+  <section class="export-section page-width">
+    <button class="download-zip" [disabled]="exporting()" (click)="downloadZip()">
+      {{ exporting() ? 'Preparando…' : 'Descargar ZIP Instagram' }}
+    </button>
+  </section>
+
+  <p class="notice page-width" *ngIf="notice()">{{ notice() }}</p>
+</main>
+
+<main class="loading" *ngIf="loading()">Preparando resumen…</main>
+<section class="missing-state" *ngIf="missing()">
+  <h2>No encontramos este proyecto.</h2>
+  <a [routerLink]="['/brands', brandId]">Volver a proyectos →</a>
+</section>

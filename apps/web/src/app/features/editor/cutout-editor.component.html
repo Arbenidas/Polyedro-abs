@@ -1,0 +1,60 @@
+<aside class="cutout-backdrop" role="dialog" aria-modal="true" aria-label="Editor de recorte">
+  <section class="cutout-dialog">
+    <header>
+      <div><span>POLYEDRO / CUTOUT LAB</span><h2>Convierte la figura en sticker.</h2></div>
+      <button type="button" class="close" (click)="closed.emit()" aria-label="Cerrar editor">×</button>
+    </header>
+
+    <div class="cutout-layout">
+      <main class="preview-stage">
+        <div class="progress-card" *ngIf="phase() === 'loading' || phase() === 'automatic'">
+          <i></i><b>{{ status() }}</b>
+          <div *ngIf="progress() !== null"><span [style.width.%]="progress()"></span></div>
+          <small>La imagen se procesa en este navegador. No se sube a Polyedro.</small>
+          <button *ngIf="phase() === 'automatic'" type="button" (click)="cancelAutomatic()">Usar recorte manual</button>
+        </div>
+        <canvas
+          #preview
+          [class.is-before]="before()"
+          (pointerdown)="beginStroke($event)"
+          (pointermove)="continueStroke($event)"
+          (pointerup)="endStroke($event)"
+          (pointercancel)="endStroke($event)"
+          aria-label="Máscara editable del sticker"
+        ></canvas>
+        <div class="preview-label"><span>{{ before() ? "ORIGINAL" : "RECORTE" }}</span><b>{{ source.asset.name }}</b></div>
+      </main>
+
+      <aside class="cutout-controls">
+        <section>
+          <span>01 / RETOQUE</span>
+          <div class="tool-switch">
+            <button type="button" [class.active]="tool() === 'erase'" (click)="setTool('erase')">− Borrar</button>
+            <button type="button" [class.active]="tool() === 'restore'" (click)="setTool('restore')">＋ Restaurar</button>
+          </div>
+          <label>Tamaño del pincel <b>{{ brushSize }} px</b><input type="range" min="8" max="180" step="2" [(ngModel)]="brushSize"></label>
+          <div class="history-actions"><button type="button" [disabled]="!canUndo()" (click)="undo()">↶ Deshacer</button><button type="button" [disabled]="!canRedo()" (click)="redo()">↷ Rehacer</button></div>
+          <button type="button" class="before-action" (click)="toggleBefore()">{{ before() ? "Ver recorte" : "Ver original" }}</button>
+        </section>
+
+        <section>
+          <span>02 / BORDE</span>
+          <label>Expandir / contraer <b>{{ edge }} px</b><input type="range" min="-8" max="8" step="1" [(ngModel)]="edge"></label>
+          <label>Suavizado <b>{{ feather }} px</b><input type="range" min="0" max="12" step="1" [(ngModel)]="feather"></label>
+        </section>
+
+        <section>
+          <span>03 / ESTILO</span>
+          <label class="color-control">Color del contorno <input type="color" [(ngModel)]="outlineColor"></label>
+          <label>Contorno <b>{{ outlineWidth }} px</b><input type="range" min="0" max="18" step="1" [(ngModel)]="outlineWidth"></label>
+          <label>Sombra <b>{{ shadowBlur }} px</b><input type="range" min="0" max="36" step="2" [(ngModel)]="shadowBlur"></label>
+        </section>
+      </aside>
+    </div>
+
+    <footer>
+      <p>{{ status() }}</p>
+      <div><button type="button" class="secondary" [disabled]="phase() !== 'refine'" (click)="save(false)">Guardar en biblioteca</button><button type="button" class="primary" [disabled]="phase() !== 'refine'" (click)="save(true)">Guardar y reemplazar →</button></div>
+    </footer>
+  </section>
+</aside>
