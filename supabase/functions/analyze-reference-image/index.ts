@@ -10,7 +10,7 @@ import { mimoJson, toDataUrl, type MimoMessage } from "../_shared/mimo.ts";
 // Output: un VisualIntent (mismo shape que generate-contextual-visual-spec)
 // para que Angular lo normalice y construya el blueprint editable.
 
-const COMPOSITIONS = ["hick-fitts", "measurement", "comparison", "flow", "architecture", "data", "icon", "git-merge", "editorial-diagram", "typographic-poster", "symbolic-poster", "editorial-grid", "object", "scene", "metaphor"] as const;
+const COMPOSITIONS = ["hick-fitts", "measurement", "comparison", "flow", "architecture", "data", "icon", "git-merge", "editorial-diagram", "typographic-poster", "symbolic-poster", "editorial-grid", "editorial-comparison", "object", "scene", "metaphor"] as const;
 const OUTPUTS = ["diagram", "image"] as const;
 const KINDS = ["connects", "compares", "contains", "measures"] as const;
 const STYLE_FAMILIES = ["typographic-poster", "editorial-layout", "diagram", "collage", "image-led"] as const;
@@ -118,6 +118,26 @@ function normalizeEditorialCopy(value: unknown, concept: string) {
   };
 }
 
+function normalizeComparisonProfile(value: unknown) {
+  if (!isObject(value)) return undefined;
+  const normalizeItems = (items: unknown) => (Array.isArray(items) ? items : []).filter(isObject).slice(0, 5).flatMap((item) => {
+    const title = text(item.title, 34);
+    const detail = text(item.detail, 92);
+    if (!title || !detail) return [];
+    return [{ title, detail, icon: text(item.icon, 40) || "circle" }];
+  });
+  const leftItems = normalizeItems(value.leftItems);
+  const rightItems = normalizeItems(value.rightItems);
+  if (leftItems.length < 2 || rightItems.length < 2) return undefined;
+  return {
+    leftLabel: text(value.leftLabel, 24) || "ANTES",
+    rightLabel: text(value.rightLabel, 24) || "AHORA",
+    leftItems,
+    rightItems,
+    footer: text(value.footer, 160),
+  };
+}
+
 function normalizeDiagram(value: unknown, fallbackTitle: string) {
   if (!isObject(value)) return undefined;
   const nodes = (Array.isArray(value.nodes) ? value.nodes : [])
@@ -157,7 +177,10 @@ function normalizeSpec(value: unknown, input: JsonObject): Record<string, unknow
   const rawReferenceStyle = isObject(value.referenceStyle) ? value.referenceStyle : {};
   const concept = text(value.concept, 180) || "Interpretación del estilo de la referencia";
   const diagramProfile = normalizeDiagram(value.diagramProfile, concept);
-  const composition = rawReferenceStyle.family === "typographic-poster"
+  const comparisonProfile = normalizeComparisonProfile(value.comparisonProfile);
+  const composition = comparisonProfile
+    ? "editorial-comparison"
+    : rawReferenceStyle.family === "typographic-poster"
     ? "typographic-poster"
     : rawReferenceStyle.layoutArchetype === "grid"
       ? "editorial-grid"
@@ -185,6 +208,7 @@ function normalizeSpec(value: unknown, input: JsonObject): Record<string, unknow
     exactLabels: strings(value.exactLabels, 10),
     composition,
     ...(diagramProfile ? { diagramProfile } : {}),
+    ...(comparisonProfile ? { comparisonProfile } : {}),
     aspectRatio: Math.max(.5, Math.min(2, Number(value.aspectRatio) || 1.5)),
     prompt: text(value.prompt, 2_000) || "Interpretación editorial editable basada en la imagen de referencia.",
     rationale: text(value.rationale, 320) || "Se extrajo la estructura visual de la referencia y se adaptó al tema en desarrollo.",
@@ -209,6 +233,7 @@ Deno.serve(async (request) => {
 
     const draft = text(input.draftContext, 8_000);
     const theme = text(input.theme, 1_000);
+    const autoDemo = input.autoDemo === true || /(?:titular|cuerpo) de prueba|el sistema antes que el prompt|la plantilla conserva|lorem ipsum|sin t[ií]tulo/iu.test(draft);
 
     const system = `Eres el director de información visual y editor de copy de Polyedro. Recibes una imagen de REFERENCIA (solo inspiración) y el contexto de un borrador editorial en desarrollo. Tu trabajo: analizar la imagen de referencia y generar una especificación EDITABLE que conserve su gramática visual, PERO adaptada al tema del borrador — nunca reproduzcas el contenido literal, texto, logos o marcas de la imagen original. Devuelve solamente JSON válido y nunca SVG ni HTML. Puedes devolver posiciones RELATIVAS normalizadas (0-1), nunca coordenadas absolutas.
 
@@ -230,6 +255,7 @@ Extrae de la referencia:
   - headline: titular específico de 5-10 palabras con una sola promesa o idea; evita repetir el borrador literalmente si puede editarse mejor.
   - deck: bajada de 8-18 palabras que añade contexto o utilidad; nunca repite el titular con sinónimos.
   - closingInsight: conclusión útil de máximo 16 palabras; debe dejar un criterio accionable, no una moraleja genérica.
+- comparisonProfile: OBLIGATORIO cuando la referencia tenga dos columnas paralelas, un antes/después, versus o evolución lado a lado. En ese caso usa composition editorial-comparison, no comparison genérico ni cajas vacías. Devuelve leftLabel y rightLabel, 3-5 leftItems y 3-5 rightItems emparejados por posición. Cada item contiene title de 1-3 palabras, detail de 5-11 palabras e icon compatible con Google Material Symbols. Usa la misma forma gramatical en ambos lados y un footer que sintetice el cambio sin repetir el titular.
 - aspectRatio: proporción ancho/alto de la pieza sugerida.
 - referenceStyle: el ADN visual que permite reconstruir la jerarquía. Usa family typographic-poster y layoutArchetype type-led cuando la tipografía sea el elemento dominante. Usa composition symbolic-poster y layoutArchetype symbol-led cuando un solo símbolo, signo, número, letra, marco o forma sobredimensionada sea el gesto visual principal. Usa composition editorial-grid y layoutArchetype grid cuando haya 4-6 celdas repetidas con número, icono, título y explicación; gridProfile conserva columnas, filas, numeración, tratamiento de tarjetas y banda final. Los iconos no se copian: describe conceptos semánticos y el frontend elegirá Google Material Symbols coherentes. focalPoint usa x/y/width normalizados. dominantMotif describe el gesto simbólico: kind, value adaptado al borrador, tratamiento, posición, escala y rotación. No conviertas fotografías ni logos en dominantMotif. Describe también alineación, escala del headline, categorías tipográficas, peso, line-height, tracking, uso del acento, espacio negativo, textura y micro-motivos. colorRoles asigna los colores por función; paper es el fondo, ink el texto principal, accent el énfasis y secondary el apoyo.
 - templateUsage: en qué roles y contextos editoriales conviene reutilizar el sistema visual. Los keywords deben venir del borrador, no de la referencia.
@@ -240,10 +266,12 @@ Para referencias diagramáticas como flujos de agentes, comparaciones MCP vs Fun
 
 Estándar de calidad: escribe como un editor humano, con verbos concretos y tensión real. Evita clichés de IA como "desbloquea", "revoluciona", "lleva al siguiente nivel", "en el mundo actual", "una buena estructura", "punto clave" o "solución innovadora". No inventes cifras, resultados, testimonios ni hechos que el borrador no sostenga. No copies texto visible de la referencia.
 
-La imagen jamás debe reproducirse; es dirección estética y estructura relativa. Usa exactamente esta forma: {"version":1,"output":"diagram|image","concept":"...","elements":["Título | descripción"],"relations":[{"from":"...","to":"...","kind":"connects|compares|contains|measures","label":"opcional"}],"exactLabels":["..."],"composition":"${COMPOSITIONS.join("|")}","diagramProfile":{"kind":"flow|timeline|comparison|layers|cycle|system","title":"...","caption":"...","nodes":[{"id":"agent","label":"Agente","detail":"Decide la siguiente acción","icon":"smart_toy","group":"left|right|center"}],"edges":[{"from":"agent","to":"tool","label":"opcional"}],"compareLabels":["Sistema A","Sistema B"]},"palette":["#RRGGBB"],"aspectRatio":0.8,"prompt":"...","rationale":"...","styleSummary":"...","editorialCopy":{"kicker":"PLAYBOOK / 06","headline":"...","deck":"...","closingInsight":"..."},"referenceStyle":{"family":"typographic-poster|editorial-layout|diagram|collage|image-led","layoutArchetype":"type-led|symbol-led|grid|split|framed|collage|diagrammatic","alignment":"left|center|right|asymmetric","focalPoint":{"x":0.5,"y":0.52,"width":0.78},"headlineScale":"medium|large|massive","displayFont":"grotesk|condensed|serif|mono","supportingFont":"grotesk|condensed|serif|mono","headlineWeight":850,"lineHeight":0.88,"tracking":-18,"textCase":"sentence|uppercase|mixed","accentMode":"word|block|underline|none","negativeSpace":"compact|balanced|expansive","texture":"clean|paper|grain|halftone","motifPlacement":"corners|edges|around-focal|none","dominantMotif":{"kind":"punctuation|number|letter|geometric|frame|abstract|none","value":"?","treatment":"solid|outline|cutout|repeated|cropped","x":0.5,"y":0.62,"width":0.42,"rotation":0},"gridProfile":{"columns":3,"rows":2,"numbered":true,"iconStyle":"outlined|filled","cardTreatment":"open|outlined|soft","footerBand":true},"colorRoles":{"paper":"#F7F2EA","ink":"#17212B","accent":"#F45B45","secondary":"#8B959C"},"summary":"..."},"templateUsage":{"intent":"...","roles":["cover"],"contentTypes":["tutorial"],"keywords":["..."],"avoidWhen":["..."]},"signature":"..."}`;
+Cuando autoDemo sea true o el borrador sea provisional/genérico, tú eliges un tema de demostración específico que haga visible la utilidad de la estructura. No pidas titular, cuerpo ni formato al usuario. Conserva la categoría semántica de la referencia (por ejemplo, una comparación de evolución profesional sigue siendo una comparación de evolución), pero inventa copy demostrativo original, sin marcas, cifras ni afirmaciones verificables. La proporción de la imagen decide el formato.
+
+La imagen jamás debe reproducirse; es dirección estética y estructura relativa. Usa exactamente esta forma: {"version":1,"output":"diagram|image","concept":"...","elements":["Título | descripción"],"relations":[{"from":"...","to":"...","kind":"connects|compares|contains|measures","label":"opcional"}],"exactLabels":["..."],"composition":"${COMPOSITIONS.join("|")}","comparisonProfile":{"leftLabel":"ANTES","rightLabel":"AHORA","leftItems":[{"title":"Pantallas","detail":"Diseña estados aislados para entregar","icon":"desktop_windows"}],"rightItems":[{"title":"Sistemas","detail":"Diseña reglas que sostienen el flujo","icon":"account_tree"}],"footer":"El oficio permanece; cambia la capacidad de ejecución."},"diagramProfile":{"kind":"flow|timeline|comparison|layers|cycle|system","title":"...","caption":"...","nodes":[{"id":"agent","label":"Agente","detail":"Decide la siguiente acción","icon":"smart_toy","group":"left|right|center"}],"edges":[{"from":"agent","to":"tool","label":"opcional"}],"compareLabels":["Sistema A","Sistema B"]},"palette":["#RRGGBB"],"aspectRatio":0.8,"prompt":"...","rationale":"...","styleSummary":"...","editorialCopy":{"kicker":"PLAYBOOK / 06","headline":"...","deck":"...","closingInsight":"..."},"referenceStyle":{"family":"typographic-poster|editorial-layout|diagram|collage|image-led","layoutArchetype":"type-led|symbol-led|grid|split|framed|collage|diagrammatic","alignment":"left|center|right|asymmetric","focalPoint":{"x":0.5,"y":0.52,"width":0.78},"headlineScale":"medium|large|massive","displayFont":"grotesk|condensed|serif|mono","supportingFont":"grotesk|condensed|serif|mono","headlineWeight":850,"lineHeight":0.88,"tracking":-18,"textCase":"sentence|uppercase|mixed","accentMode":"word|block|underline|none","negativeSpace":"compact|balanced|expansive","texture":"clean|paper|grain|halftone","motifPlacement":"corners|edges|around-focal|none","dominantMotif":{"kind":"punctuation|number|letter","value":"?","treatment":"solid|outline|cutout|repeated|cropped","x":0.5,"y":0.62,"width":0.42,"rotation":0},"gridProfile":{"columns":3,"rows":2,"numbered":true,"iconStyle":"outlined|filled","cardTreatment":"open|outlined|soft","footerBand":true},"colorRoles":{"paper":"#F7F2EA","ink":"#17212B","accent":"#F45B45","secondary":"#8B959C"},"summary":"..."},"templateUsage":{"intent":"...","roles":["comparison"],"contentTypes":["comparison"],"keywords":["..."],"avoidWhen":["..."]},"signature":"..."}`;
 
     const userContent: MimoMessage["content"] = [
-      { type: "text", text: `Borrador en desarrollo: ${draft || theme || "Una pieza editorial sin tema explícito."}\n\nAnaliza la imagen de referencia y genera la especificación editable.` },
+      { type: "text", text: `Modo de demostración automática: ${autoDemo ? "sí" : "no"}.\nBorrador en desarrollo: ${autoDemo ? "Elige un tema demostrativo específico a partir de la estructura visual; ignora el copy provisional." : draft || theme || "Elige un tema demostrativo específico."}\n\nAnaliza la imagen de referencia y genera la especificación editable.` },
       { type: "image_url", image_url: { url: image } },
     ];
 

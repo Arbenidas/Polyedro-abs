@@ -16,7 +16,7 @@ export type ImageFilterMode = "none" | "bitmap" | "halftone" | "mosaic" | "cross
 export type VisualGenerationMode = "auto" | "diagram" | "image";
 export type VisualOutputKind = "diagram" | "image";
 export type VisualRole = "shape" | "label" | "connector" | "measurement" | "illustration";
-export type VisualComposition = "hick-fitts" | "measurement" | "comparison" | "flow" | "architecture" | "data" | "icon" | "git-merge" | "typographic-poster" | "symbolic-poster" | "editorial-grid" | "editorial-diagram" | "object" | "scene" | "metaphor";
+export type VisualComposition = "hick-fitts" | "measurement" | "comparison" | "flow" | "architecture" | "data" | "icon" | "git-merge" | "typographic-poster" | "symbolic-poster" | "editorial-grid" | "editorial-comparison" | "editorial-diagram" | "object" | "scene" | "metaphor";
 
 export type EditorialDiagramKind = "flow" | "timeline" | "comparison" | "layers" | "cycle" | "system";
 
@@ -91,6 +91,14 @@ export type EditorialCopyProfile = {
   closingInsight: string;
 };
 
+export type EditorialComparisonProfile = {
+  leftLabel: string;
+  rightLabel: string;
+  leftItems: Array<{ title: string; detail: string; icon: string }>;
+  rightItems: Array<{ title: string; detail: string; icon: string }>;
+  footer: string;
+};
+
 export type VisualIntent = {
   version: 1;
   output: VisualOutputKind;
@@ -106,6 +114,7 @@ export type VisualIntent = {
   referenceStyle?: ReferenceStyleProfile;
   templateUsage?: TemplateUsageProfile;
   editorialCopy?: EditorialCopyProfile;
+  comparisonProfile?: EditorialComparisonProfile;
   diagramProfile?: EditorialDiagramProfile;
 };
 

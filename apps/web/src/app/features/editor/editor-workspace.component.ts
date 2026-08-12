@@ -4,6 +4,7 @@ import {
   SimpleChanges, ViewChild, computed, signal,
 } from "@angular/core";
 import { FormsModule } from "@angular/forms";
+import { Router } from "@angular/router";
 import {
   ActiveSelection, Canvas, Circle, Ellipse, FabricImage, FabricObject, Group, Line, Rect,
   Shadow, Textbox, Triangle, filters,
@@ -91,6 +92,7 @@ export class EditorWorkspaceComponent implements AfterViewInit, OnChanges, OnDes
   @ViewChild("canvasFrame") canvasFrame!: ElementRef<HTMLDivElement>;
   @ViewChild("stage") stage!: ElementRef<HTMLDivElement>;
   @ViewChild("imageInput") imageInput!: ElementRef<HTMLInputElement>;
+  @ViewChild("referenceInput") referenceInput!: ElementRef<HTMLInputElement>;
   @ViewChild("backgroundInput") backgroundInput!: ElementRef<HTMLInputElement>;
   @ViewChild("videoInput") videoInput!: ElementRef<HTMLInputElement>;
   @ViewChild("packInput") packInput!: ElementRef<HTMLInputElement>;
@@ -186,7 +188,13 @@ export class EditorWorkspaceComponent implements AfterViewInit, OnChanges, OnDes
   private readonly previewCache = new Map<string, SceneDocument>();
   private readonly assetObjectUrls = new Map<string, string>();
 
-  constructor(private readonly library: LocalLibraryService, private readonly exporter: ExportService, private readonly generation: GenerationService, private readonly videoToGif: VideoToGifService) {}
+  constructor(
+    private readonly library: LocalLibraryService,
+    private readonly exporter: ExportService,
+    private readonly generation: GenerationService,
+    private readonly videoToGif: VideoToGifService,
+    private readonly router: Router,
+  ) {}
 
   private activeBrand(): EditorialBrand {
     return { ...this.brand, palette: [...this.activePalette()] };
@@ -705,6 +713,7 @@ export class EditorWorkspaceComponent implements AfterViewInit, OnChanges, OnDes
   }
 
   uploadImage() { this.imageInput.nativeElement.click(); }
+  uploadReferenceImage() { this.referenceInput.nativeElement.click(); }
   uploadBackgroundImage() { this.backgroundInput.nativeElement.click(); }
   importVideo() { this.videoInput.nativeElement.click(); }
 
@@ -751,6 +760,15 @@ export class EditorWorkspaceComponent implements AfterViewInit, OnChanges, OnDes
     } finally {
       this.convertingVideo.set(null);
     }
+  }
+
+  async handleReferenceUpload(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = "";
+    if (!file) return;
+    const ok = await this.pasteImageAsReference(file);
+    if (!ok) this.status.set("La referencia no pudo convertirse. La imagen original no se añadió al lienzo.");
   }
 
   async openCutoutEditor() {
@@ -875,16 +893,21 @@ export class EditorWorkspaceComponent implements AfterViewInit, OnChanges, OnDes
     const scene = this.scene();
     if (!scene) return;
     const source = `${this.slide.headline} ${this.slide.body}`.toLocaleLowerCase();
-    const role: EditorialTemplate["slideRole"] = this.slide.slide_order === 1
+    const referencedUsage = scene.elements.flatMap((element) => {
+      if (!element.assetId) return [];
+      const asset = this.assets().find((candidate) => candidate.id === element.assetId);
+      return asset?.blueprint?.intent.templateUsage ? [asset.blueprint.intent.templateUsage] : [];
+    })[0];
+    const role: EditorialTemplate["slideRole"] = referencedUsage?.roles[0] ?? (this.slide.slide_order === 1
       ? "cover"
       : /antes|despu[eé]s|versus|\bvs\b|compar/.test(source)
         ? "comparison"
         : /guarda|comenta|comparte|prueba|empieza|descarga/.test(source)
           ? "cta"
-          : "step";
-    const label = this.slide.headline.split(/\s+/).filter(Boolean).slice(0, 4).join(" ");
+          : "step");
+    const label = referencedUsage?.intent || this.slide.headline;
     this.templateRole.set(role);
-    this.templateName.set(`Sistema · ${label || "sin título"}`.slice(0, 72));
+    this.templateName.set(`Sistema · ${label || "editorial"}`.slice(0, 72));
     this.templateUsageNote.set("");
     this.templateSaveOpen.set(true);
     window.setTimeout(() => document.querySelector(".template-save-card")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
@@ -929,6 +952,21 @@ export class EditorWorkspaceComponent implements AfterViewInit, OnChanges, OnDes
     this.templates.set([template, ...this.templates()]);
     this.templateSaveOpen.set(false);
     this.status.set(`“${template.name}” guardado. La IA lo considerará para ${selection.roles.join(", ")} · ${selection.contentTypes.join(", ")}.`);
+  }
+
+  async createScriptFromTemplate() {
+    const scene = this.scene();
+    if (!scene) return;
+    const intent = scene.elements.flatMap((element) => {
+      if (!element.assetId) return [];
+      const asset = this.assets().find((candidate) => candidate.id === element.assetId);
+      return asset?.blueprint?.intent ? [asset.blueprint.intent] : [];
+    })[0];
+    const topic = intent?.editorialCopy?.headline || intent?.concept || this.slide.headline;
+    const angle = intent?.editorialCopy?.closingInsight || intent?.editorialCopy?.deck || this.slide.body;
+    await this.router.navigate(["/brands", this.brand.id || "local-brand", "short-video", "new"], {
+      queryParams: { topic, angle, from: "image-template" },
+    });
   }
 
   templatePreview(template: EditorialTemplate) {
@@ -1917,6 +1955,7 @@ export class EditorWorkspaceComponent implements AfterViewInit, OnChanges, OnDes
     try {
       const dataUrl = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(reader.error); reader.readAsDataURL(file); });
       const draft = `${this.slide.headline} ${this.slide.body}`.trim();
+      const genericDraft = /(?:titular|cuerpo) de prueba|el sistema antes que el prompt|la plantilla conserva|lorem ipsum|sin t[ií]tulo/iu.test(draft);
       this.enriching.set(true);
       this.visualStage.set("interpreting");
       this.visualFeedback.set({ tone: "working", message: "MiMo está analizando la referencia y adaptándola al borrador…" });
@@ -1927,6 +1966,7 @@ export class EditorWorkspaceComponent implements AfterViewInit, OnChanges, OnDes
         draftContext: draft,
         theme: this.slide.headline,
         palette: this.activePalette(),
+        autoDemo: genericDraft,
       });
 
       // Normaliza el spec remoto al VisualIntent canónico (mismo path que el
@@ -1951,7 +1991,7 @@ export class EditorWorkspaceComponent implements AfterViewInit, OnChanges, OnDes
       const blueprint = createVisualBlueprint(intent, request.palette, draft);
       const saved = await this.saveVisualBlueprint(blueprint);
       await this.refreshLibrary();
-      const reconstructsFullLayout = ["typographic-poster", "symbolic-poster", "editorial-grid"].includes(intent.composition)
+      const reconstructsFullLayout = ["typographic-poster", "symbolic-poster", "editorial-grid", "editorial-comparison"].includes(intent.composition)
         || ["editorial-layout", "collage"].includes(intent.referenceStyle?.family ?? "");
       if (reconstructsFullLayout) await this.applyReferenceBlueprint(saved, blueprint);
       else await this.insertContextualAsset(saved);

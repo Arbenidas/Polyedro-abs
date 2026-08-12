@@ -34,7 +34,11 @@ export class ShortVideoStudioComponent {
     private readonly route: ActivatedRoute,
     private readonly router: Router,
     private readonly generation: GenerationService,
-  ) {}
+  ) {
+    const seededTopic = this.route.snapshot.queryParamMap.get("topic")?.trim();
+    const seededAngle = this.route.snapshot.queryParamMap.get("angle")?.trim();
+    if (seededTopic) this.topic = seededAngle ? `${seededTopic}. Enfoque: ${seededAngle}` : seededTopic;
+  }
 
   async setSourceMode(mode: ShortVideoSourceMode) {
     this.sourceMode = mode;

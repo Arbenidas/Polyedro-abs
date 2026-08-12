@@ -1,5 +1,5 @@
 import type {
-  EditorialCopyProfile, ReferenceStyleProfile, SceneElement, TemplateUsageProfile, VisualBlueprint, VisualComposition, VisualGenerationMode, VisualIntent, VisualRole,
+  EditorialComparisonProfile, EditorialCopyProfile, ReferenceStyleProfile, SceneElement, TemplateUsageProfile, VisualBlueprint, VisualComposition, VisualGenerationMode, VisualIntent, VisualRole,
 } from "./editor.models";
 import { googleMaterialSymbolSvg, materialSymbolForConcept } from "./google-material-symbols";
 import { createEditorialDiagramElements, normalizeEditorialDiagram } from "./editorial-diagram";
@@ -14,7 +14,7 @@ export type VisualIntentInput = {
   assetOnly?: boolean;
 };
 
-const COMPOSITIONS: VisualComposition[] = ["hick-fitts", "measurement", "comparison", "flow", "architecture", "data", "icon", "git-merge", "typographic-poster", "symbolic-poster", "editorial-grid", "editorial-diagram", "object", "scene", "metaphor"];
+const COMPOSITIONS: VisualComposition[] = ["hick-fitts", "measurement", "comparison", "flow", "architecture", "data", "icon", "git-merge", "typographic-poster", "symbolic-poster", "editorial-grid", "editorial-comparison", "editorial-diagram", "object", "scene", "metaphor"];
 const EXACT_VALUE = /\b\d+(?:[.,]\d+)?(?:\s*[×x]\s*\d+(?:[.,]\d+)?)?\s*(?:dp|px|pt|rem|em|%|ms|s|kb|mb|gb|°|cm|mm|m)\b/giu;
 const BARE_NUMBER = /\b\d+(?:[.,]\d+)?\b/gu;
 const LAW = /\bLey\s+(?:de\s+)?(?:Hick|Fitts|Miller|Jakob|Tesler|Pareto)\b/giu;
@@ -134,6 +134,29 @@ function normalizeEditorialCopy(value: unknown, fallbackHeadline: string): Edito
   };
 }
 
+function normalizeComparisonProfile(value: unknown): EditorialComparisonProfile | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const raw = value as Record<string, unknown>;
+  const normalizeItems = (items: unknown) => Array.isArray(items) ? items.slice(0, 5).flatMap((item, index) => {
+    if (!item || typeof item !== "object") return [];
+    const entry = item as Record<string, unknown>;
+    const title = clean(entry["title"], 34);
+    const detail = clean(entry["detail"], 92);
+    if (!title || !detail) return [];
+    return [{ title, detail, icon: clean(entry["icon"], 40) || materialSymbolForConcept(`${title} ${detail}`, index) }];
+  }) : [];
+  const leftItems = normalizeItems(raw["leftItems"]);
+  const rightItems = normalizeItems(raw["rightItems"]);
+  if (leftItems.length < 2 || rightItems.length < 2) return undefined;
+  return {
+    leftLabel: clean(raw["leftLabel"], 24) || "ANTES",
+    rightLabel: clean(raw["rightLabel"], 24) || "AHORA",
+    leftItems,
+    rightItems,
+    footer: clean(raw["footer"], 160),
+  };
+}
+
 function stringHash(value: string) {
   let result = 2166136261;
   for (let index = 0; index < value.length; index++) {
@@ -246,7 +269,10 @@ export function normalizeVisualIntent(value: unknown, input: VisualIntentInput):
   const source = visualSource(input);
   const exactLabels = unique([...extractExactLabels(source), ...(Array.isArray(raw["exactLabels"]) ? raw["exactLabels"].map((item) => clean(item, 120)) : [])], 10);
   const rawReferenceStyle = raw["referenceStyle"] && typeof raw["referenceStyle"] === "object" ? raw["referenceStyle"] as Record<string, unknown> : {};
-  const remoteComposition: VisualComposition = rawReferenceStyle["family"] === "typographic-poster"
+  const comparisonProfile = normalizeComparisonProfile(raw["comparisonProfile"]);
+  const remoteComposition: VisualComposition = comparisonProfile
+    ? "editorial-comparison"
+    : rawReferenceStyle["family"] === "typographic-poster"
     ? "typographic-poster"
     : rawReferenceStyle["layoutArchetype"] === "grid"
       ? "editorial-grid"
@@ -265,7 +291,7 @@ export function normalizeVisualIntent(value: unknown, input: VisualIntentInput):
     const kind = kinds.includes(relation["kind"] as typeof kinds[number]) ? relation["kind"] as typeof kinds[number] : "connects";
     return [{ from, to, kind, label: clean(relation["label"], 120) || undefined }];
   }) : fallback.relations;
-  const forcedDiagram = ["typographic-poster", "symbolic-poster", "editorial-grid", "editorial-diagram"].includes(composition) || requiresEditableDiagram(source) || input.requestedMode === "diagram";
+  const forcedDiagram = ["typographic-poster", "symbolic-poster", "editorial-grid", "editorial-comparison", "editorial-diagram"].includes(composition) || requiresEditableDiagram(source) || input.requestedMode === "diagram";
   const output = input.requestedMode === "image" ? "image" : forcedDiagram ? "diagram" : raw["output"] === "image" ? "image" : "diagram";
   const remoteConcept = clean(raw["concept"], 180) || fallback.concept;
   const editorialCopy = normalizeEditorialCopy(raw["editorialCopy"], remoteConcept);
@@ -285,6 +311,7 @@ export function normalizeVisualIntent(value: unknown, input: VisualIntentInput):
     referenceStyle: normalizeReferenceStyle(raw["referenceStyle"], composition),
     templateUsage: normalizeTemplateUsage(raw["templateUsage"]),
     editorialCopy,
+    comparisonProfile,
     diagramProfile,
   };
 }
@@ -413,6 +440,55 @@ function baseElements(intent: VisualIntent, colors: string[], dimensions: { widt
       folio: intent.editorialCopy?.kicker,
       compact: true,
     });
+  }
+
+  if (intent.composition === "editorial-comparison" && intent.comparisonProfile) {
+    const profile = intent.comparisonProfile;
+    const style = intent.referenceStyle;
+    const copy = intent.editorialCopy;
+    const displayFont = fontFor(style?.displayFont);
+    const supportingFont = fontFor(style?.supportingFont);
+    const margin = canvasWidth * .07;
+    const gap = canvasWidth * .028;
+    const columnWidth = (canvasWidth - margin * 2 - gap) / 2;
+    const headerY = canvasHeight * .285;
+    const cardsBottom = canvasHeight * .80;
+    const rowCount = Math.max(profile.leftItems.length, profile.rightItems.length);
+    const rowHeight = (cardsBottom - headerY - 44) / Math.max(3, rowCount);
+    const headline = posterLines(copy?.headline || intent.concept, 2);
+
+    label("Kicker", copy?.kicker || "CAMBIO / SISTEMA", margin, canvasHeight * .045, canvasWidth * .42, 12, "label", "left", ink);
+    label("Folio", "COMPARATIVA  ↗", canvasWidth * .64, canvasHeight * .045, canvasWidth * .29, 12, "label", "right", accent);
+    headline.forEach((line, index) => items.push(textElement(`Titular ${index + 1}`, line, margin, canvasHeight * (.085 + index * .064), canvasWidth * .86, canvasWidth * .075, index === headline.length - 1 ? accent : ink, items.length, "label", style?.alignment === "center" ? "center" : "left", {
+      fontFamily: displayFont, fontWeight: style?.headlineWeight ?? 900, lineHeight: .9, charSpacing: style?.tracking ?? -24,
+    })));
+    if (copy?.deck) items.push(textElement("Cuerpo", copy.deck, margin, canvasHeight * .225, canvasWidth * .78, 15, ink, items.length, "label", "left", { fontFamily: supportingFont, fontWeight: 450, lineHeight: 1.2, opacity: .65 }));
+
+    ([
+      { label: profile.leftLabel, items: profile.leftItems, x: margin, color: ink, wash: paper },
+      { label: profile.rightLabel, items: profile.rightItems, x: margin + columnWidth + gap, color: accent, wash: primary },
+    ] as const).forEach((column, columnIndex) => {
+      add({ type: "rect", name: `Columna ${column.label}`, x: column.x, y: headerY, width: columnWidth, height: cardsBottom - headerY, fill: column.wash, opacity: columnIndex ? .10 : 1, stroke: column.color, strokeWidth: columnIndex ? 2.2 : 1.2, radius: 14 }, "shape");
+      add({ type: "rect", name: `Pestaña ${column.label}`, x: column.x, y: headerY, width: columnWidth * .43, height: 44, fill: column.color, radius: 10 }, "shape");
+      label(`Etiqueta ${column.label}`, column.label.toLocaleUpperCase(), column.x + 14, headerY + 13, columnWidth * .36, 14, "label", "left", paper);
+      column.items.forEach((entry, index) => {
+        const y = headerY + 54 + index * rowHeight;
+        if (index) add({ type: "line", name: `Divisor ${columnIndex}-${index}`, x: column.x + 16, y, width: columnWidth - 32, height: 0, stroke: ink, strokeWidth: 1, opacity: .14 }, "connector");
+        const iconName = materialSymbolForConcept(`${entry.icon} ${entry.title} ${entry.detail}`, index);
+        add({ type: "circle", name: `Halo ${columnIndex}-${index}`, x: column.x + 16, y: y + 15, width: 34, height: 34, fill: column.color, opacity: .10 }, "shape");
+        add({ type: "svg", name: `Google Material · ${iconName}`, x: column.x + 23, y: y + 22, width: 20, height: 20, svg: googleMaterialSymbolSvg(iconName, column.color) }, "illustration");
+        label(`Título ${columnIndex}-${index}`, entry.title, column.x + 62, y + 13, columnWidth - 78, 14, "label", "left", ink);
+        label(`Detalle ${columnIndex}-${index}`, wrapEditorialText(entry.detail, 31, 2), column.x + 62, y + 35, columnWidth - 78, 10.5, "label", "left", ink);
+      });
+    });
+
+    add({ type: "rect", name: "Conclusión comparativa", x: margin, y: canvasHeight * .835, width: canvasWidth - margin * 2, height: canvasHeight * .075, fill: accent, radius: 10 }, "shape");
+    const footerIcon = materialSymbolForConcept("resultado lanzamiento impacto");
+    add({ type: "svg", name: `Google Material · ${footerIcon}`, x: margin + 18, y: canvasHeight * .851, width: 28, height: 28, svg: googleMaterialSymbolSvg(footerIcon, paper) }, "illustration");
+    label("Criterio final", wrapEditorialText(profile.footer || copy?.closingInsight || "El trabajo no cambió: cambió la capacidad para ejecutarlo.", 62, 2), margin + 62, canvasHeight * .846, canvasWidth - margin * 2 - 80, 15, "label", "left", paper);
+    label("Pie", "ANTES  →  DECISIÓN  →  DESPUÉS", margin, canvasHeight * .945, canvasWidth * .54, 10, "label", "left", ink);
+    label("Acción", "GUÁRDALO  ↘", canvasWidth * .72, canvasHeight * .945, canvasWidth * .21, 10, "label", "right", accent);
+    return items;
   }
 
   if (intent.composition === "editorial-grid") {
@@ -699,13 +775,13 @@ export function createVisualBlueprint(intent: VisualIntent, palette: string[], s
     ? { width: 520, height: 320 }
     : intent.composition === "editorial-diagram"
       ? { width: 720, height: 560 }
-    : ["typographic-poster", "symbolic-poster", "editorial-grid"].includes(intent.composition)
+    : ["typographic-poster", "symbolic-poster", "editorial-grid", "editorial-comparison"].includes(intent.composition)
       ? { width: 720, height: Math.round(Math.max(560, Math.min(1_000, 720 / intent.aspectRatio))) }
       : { width: 720, height: 440 };
   const encodedVariant = Number(intent.signature.split(":")[1]);
   const variant = Number.isFinite(encodedVariant) ? Math.abs(encodedVariant) % 3 : Number.parseInt(stringHash(intent.signature), 36) % 3;
   const sourceElements = baseElements(intent, palette, dimensions, sourceText, variant).slice(0, 80);
-  const elements = ["symbolic-poster", "editorial-grid", "editorial-diagram"].includes(intent.composition)
+  const elements = ["symbolic-poster", "editorial-grid", "editorial-comparison", "editorial-diagram"].includes(intent.composition)
     ? sourceElements
     : variant === 1
     ? sourceElements.map((item) => ({

@@ -165,6 +165,7 @@ export class GenerationService {
     draftContext: string;
     theme?: string;
     palette?: string[];
+    autoDemo?: boolean;
   }) {
     const { data, error } = await this.supabase.client.functions.invoke<VisualIntent & { palette?: string[]; styleSummary?: string }>("analyze-reference-image", { body: input });
     if (error) throw await this.functionError(error);

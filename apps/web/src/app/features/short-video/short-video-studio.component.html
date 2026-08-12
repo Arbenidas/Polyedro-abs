@@ -7,6 +7,9 @@
     </div>
     <p>Guiones breves que informan sin disfrazarse de clickbait. Las tendencias conservan su fuente y la puntuación mide calidad editorial, no “viralidad garantizada”.</p>
   </header>
+  <aside class="template-seed" *ngIf="topic && sourceMode==='topic'">
+    <b>ÁNGULO RECIBIDO</b><span>La plantilla visual ya definió la tensión; puedes editarla antes de crear el guion.</span>
+  </aside>
 
   <section class="source-rail" aria-label="Origen del guion">
     <button [class.active]="sourceMode==='topic'" (click)="setSourceMode('topic')"><b>01</b><span>Tema concreto<small>Escribe la idea que quieres explicar</small></span></button>

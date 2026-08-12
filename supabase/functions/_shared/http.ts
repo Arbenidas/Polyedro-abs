@@ -16,7 +16,7 @@ export function requireAuthorization(request: Request) {
   if (!candidate) throw new Error("AUTH_REQUIRED");
 
   const allowed = new Set<string>();
-  const configured = Deno.env.get("SUPABASE_PUBLISHABLE_KEYS");
+  const configured = Deno.env.get("POLYEDRO_PUBLIC_API_KEYS") ?? Deno.env.get("SUPABASE_PUBLISHABLE_KEYS");
   if (configured) {
     try {
       const keys = JSON.parse(configured) as Record<string, string>;

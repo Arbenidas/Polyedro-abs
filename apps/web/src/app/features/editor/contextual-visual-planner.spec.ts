@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildLocalVisualIntent, compileBlueprintSvg, createVisualBlueprint, normalizeVisualIntent, recolorVisualBlueprint,
 } from "./contextual-visual-planner";
+import { EDITORIAL_COMPARISON_DEMO } from "./editorial-comparison.fixture";
 
 const palette = ["#B8F34A", "#2F5DE5", "#F3F7F2", "#10251E"];
 
@@ -209,6 +210,19 @@ describe("contextual visual planner", () => {
 
     const recolored = recolorVisualBlueprint(blueprint, ["#FFD23F", "#3155E7", "#FFF8EA", "#151515"]);
     expect(recolored.elements.find((item) => item.name === "Google Material · search")?.svg).toContain("#3155E7");
+  });
+
+  it("reconstructs a rich editorial comparison instead of two empty boxes", () => {
+    const headline = EDITORIAL_COMPARISON_DEMO.concept;
+    const intent = normalizeVisualIntent(EDITORIAL_COMPARISON_DEMO, { selectedText: headline, slideContext: headline, palette });
+    const blueprint = createVisualBlueprint(intent, palette, headline);
+
+    expect(intent.composition).toBe("editorial-comparison");
+    expect(blueprint.width / blueprint.height).toBeCloseTo(.8, 1);
+    expect(blueprint.elements.filter((item) => item.name.startsWith("Google Material ·"))).toHaveLength(7);
+    expect(blueprint.elements.some((item) => item.content === "Sistemas")).toBe(true);
+    expect(blueprint.elements.some((item) => item.content?.includes("cambia la capacidad"))).toBe(true);
+    expect(blueprint.elements.filter((item) => item.name.startsWith("Detalle"))).toHaveLength(6);
   });
 
   it("turns a remote editorial diagram brief into a compact editable system map", () => {

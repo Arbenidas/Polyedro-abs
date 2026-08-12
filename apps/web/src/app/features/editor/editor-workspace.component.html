@@ -18,6 +18,7 @@
       <button title="Abrir herramientas de collage y stickers" (click)="setPanel('collage')"><b>✂</b><span>Collage</span></button>
       <button title="Añadir una forma" (click)="addShape('rect')"><b>□</b><span>Forma</span></button>
       <button title="Subir o pegar imagen" (click)="uploadImage()"><b>↑</b><span>Subir</span></button>
+      <button class="reference-tool" title="Crear una plantilla editable desde una imagen" (click)="uploadReferenceImage()"><b>◫</b><span>Plantilla IA</span></button>
       <button title="Subir una imagen a página completa" (click)="uploadBackgroundImage()"><b>▧</b><span>Fondo</span></button>
       <button title="Importar video y convertirlo a GIF animado" (click)="importVideo()"><b>▶</b><span>Video → GIF</span></button>
       <button class="vector-tool" title="Dibuja y guarda tu propio asset SVG" (click)="openAssetBuilder()"><b>✎</b><span>Crear SVG</span></button>
@@ -245,17 +246,13 @@
         <button class="wide accent" *ngIf="!templateSaveOpen()" (click)="openTemplateSave()">Guardar como sistema reutilizable</button>
         <section class="template-save-card" *ngIf="templateSaveOpen()">
           <header><span>GUARDAR SISTEMA</span><button (click)="templateSaveOpen.set(false)" aria-label="Cerrar">×</button></header>
-          <p>Se conserva la composición real del canvas. El formato se detecta automáticamente y el copy se reemplaza al reutilizarla.</p>
-          <label><span>NOMBRE</span><input [ngModel]="templateName()" (ngModelChange)="templateName.set($event)" maxlength="80"></label>
-          <div class="template-save-grid">
-            <label><span>MOMENTO</span><select [ngModel]="templateRole()" (ngModelChange)="templateRole.set($event)"><option value="cover">Portada</option><option value="intro">Introducción</option><option value="step">Desarrollo</option><option value="comparison">Comparación</option><option value="summary">Resumen</option><option value="cta">Cierre / CTA</option></select></label>
-            <div class="template-auto-format"><span>LIENZO</span><b>{{ templateChannelLabel() }}</b><small>detectado del canvas</small></div>
-          </div>
-          <label><span>ÚSALA CUANDO…</span><textarea [ngModel]="templateUsageNote()" (ngModelChange)="templateUsageNote.set($event)" maxlength="240" placeholder="Opcional: describe la intención; la IA completa el perfil con el contenido actual."></textarea></label>
+          <p>La IA nombra el sistema y decide momento, contexto y formato a partir de la composición. No necesita copy de prueba.</p>
+          <div class="template-auto-format"><span>DECISIÓN AUTOMÁTICA</span><b>{{ templateName() }}</b><small>{{ templateChannelLabel() }} · {{ templateRole() }}</small></div>
           <div class="template-ai-profile" *ngIf="inferredTemplateUsage() as usage">
             <span>PERFIL PARA LA IA</span><p>{{ usage.intent }}</p><div><em *ngFor="let type of usage.contentTypes">{{ type }}</em><em *ngFor="let keyword of usage.keywords.slice(0,3)">{{ keyword }}</em></div>
           </div>
           <div class="template-save-actions"><button (click)="templateSaveOpen.set(false)">Cancelar</button><button class="accent" (click)="saveCurrentAsTemplate()">Guardar sistema</button></div>
+          <button class="template-script-action" (click)="createScriptFromTemplate()"><span>CREAR GUION</span><small>Convierte este ángulo en Reel o TikTok →</small></button>
         </section>
       </div>
     </aside>
@@ -393,6 +390,7 @@
   </footer>
 
   <input #imageInput class="hidden-input" type="file" accept="image/png,image/jpeg,image/webp" (change)="handleImageUpload($event)">
+  <input #referenceInput class="hidden-input" type="file" accept="image/png,image/jpeg,image/webp" (change)="handleReferenceUpload($event)">
   <input #backgroundInput class="hidden-input" type="file" accept="image/png,image/jpeg,image/webp" (change)="handleBackgroundUpload($event)">
   <input #videoInput class="hidden-input" type="file" accept="video/mp4,video/webm,video/quicktime" (change)="handleVideoUpload($event)">
   <input #packInput class="hidden-input" type="file" accept=".polyedro-pack,application/zip" (change)="importPack($event)">
