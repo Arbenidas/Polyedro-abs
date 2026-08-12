@@ -1,23 +1,14 @@
-# Netlify config for the monorepo — deploys the Next.js app in apps/web.
-# With `base` set, Netlify detects the pnpm workspace root and installs
-# dependencies from there; the Next.js runtime plugin is auto-enabled.
+# Netlify config for the Angular app in apps/web.
 
 [build]
   base = "apps/web"
-  # Fall back to placeholder values when the site has no env vars set in
-  # the Netlify UI — a UI-set value always wins. Placeholders only satisfy
-  # env validation at build time; login requires the real Supabase values,
-  # so set NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and
-  # NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in
-  # Site settings → Environment variables.
-  command = "NEXT_PUBLIC_SERVER_URL=\"${NEXT_PUBLIC_SERVER_URL:-https://polyedro-abs-server-production.up.railway.app}\" NEXT_PUBLIC_SUPABASE_URL=\"${NEXT_PUBLIC_SUPABASE_URL:-https://placeholder.supabase.co}\" NEXT_PUBLIC_SUPABASE_ANON_KEY=\"${NEXT_PUBLIC_SUPABASE_ANON_KEY:-placeholder}\" NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=\"${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:-placeholder}\" pnpm build"
-  publish = ".next"
-
-# Explicitly enable the Next.js runtime plugin. Auto-detection is unreliable
-# in this pnpm monorepo (base = apps/web), which left the SSR handler out of
-# Git-triggered deploys and served a raw .next folder (404s everywhere).
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+  command = "pnpm build"
+  publish = "dist/web/browser"
 
 [build.environment]
-  NODE_VERSION = "22"
+  NODE_VERSION = "24"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
